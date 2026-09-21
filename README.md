@@ -29,11 +29,3 @@ data/synthetic_resume/
 Then run `notebooks/02_data_exploration.ipynb` to view example documents and
 basic dataset plots. The contents of `data/` are excluded from Git, so running
 the notebooks will not add the datasets to a commit.
-
-### CARC note
-
-CARC compute nodes do not have public internet access. Run the download
-notebook on a CARC transfer node (`hpc-transfer1` or `hpc-transfer2`), then run
-the exploration and model notebooks through the normal CARC compute/Jupyter
-environment. All nodes will see the same repository and `data/` directory when
-the repository is stored under the shared project filesystem.
