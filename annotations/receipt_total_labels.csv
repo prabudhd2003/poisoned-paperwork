@@ -1,30 +1,30 @@
 dataset,split,index,document_id,visible_total,status,reviewer,notes
-SROIE,train,33,X51005433522,,pending,,
-CORD v2,train,35,,,pending,,
-CORD v2,train,52,,,pending,,
-CORD v2,train,113,,,pending,,
-CORD v2,train,122,,,pending,,
-CORD v2,train,338,,,pending,,
-CORD v2,train,460,,,pending,,
-CORD v2,train,468,,,pending,,
-CORD v2,train,490,,,pending,,
-CORD v2,train,500,,,pending,,
-CORD v2,train,503,,,pending,,
-CORD v2,train,507,,,pending,,
-CORD v2,train,524,,,pending,,
-CORD v2,train,555,,,pending,,
-CORD v2,train,572,,,pending,,
-CORD v2,train,670,,,pending,,
-CORD v2,train,682,,,pending,,
-CORD v2,train,683,,,pending,,
-CORD v2,train,694,,,pending,,
-CORD v2,train,695,,,pending,,
-CORD v2,train,699,,,pending,,
-CORD v2,train,783,,,pending,,
-CORD v2,validation,29,,,pending,,
-CORD v2,validation,49,,,pending,,
-CORD v2,test,9,,,pending,,
-CORD v2,test,37,,,pending,,
-CORD v2,test,39,,,pending,,
-CORD v2,test,57,,,pending,,
-CORD v2,test,76,,,pending,,
+SROIE,train,33,X51005433522,$8.20,verified,,Visible Total Amount and Nett Total both show $8.20
+CORD v2,train,35,,289000,verified,,Sub Total is 289000; cash is 300000 and change is 11000
+CORD v2,train,52,,30000,verified,,Sub Total and cash are both 30000; change is 0
+CORD v2,train,113,,22000,verified,,Item amount and cash are both 22000
+CORD v2,train,122,,,exclude,,No explicit final total is printed; 24500 can only be derived using arithmetic
+CORD v2,train,338,,22000,verified,,Thai Tea amount and cash are both 22000
+CORD v2,train,460,,11000,verified,,Sub Total and cash are both 11000; discount and change are 0
+CORD v2,train,468,,167000,verified,,Cash is 167000 and the directly printed line amounts sum to the same value
+CORD v2,train,490,,250000,verified,,Receipt explicitly prints Total Rp. 250.000
+CORD v2,train,500,,70000,verified,,Grand Total and cash are both 70.000
+CORD v2,train,503,,,exclude,,No explicit final total; subtotal tax and rounding difference would require arithmetic
+CORD v2,train,507,,217685,verified,,Jml Rupiah explicitly shows Rp. 217.685
+CORD v2,train,524,,28000,verified,,Item amount and cash are both 28.000
+CORD v2,train,555,,90000,verified,,Printed Total and CARD2 amount are both 90.000
+CORD v2,train,572,,15000,verified,,Sub Total and cash are both 15000; change is 0
+CORD v2,train,670,,200000,verified,,Receipt explicitly prints Total Rp. 200.000
+CORD v2,train,682,,15000,verified,,Item amount and cash are both 15000
+CORD v2,train,683,,102000,verified,,Sub Total and cash are both 102000; change is 0
+CORD v2,train,694,,250000,verified,,Receipt explicitly prints Total Rp. 250.000 and cash matches
+CORD v2,train,695,,20000,verified,,Item amount and cash are both 20.000
+CORD v2,train,699,,85000,verified,,Cash is 85000 and the directly printed line amounts sum to the same value
+CORD v2,train,783,,50000,verified,,Printed TOTAL and CASH are both 50.000; change is 0
+CORD v2,validation,29,,30000,verified,,Sub Total is 30000; cash is 50000 and change is 20000
+CORD v2,validation,49,,81400,verified,,CASH explicitly shows 81.400 and matches SubTTL plus printed tax
+CORD v2,test,9,,36000,verified,,Sub Total is 36000; cash is 50000 and change is 14000
+CORD v2,test,37,,20000,verified,,Receipt explicitly prints TOTAL 20.000
+CORD v2,test,39,,3112800,verified,,BAYAR CREDIT CARD explicitly shows 3.112.800
+CORD v2,test,57,,42000,verified,,CASH explicitly shows 42.000 and matches the two printed item amounts
+CORD v2,test,76,,110000,verified,,CASH explicitly shows 110000 and matches the directly printed line amounts
