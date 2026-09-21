@@ -1,0 +1,26 @@
+# Local datasets and caches. Keep the empty directory in Git.
+data/*
+!data/.gitkeep
+.cache/
+
+# Experiment artifacts and model files
+outputs/
+results/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+# Notebook-generated files
+.ipynb_checkpoints/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Python and macOS
+__pycache__/
+*.py[cod]
+.DS_Store
