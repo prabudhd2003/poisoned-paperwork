@@ -23,7 +23,7 @@ everything into these folders:
 ```text
 data/sroie/
 data/cord_v2/
-data/synthetic_resume/
+data/resume_parsing_vision/
 ```
 
 Then run `notebooks/02_data_exploration.ipynb` to view example documents and
