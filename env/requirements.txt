@@ -1,0 +1,39 @@
+# Requirements for the "paperwork" conda env on USC CARC.
+# torch / torchvision are NOT here: scripts/setup_carc.sh installs them from
+# the CUDA-specific PyTorch index (cu124).
+#
+# Floors, not exact pins. setup_carc.sh writes the resolved versions to
+# env/requirements.lock.txt -- that is the file to trust for reproducing results.
+
+# --- vision-language models -------------------------------------------------
+transformers>=4.51         # Qwen2.5-VL needs >=4.49; see note below
+accelerate>=1.0
+qwen-vl-utils>=0.0.8
+timm>=1.0                  # InternVL2.5 pulls this via trust_remote_code
+einops>=0.8
+sentencepiece>=0.2         # Donut tokenizer
+protobuf>=4.25             # Donut tokenizer
+
+# --- data -------------------------------------------------------------------
+datasets>=3.0
+pillow>=10.0               # also performs the JPEG re-encode defense
+numpy>=1.26
+pandas>=2.0
+
+# --- metrics ----------------------------------------------------------------
+lpips>=0.1.4               # perceptibility
+scikit-image>=0.24         # SSIM
+scikit-learn>=1.5          # detector, AUROC, Brier
+torchmetrics>=1.4
+
+# --- notebooks --------------------------------------------------------------
+ipykernel>=6.29
+ipywidgets>=8,<9
+matplotlib>=3.8
+tqdm>=4.66
+
+# NOTE (2026-09-22): the first install on CARC resolved to transformers 5.x,
+# datasets 5.x and pandas 3.x -- all major versions ahead of what notebooks
+# 01/02 were written against. If Qwen2.5-VL fails to load with a config or
+# processor error, pin "transformers<5" and re-run. Do not pre-emptively
+# downgrade; check requirements.lock.txt for what is actually installed.
