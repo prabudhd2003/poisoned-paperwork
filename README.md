@@ -1,4 +1,4 @@
-# Poisoned Paperwork
+# Adversarial Attacks on Document Vision-Language Models
 
 Adversarial attacks and defenses for document vision-language models.
 
