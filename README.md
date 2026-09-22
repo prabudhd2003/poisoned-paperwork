@@ -2,9 +2,6 @@
 
 Adversarial attacks and defenses for document vision-language models.
 
-CSCI 566, Fall 2026 (Yue Zhao) · Prabudhd Krishna Kandpal, Gary Fenton,
-Saaketh Kanduri, Khalid Ali, Shail Shah.
-
 We test whether subtle, optimized pixel changes to an uploaded document image
 can make an open-weight VLM extract a chosen wrong answer, and we measure how
 far that attack actually goes: how it scales with the perturbation budget,
@@ -35,10 +32,6 @@ Pull before you start, every time:
 cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
 git pull
 ```
-
-Running a notebook rewrites its outputs and execution counts, which makes the
-file dirty and blocks the next pull. Discard that churn (`git checkout -- <notebook>`)
-or commit it deliberately.
 
 Set your git identity once, so commits are attributed to you rather than to a
 hostname. The contribution statement is checked against commit history.
@@ -192,11 +185,3 @@ kernel on CARC, with model caches redirected into the repo.
    implementation before pointing it at Qwen.
 5. **Qwen PGD** at ε ∈ {2, 4, 8, 16}, then transfer to InternVL2.5-4B, EOT
    robustness, patches, and the three defenses.
-
-## Key dates
-
-| | |
-|---|---|
-| Midterm report | Mon Nov 9 |
-| Poster + demo session | Mon Nov 30 (in person, individual Q&A) |
-| Final report | Mon Dec 7, 11:59pm Pacific — no late days |
