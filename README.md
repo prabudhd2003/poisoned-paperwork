@@ -334,8 +334,9 @@ CARC resource references:
 | 6 | `defenses` | [Defenses and adaptive attacks](docs/09_defenses_and_adaptive_attacks.md) | Notebook 06 |
 | 7 | CPU only | [Final results and figures](docs/10_results_and_figures.md) | Notebook 06 |
 
-The immediate task is to implement and smoke-test the `baseline` stage, then
-create `04_baseline_analysis.ipynb` after its five worker shards finish.
+The immediate task is to implement and smoke-test the `baseline` stage. Follow
+the self-contained [immediate baseline handoff](docs/imm_next.md), then create
+`04_baseline_analysis.ipynb` after its five worker shards finish.
 
 ## Data sources
 
