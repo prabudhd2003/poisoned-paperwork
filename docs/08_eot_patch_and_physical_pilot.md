@@ -1,8 +1,11 @@
 # 08 - EOT patch, physical pilot, and survival predictors
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/08_eot_patch_and_physical_pilot.ipynb`
+- Stage command: `eot_patch`
+- Implementation: `src/stages/eot_patch.py`
+- Active config: `configs/eot_patch/active.json`
+- CPU analysis: `notebooks/05_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -29,10 +32,10 @@ merging are CPU tasks.
 ```text
 data/processed/sroie/{validation,test}/
 data/processed/cord_v2/{validation,test}/
-outputs/04_clean_baselines/<qwen_run>/merged/predictions.parquet
-outputs/06_qwen_attacks/<qwen_run>/merged/attacks.parquet
-outputs/07_transfer_robustness/<run_id>/merged/document_features.parquet
-outputs/07_transfer_robustness/<run_id>/merged/direct_transfer.parquet
+outputs/baseline/<qwen_run>/merged/predictions.parquet
+outputs/qwen_attack/<qwen_run>/merged/attacks.parquet
+outputs/transfer_robustness/<run_id>/merged/document_features.parquet
+outputs/transfer_robustness/<run_id>/merged/direct_transfer.parquet
 ```
 
 The primary patch study uses receipt documents only. Select usable,
@@ -43,10 +46,11 @@ extension only after the receipt and physical pipelines finish.
 
 - `Qwen/Qwen2.5-VL-3B-Instruct`
 - Revision `66285546d2b821cf421d4f5eb2576359d3770cd3`
-- Same frozen prompt and inference pipeline as notebooks 04 and 06.
+- Same frozen prompt and inference pipeline as the `baseline` and
+  `qwen_attack` stages.
 - Freeze model weights; optimize patch pixels only.
 
-InternVL labels are loaded from notebook 07. Do not optimize a patch using
+InternVL labels are loaded from `transfer_robustness`. Do not optimize a patch using
 InternVL feedback.
 
 ## Patch threat model
@@ -96,7 +100,7 @@ untransformed exact target and exact target under a fixed validation transform
 set. Early stopping is allowed only when the target succeeds on the original
 PNG and at least 80% of the fixed transform set.
 
-## Notebook procedure
+## Stage implementation procedure
 
 ### 1. Patch and EOT unit tests
 
@@ -122,7 +126,7 @@ rules before test evaluation.
 
 ### 4. Digital robustness evaluation
 
-Use the real transformation suite from notebook 07. Store success per
+Use the real transformation suite from `transfer_robustness`. Store success per
 transformation and report the fraction of conditions and replicates that
 preserve the exact target.
 
@@ -143,7 +147,7 @@ same proportions and report the reduced statistical power.
 Save the selected IDs and split assignment before printing:
 
 ```text
-outputs/08_eot_patch/<run_id>/physical/physical_pilot_manifest.csv
+outputs/eot_patch/<run_id>/physical/physical_pilot_manifest.csv
 ```
 
 ### 6. Print-and-photograph protocol
@@ -171,7 +175,7 @@ physical_<record_id>__worker-<id>__capture-01.<original_extension>
 Store files under:
 
 ```text
-outputs/08_eot_patch/<run_id>/physical/raw/worker_00/
+outputs/eot_patch/<run_id>/physical/raw/worker_00/
 ```
 
 The inference pipeline may auto-orient and crop the page using one frozen
@@ -188,7 +192,7 @@ third answer is produced.
 
 Fit separate scikit-learn logistic regressions for:
 
-1. InternVL direct-transfer label from notebook 07.
+1. InternVL direct-transfer label from `transfer_robustness`.
 2. Physical-survival label from this notebook.
 
 Predictors use only Qwen-derived features available before the label:
@@ -218,19 +222,25 @@ The same worker IDs are used for the physical pilot: ten manifest rows per
 person. This assignment is independent of which GPU worker originally created
 the patch.
 
-Worker cells call:
+Each teammate submits one fixed GPU shard:
 
-```python
-run_eot_patch_attacks(worker_id=N, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh eot_patch user1  # Prabudhd
+bash scripts/submit_stage.sh eot_patch user2  # Gary
+bash scripts/submit_stage.sh eot_patch user3  # Saaketh
+bash scripts/submit_stage.sh eot_patch user4  # Khalid
+bash scripts/submit_stage.sh eot_patch user5  # Shail
 ```
 
-Physical capture cannot be automated by the notebook; the merge cell checks
-that every manifest row has a photo and metadata row before inference begins.
+The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve
+hours for each worker. Physical capture cannot be automated; the merge command
+checks that every manifest row has a photo and metadata row before physical
+inference begins.
 
 ## Exact outputs
 
 ```text
-outputs/08_eot_patch/<run_id>/merged/
+outputs/eot_patch/<run_id>/merged/
 ├── patch_attacks.parquet
 ├── transform_trials.parquet
 ├── physical_trials.parquet
@@ -244,7 +254,7 @@ outputs/08_eot_patch/<run_id>/merged/
 Patch images live in worker shard directories. Physical photos and their
 manifest stay in the physical directory. Record SHA-256 for every file.
 
-## Results shown in the notebook
+## Results shown in `05_attack_analysis.ipynb`
 
 1. Non-EOT versus EOT digital success under every transformation.
 2. Patch success by dataset, patch area, and transformation.

@@ -1,15 +1,15 @@
 # 10 - Final results, tables, and figures
 
-## Notebook
+## Analysis notebook
 
-`notebooks/10_results_and_figures.ipynb`
+`notebooks/06_defense_and_final_analysis.ipynb`
 
 ## Purpose
 
 Perform the final read-only merge and statistical analysis across notebooks
 04-09. Create the authoritative tables and figures for the report and poster.
-This notebook does not load a vision-language model and must never rerun or
-silently repair an experiment.
+This CPU-only notebook does not load a vision-language model and must never
+rerun or silently repair a GPU experiment.
 
 **GPU required:** no. Run on a CARC CPU node or locally after copying the merged
 result files. Do not consume a GPU allocation for this notebook.
@@ -28,12 +28,12 @@ result files. Do not consume a GPU allocation for this notebook.
 Use only completed merged outputs:
 
 ```text
-outputs/04_clean_baselines/<frozen_run>/merged/
-outputs/05_donut_attack/<frozen_run>/merged/
-outputs/06_qwen_attacks/<frozen_run>/merged/
-outputs/07_transfer_robustness/<frozen_run>/merged/
-outputs/08_eot_patch/<frozen_run>/merged/
-outputs/09_defenses/<frozen_run>/merged/
+outputs/baseline/<frozen_run>/merged/
+outputs/donut_attack/<frozen_run>/merged/
+outputs/qwen_attack/<frozen_run>/merged/
+outputs/transfer_robustness/<frozen_run>/merged/
+outputs/eot_patch/<frozen_run>/merged/
+outputs/defenses/<frozen_run>/merged/
 ```
 
 Create one tracked registry before analysis:
@@ -42,9 +42,9 @@ Create one tracked registry before analysis:
 configs/10_results/final_run_registry.json
 ```
 
-It maps each stage to exactly one run ID and config SHA-256. Notebook 10 must
-refuse ambiguous “latest run” discovery. Updating the registry requires an
-explicit Git change.
+It maps each stage to exactly one run ID and config SHA-256. The analysis
+notebook must refuse ambiguous “latest run” discovery. Updating the registry
+requires an explicit Git change.
 
 ## Read-only rule
 
@@ -147,7 +147,7 @@ expected direction into analysis code.
 
 ## Five-person division of work
 
-This notebook is CPU-only, but the team can prepare independent sections after
+This analysis notebook is CPU-only, but the team can prepare independent sections after
 the run registry and shared plotting style are frozen:
 
 - Person 0: provenance, data counts, clean baselines, and failure appendix.

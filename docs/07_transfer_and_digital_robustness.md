@@ -1,8 +1,11 @@
 # 07 - Transfer and digital robustness
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/07_transfer_and_digital_robustness.ipynb`
+- Stage command: `transfer_robustness`
+- Implementation: `src/stages/transfer_robustness.py`
+- Active config: `configs/transfer_robustness/active.json`
+- CPU analysis: `notebooks/05_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -13,8 +16,8 @@ features used later to predict model transfer and physical survival.
 **GPU required:** yes, on CARC, for Qwen and InternVL inference. Image
 transformations and final merging are CPU work.
 
-No adversarial image is optimized in this notebook. It evaluates the fixed
-outputs of notebook 06.
+No adversarial image is optimized in this stage. It evaluates the fixed outputs
+of `qwen_attack`.
 
 ## Questions answered
 
@@ -28,14 +31,14 @@ outputs of notebook 06.
 
 ```text
 data/processed/<dataset>/<split>/
-outputs/04_clean_baselines/<frozen_qwen_run>/merged/predictions.parquet
-outputs/06_qwen_attacks/<frozen_qwen_run>/merged/attacks.parquet
-outputs/06_qwen_attacks/<frozen_qwen_run>/shards/*/images/
+outputs/baseline/<frozen_qwen_run>/merged/predictions.parquet
+outputs/qwen_attack/<frozen_qwen_run>/merged/attacks.parquet
+outputs/qwen_attack/<frozen_qwen_run>/shards/*/images/
 ```
 
 Include every completed Qwen attack, not only successful ones, so overall
 transfer and survival denominators remain honest. Each attacked image hash must
-match notebook 06 before evaluation.
+match the `qwen_attack` result before evaluation.
 
 Development and predictor selection use validation documents. Test results are
 generated after all transformation and model settings are frozen.
@@ -47,7 +50,7 @@ generated after all transformation and model settings are frozen.
 - `Qwen/Qwen2.5-VL-3B-Instruct`
 - Revision `66285546d2b821cf421d4f5eb2576359d3770cd3`
 - Load the identical frozen prompt, processor, generation, and normalization
-  config from notebooks 04 and 06.
+  config from the `baseline` and `qwen_attack` stages.
 
 ### Transfer model
 
@@ -87,7 +90,7 @@ For multi-page resumes, apply the same condition to every page.
 The validation summary may justify removing a redundant condition, but no new
 condition may be added after inspecting test outcomes.
 
-## Notebook procedure
+## Stage implementation procedure
 
 ### 1. Provenance and clean InternVL baseline
 
@@ -98,7 +101,7 @@ task at all.
 
 ### 2. Source-model consistency check
 
-Re-run a deterministic sample of notebook-06 adversarial PNGs through Qwen.
+Re-run a deterministic sample of `qwen_attack` adversarial PNGs through Qwen.
 The prediction must match the stored reloaded prediction. Stop on widespread
 drift caused by a changed prompt, processor, or dependency.
 
@@ -139,7 +142,7 @@ digital transforms:
 Attach labels separately:
 
 - `internvl_transfer_label` from this notebook;
-- `physical_survival_label` later from notebook 08.
+- `physical_survival_label` later from the `eot_patch` stage.
 
 Do not fit the final transfer/physical predictor on test documents here.
 
@@ -161,16 +164,23 @@ Checkpoint after every `(record_id, epsilon, transform, model)` key. Inference
 records are small JSON files, so no work unit should wait until the end of a
 document to save.
 
-Worker cells call:
+Each teammate submits one fixed shard:
 
-```python
-run_transfer_robustness(worker_id=N, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh transfer_robustness user1  # Prabudhd
+bash scripts/submit_stage.sh transfer_robustness user2  # Gary
+bash scripts/submit_stage.sh transfer_robustness user3  # Saaketh
+bash scripts/submit_stage.sh transfer_robustness user4  # Khalid
+bash scripts/submit_stage.sh transfer_robustness user5  # Shail
 ```
+
+The launcher requests one L40S 48 GB GPU, 8 CPUs, 48 GB system RAM, and eight
+hours for each worker.
 
 ## Exact outputs
 
 ```text
-outputs/07_transfer_robustness/<run_id>/merged/
+outputs/transfer_robustness/<run_id>/merged/
 ├── internvl_clean_predictions.parquet
 ├── direct_transfer.parquet
 ├── transformation_trials.parquet
@@ -188,7 +198,7 @@ prediction_normalized, clean_target_correct, adversarial_target_success,
 target_log_probability, runtime_seconds, input_sha256, output_sha256
 ```
 
-## Results shown in the notebook
+## Results shown in `05_attack_analysis.ipynb`
 
 1. InternVL clean exact-match accuracy by dataset and task.
 2. Direct transfer rate by epsilon, dataset, and source-attack success.
@@ -215,4 +225,4 @@ Primary robustness table:
 - Every expected trial key is present or listed as a failure.
 - Transfer is reported with both required denominators.
 - Clean accuracy loss is shown beside attack survival.
-- `document_features.parquet` is ready for notebook 08 predictor work.
+- `document_features.parquet` is ready for `eot_patch` predictor work.

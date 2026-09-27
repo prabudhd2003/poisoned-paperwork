@@ -1,8 +1,11 @@
 # 09 - Defenses and adaptive attacks
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/09_defenses_and_adaptive_attacks.ipynb`
+- Stage command: `defenses`
+- Implementation: `src/stages/defenses.py`
+- Active config: `configs/defenses/active.json`
+- CPU analysis: `notebooks/06_defense_and_final_analysis.ipynb`
 
 ## Purpose
 
@@ -28,10 +31,10 @@ selection, merging, and plots can run on CPU.
 
 ```text
 data/processed/<dataset>/{train,validation,test}/
-outputs/04_clean_baselines/<qwen_run>/merged/predictions.parquet
-outputs/06_qwen_attacks/<run_id>/merged/attacks.parquet
-outputs/07_transfer_robustness/<run_id>/merged/transformation_trials.parquet
-outputs/08_eot_patch/<run_id>/merged/patch_attacks.parquet
+outputs/baseline/<qwen_run>/merged/predictions.parquet
+outputs/qwen_attack/<run_id>/merged/attacks.parquet
+outputs/transfer_robustness/<run_id>/merged/transformation_trials.parquet
+outputs/eot_patch/<run_id>/merged/patch_attacks.parquet
 ```
 
 Use clean images and both attack families:
@@ -46,8 +49,8 @@ training, threshold selection, and final testing must be document-disjoint.
 
 - `Qwen/Qwen2.5-VL-3B-Instruct`
 - Revision `66285546d2b821cf421d4f5eb2576359d3770cd3`
-- Frozen notebook-04 prompts and normalization.
-- Frozen notebook-06 inference processor.
+- Frozen `baseline` prompts and normalization.
+- Frozen `qwen_attack` inference processor.
 - No model fine-tuning.
 
 ## Defense D1 - JPEG re-encoding
@@ -124,8 +127,8 @@ Record the route, number of additional VLM passes, and total latency.
 Evaluate D1, D2, and D3 on:
 
 - all clean validation/test documents;
-- all completed full-page attacks from notebook 06;
-- all completed patch attacks from notebook 08.
+- all completed full-page attacks from `qwen_attack`;
+- all completed patch attacks from `eot_patch`.
 
 Report clean exact-match accuracy, conditional ASR, harmful-output rate, end-to-
 end latency, and additional VLM passes for every defense. For D3 also report
@@ -134,7 +137,7 @@ detection rate, clean false-positive rate, and fraction routed.
 ## Adaptive attacks
 
 The attacker knows the complete defense. Start from clean images and optimize a
-new attack; do not merely re-evaluate the notebook-06 images.
+new attack; do not merely re-evaluate the existing `qwen_attack` images.
 
 ### Adaptive attack on D1
 
@@ -165,7 +168,7 @@ on validation from a fixed candidate set and freeze it before test execution.
 Never report a defense as robust based only on attacks created before the
 defense was known.
 
-## Notebook procedure
+## Stage implementation procedure
 
 1. Validate feature extraction on clean and attacked copies of 20 documents.
 2. Build immutable document-level detector splits.
@@ -189,20 +192,24 @@ Non-adaptive inference checkpoints after every
 every 10 iterations and additionally store detector score, current route, EOT
 RNG states, and defense-config hash.
 
-Worker cells call:
+Each teammate submits one fixed shard:
 
-```python
-run_defense_evaluation(worker_id=N, num_workers=5, config=CONFIG)
-run_adaptive_attacks(worker_id=N, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh defenses user1  # Prabudhd
+bash scripts/submit_stage.sh defenses user2  # Gary
+bash scripts/submit_stage.sh defenses user3  # Saaketh
+bash scripts/submit_stage.sh defenses user4  # Khalid
+bash scripts/submit_stage.sh defenses user5  # Shail
 ```
 
-Run the first call before the second. Five teammates may run their assigned
-shards concurrently on separate CARC GPU allocations.
+The stage module runs non-adaptive evaluation before adaptive attacks for the
+same shard. The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM,
+and twelve hours. Five teammates may run concurrently.
 
 ## Exact outputs
 
 ```text
-outputs/09_defenses/<run_id>/merged/
+outputs/defenses/<run_id>/merged/
 ├── detector_features.parquet
 ├── detector_splits.csv
 ├── detector_predictions.parquet
@@ -223,7 +230,7 @@ clean_correct, adversarial_target_success, additional_vlm_passes,
 end_to_end_latency_seconds
 ```
 
-## Results shown in the notebook
+## Results shown in `06_defense_and_final_analysis.ipynb`
 
 1. Clean accuracy and attack success for no defense, D1, D2, and D3.
 2. Non-adaptive versus adaptive ASR for each defense.
