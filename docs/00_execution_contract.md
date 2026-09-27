@@ -162,6 +162,13 @@ bash scripts/submit_stage.sh qwen_attack user2  # Gary, shard 1
 The launcher supplies CARC resources, environment variables, paths, and the
 fixed worker ID automatically. Teammates never choose GPU flags or record IDs.
 
+All five workers for one frozen stage and run ID must use the same GPU model
+and VRAM size. If the recommended GPU is replaced because of queue pressure,
+the stage owner must smoke-test one fallback, update the shared launcher and
+frozen config, and have the entire team use that fallback. Do not mix GPU types
+inside one run. Validation and the later frozen test are separate production
+runs; all five workers submit one shard for each.
+
 ### Deterministic sharding
 
 Sort eligible `record_id` values. Assign the item at position `i` to
