@@ -1,204 +1,180 @@
-# Adversarial Attacks on Document Vision-Language Models
+# Poisoned Paperwork
 
-Adversarial attacks and defenses for document vision-language models.
+Targeted adversarial attacks and defenses for document vision-language models.
+We test whether small pixel perturbations can make a model return a chosen
+wrong answer while the document still looks unchanged to a person.
 
-We test whether subtle, optimized pixel changes to an uploaded document image
-can make an open-weight VLM extract a chosen wrong answer, and we measure how
-far that attack actually goes: how it scales with the perturbation budget,
-whether it transfers to a different model, whether it survives ordinary
-document processing, and whether three lightweight defenses stop it. The point
-is to find where the attack **stops** working rather than to assume it survives
-a real pipeline.
+| Role | Choice |
+|---|---|
+| Primary model | Qwen2.5-VL-3B-Instruct |
+| Attack reproduction / debugging | Donut |
+| Transfer-only model | InternVL2.5-4B |
+| Primary task | Receipt total extraction |
+| Secondary task | Resume highest-degree classification |
 
-- **Primary attack model:** Qwen2.5-VL-3B-Instruct
-- **Reproduction / debug model:** Donut
-- **Transfer-only target:** InternVL2.5-4B
-- **Main task:** receipt total extraction · **Secondary:** résumé highest-degree extraction
+## Status
 
-## Where we work
+The data pipeline is complete and ready for modeling.
 
-All work happens on **USC CARC**, in the shared project space:
+| Stage | File | Status |
+|---|---|---|
+| Download pinned datasets | `notebooks/01_data_loading.ipynb` | Done |
+| Explore and audit all documents | `notebooks/02_data_exploration.ipynb` | Done |
+| Review missing or incorrect receipt totals | `annotations/receipt_total_labels.csv` | Done |
+| Normalize labels, remove unusable pages, and create splits | `notebooks/03_data_preprocessing.ipynb` | Done |
+| Establish clean model baselines | `notebooks/04_clean_baselines.ipynb` | **Next** |
+| Reproduce the targeted attack on Donut | `notebooks/05_donut_attack.ipynb` | Planned |
+| Run targeted attacks on Qwen | `notebooks/06_qwen_attacks.ipynb` | Planned |
+| Test transfer, robustness, and defenses | `notebooks/07_transfer_and_defenses.ipynb` | Planned |
+
+### Completed data checks
+
+- All 2,987 raw documents and 3,785 image pages were audited.
+- Every image decodes and has valid dimensions.
+- The manual annotation file contains 29 verified receipt totals or corrections.
+- Two CORD receipts were excluded because their answer requires arithmetic
+  rather than direct extraction.
+- Seven completely blank resume pages were removed.
+- All 83 raw resume degree strings were mapped to seven canonical levels.
+- Raw datasets remain unchanged; processed copies are written to
+  `data/processed/`.
+
+### Modeling-ready data
+
+| Dataset | Train | Validation | Test | Usable documents |
+|---|---:|---:|---:|---:|
+| SROIE | 500 | 126 | 361 | 987 |
+| CORD v2 | 798 | 100 | 100 | 998 |
+| English resumes | 850 | 75 | 75 | 1,000 |
+| **Total** | **2,148** | **301** | **536** | **2,985** |
+
+The resume dataset has 992 documents with a valid next-degree adversarial
+target. The master manifest contains all 2,987 raw documents, including the two
+excluded CORD receipts, so every decision remains traceable.
+
+Generated files are stored under `data/processed/` and are intentionally not
+committed to GitHub. Running notebooks 01 and 03 recreates them on any machine.
+
+## Next steps
+
+### 1. Clean baselines — immediate next task
+
+Create `04_clean_baselines.ipynb` and:
+
+1. Load the processed SROIE, CORD, and resume splits.
+2. Build separate Qwen and Donut input pipelines using each model's official
+   processor. Keep the saved images at their original resolution; resize, pad,
+   and normalize only when a batch is sent to a model.
+3. Freeze one prompt per task and one deterministic image-processing setup.
+4. Measure exact-match accuracy on the validation split first.
+5. Save one prediction row per document: `record_id`, target, prediction,
+   correctness, model, prompt version, and processing settings.
+6. Mark the clean-correct documents. Attack success rate will be measured only
+   on this subset.
+
+Use validation data to choose prompts and settings. Keep the test splits
+untouched until the experiment design is fixed.
+
+### 2. Validate the attack implementation
+
+In `05_donut_attack.ipynb`, reproduce the targeted Donut attack on a small
+clean-correct validation subset. Verify that saved-and-reloaded images still
+work and record attack success, L-infinity distance, LPIPS, and SSIM.
+
+### 3. Run the main Qwen experiments
+
+In `06_qwen_attacks.ipynb`, run targeted PGD at epsilon values
+`{2, 4, 8, 16}` on clean-correct validation examples. Finalize the attack
+settings before running once on the held-out test set.
+
+### 4. Test real-world limits
+
+In `07_transfer_and_defenses.ipynb`, evaluate transfer to InternVL2.5-4B,
+save/reload robustness, EOT robustness, patch attacks, and the planned
+lightweight defenses. Compare both attack success and image perceptibility.
+
+### 5. Report results
+
+Produce per-dataset and overall tables for clean accuracy, conditional attack
+success rate, transfer rate, robustness, defense effectiveness, and image
+quality. Record the exact model revisions, prompts, seeds, and preprocessing
+settings needed to reproduce every table.
+
+## Run on USC CARC
+
+The shared working copy is:
 
 ```text
 /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
 ```
 
-Nobody needs a local clone. GitHub (`prabudhd2003/poisoned-paperwork`) is the
-sync point and history; CARC is the working copy.
-
-Pull before you start, every time:
+Pull the latest code:
 
 ```bash
 cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
 git pull
 ```
 
-Set your git identity once, so commits are attributed to you rather than to a
-hostname. The contribution statement is checked against commit history.
-
-```bash
-git config --global user.name  "Your Name"
-git config --global user.email "your@email"
-git config --global pull.rebase true
-```
-
-## Environment
-
-The conda env is called **paperwork** (Python 3.11). Build it once per person:
+Create the environment once:
 
 ```bash
 bash scripts/setup_carc.sh
 ```
 
-Then reload the code-server window and pick **paperwork (Python 3.11)** in the
-notebook kernel selector. For a shell instead of a notebook:
+Select **paperwork (Python 3.11)** as the notebook kernel. For terminal work:
 
 ```bash
 source scripts/activate_paperwork.sh
 ```
 
-Notes worth knowing before you debug something for an hour:
+On a fresh CARC copy, run `01_data_loading.ipynb` and then
+`03_data_preprocessing.ipynb`. Notebook 02 is for inspection and auditing and
+does not need to run every time.
 
-- `PYTHONNOUSERSITE=1` is essential. Without it, `~/.local/lib/python3.11/site-packages`
-  shadows the env, pip reports everything as "already satisfied", installs
-  nothing — and the kernel never appears in the picker.
-- Model weights go to `.cache/hf` inside this repo (gitignored), **not** `$HOME`.
-  Home quota is 100 GB and the three models total roughly 16 GB.
-- `conda activate` needs `source $(conda info --base)/etc/profile.d/conda.sh`
-  first in a fresh shell.
-- `cuda` loads only after `gcc/13.3.0`; it sits under that branch of the module
-  hierarchy. It is optional anyway, since the cu124 torch wheels bundle their
-  own runtime.
-- `env/requirements.txt` holds floors; `env/requirements.lock.txt` holds the
-  exact resolved versions and is what reproduces results.
-
-Run anything that loads a model on a GPU node, not the login node:
+Request a GPU before loading a model:
 
 ```bash
 salloc --account=yzhao010_1531 --partition=gpu --gres=gpu:1 \
        --cpus-per-task=8 --mem=32G --time=2:00:00
 ```
 
-## Data
+Model caches are redirected to the gitignored `.cache/` directory rather than
+the CARC home directory. Exact package versions are in
+`env/requirements.lock.txt`.
 
-Three datasets, pinned by revision in `notebooks/01_data_loading.ipynb` so
-everyone gets byte-identical copies:
+## Data sources
 
-| Role | Hugging Face id | Revision |
+Dataset revisions are pinned in `01_data_loading.ipynb`.
+
+| Dataset | Hugging Face ID | Revision |
 |---|---|---|
-| English receipts | `jsdnrs/ICDAR2019-SROIE` | `bffe40c2` |
-| Indonesian receipts | `naver-clova-ix/cord-v2` | `7f0115a4` |
-| English synthetic résumés | `sukhrobnurali/resume-parsing-vision` | `3c254be3` |
+| SROIE | `jsdnrs/ICDAR2019-SROIE` | `bffe40c2` |
+| CORD v2 | `naver-clova-ix/cord-v2` | `7f0115a4` |
+| English resumes | `sukhrobnurali/resume-parsing-vision` | `3c254be3` |
 
-**2,987 documents / 3,785 image pages**, about 6.1 GB. `data/` is gitignored;
-run notebook 01 to populate it.
+The proposal named Jijun Hao's `SyntheticResumeData`; the implemented project
+uses `sukhrobnurali/resume-parsing-vision`. This change should be stated in the
+midterm and final reports.
 
-| Dataset | Train | Val | Test | Documents | Image pages |
-|---|---:|---:|---:|---:|---:|
-| SROIE | 626 | 0 | 361 | 987 | 987 |
-| CORD v2 | 800 | 100 | 100 | 1,000 | 1,000 |
-| Résumés | 850 | 75 | 75 | 1,000 | 1,798 |
-| **Total** | **2,276** | **175** | **536** | **2,987** | **3,785** |
-
-> The project proposal cited Jijun Hao's *SyntheticResumeData*. We replaced it
-> with `sukhrobnurali/resume-parsing-vision`. Correct this in the midterm report.
-
-## Repository structure
+## Repository layout
 
 ```text
 poisoned-paperwork/
-├── annotations/
-│   └── receipt_total_labels.csv   # manually reviewed totals for missing labels
-├── data/                          # gitignored; created by notebook 01
-├── env/
-│   ├── requirements.txt           # dependency floors
-│   └── requirements.lock.txt      # exact resolved versions
-├── notebooks/
-│   ├── 01_data_loading.ipynb      # pinned downloads + count assertions
-│   ├── 02_data_exploration.ipynb  # samples, statistics, readiness audit, label review
-│   └── 03_data_preprocessing.ipynb # corrections, normalization, splits, manifests
-├── scripts/
-│   ├── setup_carc.sh              # build the paperwork env + Jupyter kernel
-│   └── activate_paperwork.sh      # source this for a shell
-├── .cache/                        # gitignored; HF and torch model caches
+├── annotations/   # reviewed labels committed to Git
+├── data/          # raw and processed data; gitignored
+├── env/           # dependencies and reproducible lock file
+├── notebooks/     # numbered project workflow
+├── scripts/       # CARC environment setup and activation
 └── README.md
 ```
 
-## Progress
+## Experiment rules
 
-### Done
-
-**Data acquisition (`01_data_loading.ipynb`).** All three datasets download to
-pinned revisions and save to disk. A count assertion (987 / 1,000 / 1,000)
-fails loudly on an incomplete download.
-
-**Readiness audit (`02_data_exploration.ipynb`).** Every document was scanned
-without modifying the saved datasets — images decode, dimensions are valid,
-pages are not blank, task labels are present, annotation structure is as
-expected, identifiers are unique. Results:
-
-- All **3,785 image pages** decoded. No corrupt images, invalid dimensions,
-  duplicate identifiers, or annotation-structure mismatches.
-- **SROIE:** 1 of 987 receipts was missing its `total` label (train index 33).
-- **CORD v2:** 28 of 1,000 receipts lacked `total.total_price` — 21 train,
-  2 validation, 5 test.
-- **Résumés:** all 1,000 have at least one degree label. Seven contain a fully
-  blank extra page, but each still has a usable page; the blank pages should be
-  dropped during processing.
-- Degree labels are messy: **2,027 annotations across 83 distinct raw strings**,
-  48 of which occur five times or fewer. `Bachelor of Science` alone is 679
-  (33.5%). These need a reviewed mapping to ordered canonical levels.
-
-**Manual label recovery (`annotations/receipt_total_labels.csv`).** Every
-receipt with a missing total was displayed and reviewed by hand. The raw
-datasets were left untouched; corrections live in this CSV and are applied
-during processing.
-
-| | Reviewed | Verified | Excluded | Usable receipts |
-|---|---:|---:|---:|---:|
-| SROIE | 1 | 1 | 0 | 987 of 987 |
-| CORD v2 | 28 | 26 | 2 | 998 of 1,000 |
-
-`status` is `verified` only when the value on the receipt is unambiguous;
-`ambiguous` or `exclude` otherwise. Totals are recorded exactly as printed,
-including decimal marks and thousands separators — normalization happens later.
-Two additional CORD rows with ambiguous or malformed source annotations are
-also corrected in this file so preprocessing contains no hidden special cases.
-
-That leaves **1,985 labeled receipts** for the total-extraction task and
-**1,000 résumés** for the degree task.
-
-**Environment.** The `paperwork` conda env is built and registered as a Jupyter
-kernel on CARC, with model caches redirected into the repo.
-
-**Preprocessing (`03_data_preprocessing.ipynb`).** The reviewed labels are
-applied to modeling copies, receipt totals are normalized, the seven blank
-résumé pages are removed, and all 83 raw degree strings are mapped to seven
-ordered canonical levels. The raw downloaded datasets remain unchanged.
-
-- SROIE: 500 train / 126 validation / 361 test. The validation set is a
-  deterministic 20% split of the official training set; the official test set
-  is untouched.
-- CORD v2: 798 train / 100 validation / 100 test after excluding two receipts
-  that require arithmetic rather than extraction.
-- Résumés: 850 train / 75 validation / 75 test; all 1,000 remain usable and 992
-  have a valid next-degree adversarial target.
-- `data/processed/master_manifest.{csv,parquet}` contains metadata for all
-  2,987 raw documents, including usability and attack eligibility, without
-  duplicating image data.
-
-All generated outputs live under `data/processed/` and are gitignored. Run the
-notebook after pulling on CARC to recreate them.
-
-### Next
-
-1. **Clean accuracy baselines** — Qwen2.5-VL-3B on receipt totals and résumé
-   degrees, with a fixed prompt and exact-match scoring. Attacks are only ever
-   evaluated on documents the model already answers correctly, so this defines
-   the evaluation set.
-2. **Evaluation harness** — save/reload-through-PNG scoring, exact-match on the
-   target, and the perceptibility metrics (L∞, LPIPS, SSIM).
-3. **Donut reproduction** — reproduce the Pintore et al. attack to validate the
-   implementation before pointing it at Qwen.
-4. **Qwen PGD** at ε ∈ {2, 4, 8, 16}, then transfer to InternVL2.5-4B, EOT
-   robustness, patches, and the three defenses.
+- Never modify the downloaded raw datasets.
+- Never stretch images to a fixed shape. Preserve aspect ratio and use the
+  model processor for runtime resizing and padding.
+- Apply the same deterministic input pipeline to clean and attacked images.
+- Tune prompts and attacks on validation data, then evaluate the frozen setup
+  on test data.
+- Report attack success only among examples the same model answered correctly
+  before the attack.
