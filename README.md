@@ -24,8 +24,11 @@ The data pipeline is complete and ready for modeling.
 | Normalize labels, remove unusable pages, and create splits | `notebooks/03_data_preprocessing.ipynb` | Done |
 | Establish clean model baselines | `notebooks/04_clean_baselines.ipynb` | **Next** |
 | Reproduce the targeted attack on Donut | `notebooks/05_donut_attack.ipynb` | Planned |
-| Run targeted attacks on Qwen | `notebooks/06_qwen_attacks.ipynb` | Planned |
-| Test transfer, robustness, and defenses | `notebooks/07_transfer_and_defenses.ipynb` | Planned |
+| Run full-page targeted attacks on Qwen | `notebooks/06_qwen_attacks.ipynb` | Planned |
+| Test transfer and digital robustness | `notebooks/07_transfer_and_digital_robustness.ipynb` | Planned |
+| Run EOT patches and a physical pilot | `notebooks/08_eot_patch_and_physical_pilot.ipynb` | Planned |
+| Test defenses and adaptive attacks | `notebooks/09_defenses_and_adaptive_attacks.ipynb` | Planned |
+| Produce final tables and figures | `notebooks/10_results_and_figures.ipynb` | Planned |
 
 ### Completed data checks
 
@@ -57,48 +60,31 @@ committed to GitHub. Running notebooks 01 and 03 recreates them on any machine.
 
 ## Next steps
 
-### 1. Clean baselines — immediate next task
+The complete implementation contract is in [`docs/`](docs/README.md). It gives
+each remaining notebook exact inputs, models and revisions, outputs, metrics,
+five-person CARC execution, checkpoint behavior, and completion checks.
 
-Create `04_clean_baselines.ipynb` and:
+| Order | Notebook | Outcome | GPU? |
+|---:|---|---|---:|
+| 1 | [04 clean baselines](docs/04_clean_baselines.md) | Frozen prompts, clean accuracy, and attack-eligible IDs | CARC GPU |
+| 2 | [05 Donut attack](docs/05_donut_attack.md) | Validated targeted-PGD implementation | CARC GPU |
+| 3 | [06 Qwen attacks](docs/06_qwen_attacks.md) | Main epsilon sweep and resume case study | CARC GPU |
+| 4 | [07 transfer and robustness](docs/07_transfer_and_digital_robustness.md) | InternVL transfer and digital-survival features | CARC GPU |
+| 5 | [08 EOT patch and physical pilot](docs/08_eot_patch_and_physical_pilot.md) | Robust patches, physical labels, and predictors | CARC GPU + manual capture |
+| 6 | [09 defenses and adaptive attacks](docs/09_defenses_and_adaptive_attacks.md) | Three defenses tested against informed attackers | CARC GPU; detector fitting is CPU |
+| 7 | [10 results and figures](docs/10_results_and_figures.md) | Final verified tables, figures, and report summary | CPU only |
 
-1. Load the processed SROIE, CORD, and resume splits.
-2. Build separate Qwen and Donut input pipelines using each model's official
-   processor. Keep the saved images at their original resolution; resize, pad,
-   and normalize only when a batch is sent to a model.
-3. Freeze one prompt per task and one deterministic image-processing setup.
-4. Measure exact-match accuracy on the validation split first.
-5. Save one prediction row per document: `record_id`, target, prediction,
-   correctness, model, prompt version, and processing settings.
-6. Mark the clean-correct documents. Attack success rate will be measured only
-   on this subset.
+The immediate task is notebook 04. Use validation data to select prompts and
+settings; keep test splits untouched until configurations are frozen.
 
-Use validation data to choose prompts and settings. Keep the test splits
-untouched until the experiment design is fixed.
+All GPU notebooks follow the [shared execution contract](docs/00_execution_contract.md):
 
-### 2. Validate the attack implementation
-
-In `05_donut_attack.ipynb`, reproduce the targeted Donut attack on a small
-clean-correct validation subset. Verify that saved-and-reloaded images still
-work and record attack success, L-infinity distance, LPIPS, and SSIM.
-
-### 3. Run the main Qwen experiments
-
-In `06_qwen_attacks.ipynb`, run targeted PGD at epsilon values
-`{2, 4, 8, 16}` on clean-correct validation examples. Finalize the attack
-settings before running once on the held-out test set.
-
-### 4. Test real-world limits
-
-In `07_transfer_and_defenses.ipynb`, evaluate transfer to InternVL2.5-4B,
-save/reload robustness, EOT robustness, patch attacks, and the planned
-lightweight defenses. Compare both attack success and image perceptibility.
-
-### 5. Report results
-
-Produce per-dataset and overall tables for clean accuracy, conditional attack
-success rate, transfer rate, robustness, defense effectiveness, and image
-quality. Record the exact model revisions, prompts, seeds, and preprocessing
-settings needed to reproduce every table.
+- CARC only; never load a model on the login node.
+- Five deterministic document shards, one per teammate and GPU allocation.
+- One shared implementation with worker IDs 0-4, not five code copies.
+- Atomic per-document results and attack checkpoints every 10 steps.
+- Completed work is skipped automatically after a CARC timeout.
+- Results merge only after all expected worker shards pass validation.
 
 ## Run on USC CARC
 
@@ -162,6 +148,7 @@ midterm and final reports.
 poisoned-paperwork/
 ├── annotations/   # reviewed labels committed to Git
 ├── data/          # raw and processed data; gitignored
+├── docs/          # detailed implementation plans for notebooks 04-10
 ├── env/           # dependencies and reproducible lock file
 ├── notebooks/     # numbered project workflow
 ├── scripts/       # CARC environment setup and activation
