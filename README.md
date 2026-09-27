@@ -137,6 +137,29 @@ directory.
 The stage owner uses an interactive allocation to test one or two documents
 before allowing the full team to submit jobs.
 
+From the login terminal, check currently free GPUs with:
+
+```bash
+noderes -f -g
+```
+
+See all configured GPU resources, including busy ones, with:
+
+```bash
+noderes -c -g
+```
+
+For a node-state summary and the current GPU queue:
+
+```bash
+sinfo -p gpu -N
+squeue -p gpu
+```
+
+This is a live snapshot, not a reservation. A GPU shown as free may be assigned
+before your request starts, and fair-share priority can still leave a request
+pending.
+
 Recommended Qwen gradient-debug allocation:
 
 ```bash
@@ -207,25 +230,91 @@ Cancel the wrong job with:
 scancel <job-id>
 ```
 
-## GPU recommendations and automatic requests
+## GPU recommendations, people, and time estimates
 
 USC Discovery currently provides L40S 48 GB, A40 48 GB, A100 40/80 GB, V100
-32 GB, and P100 16 GB GPUs. Our launcher requests:
+32 GB, and P100 16 GB GPUs. The times below are **initial planning ranges**, not
+guarantees. They exclude time waiting in the Slurm queue and must be replaced
+with measured estimates after each stage's smoke test. A range covers the
+stage's planned validation and frozen-test computation; those phases use
+separate configs and may require several checkpointed submissions.
 
-| Stage | Command name | GPU | System RAM | CPUs | Time per worker |
-|---|---|---|---:|---:|---:|
-| Clean baselines | `baseline` | L40S 48 GB | 32 GB | 8 | 4 h |
-| Donut attack | `donut_attack` | L40S 48 GB | 48 GB | 8 | 8 h |
-| Qwen full-page attack | `qwen_attack` | A100 80 GB | 64 GB | 8 | 12 h |
-| Transfer and transformations | `transfer_robustness` | L40S 48 GB | 48 GB | 8 | 8 h |
-| EOT patch | `eot_patch` | A100 80 GB | 64 GB | 8 | 12 h |
-| Defenses and adaptive attacks | `defenses` | A100 80 GB | 64 GB | 8 | 12 h |
+| Stage | Command | Production GPU | CPU / system RAM | Who submits? | Estimated compute per worker | Team wall time | Slurm cutoff |
+|---|---|---|---|---|---:|---:|---:|
+| Clean baselines | `baseline` | L40S 48 GB | 8 / 32 GB | All five | 1-4 h | 1-4 h | 4 h |
+| Donut attack | `donut_attack` | L40S 48 GB | 8 / 48 GB | All five | 4-12 h | 4-12 h | 8 h |
+| Qwen full-page attack | `qwen_attack` | A100 80 GB | 8 / 64 GB | All five | 12-48 h | 12-48 h | 12 h |
+| Transfer and transformations | `transfer_robustness` | L40S 48 GB | 8 / 48 GB | All five | 4-16 h | 4-16 h | 8 h |
+| EOT patch | `eot_patch` | A100 80 GB | 8 / 64 GB | All five | 12-48 h | 12-48 h | 12 h |
+| Defenses and adaptive attacks | `defenses` | A100 80 GB | 8 / 64 GB | All five | 12-48 h | 12-48 h | 12 h |
+
+If every worker starts at approximately the same time, a stage takes about as
+long as its slowest worker; five workers do not multiply the wall time. The
+current rough total for all six stages is therefore **45-176 hours of active
+compute wall time (about 2-7.5 days)**, but **225-880 total GPU-hours** across
+the five workers. Queue delays, failed jobs, validation changes, and the
+physical pilot are additional. The lower end assumes early stopping and fast
+inference; the upper end assumes most attacks run their full step count.
+
+The cutoff is how long one Slurm job may run, not the expected completion time.
+For example, a Qwen worker estimated to need 30 hours will require roughly
+three checkpointed 12-hour submissions. Re-running the same command resumes
+that worker's unfinished shard.
+
+### When one person is enough and when all five are needed
+
+| Work | People needed |
+|---|---|
+| Implement the stage and run a 1-10 document smoke test | One assigned stage owner |
+| Run the complete validation split | All five; one fixed shard per person |
+| Run the frozen held-out test split | All five again, using the frozen test config |
+| Merge shards and verify completion | One stage owner after all five finish |
+| Run analysis notebooks and make figures | One assigned person; CPU only |
+| Capture the 50-example physical pilot | All five; ten manifest rows per person |
+
+One person's production command completes only one fifth of the documents. It
+does **not** complete a five-worker stage. The other four commands are still
+required before merging. Workers may enter the queue and finish at different
+times; simultaneous starts are helpful but not required.
+
+### Same-GPU rule
+
+For one frozen stage and run ID, all five production workers must use the same
+GPU model and VRAM size. Do not mix L40S with A40/V100, or A100 40 GB with A100
+80 GB, inside one run. This keeps precision support, memory behavior, numerical
+behavior, and runtime comparisons consistent. Different stages may use
+different GPUs exactly as listed in the table.
+
+If the recommended GPU has an unacceptable queue:
+
+1. The stage owner chooses one fallback for the entire team before submissions.
+2. The owner smoke-tests that exact GPU and records it in the frozen config.
+3. All five workers use that same fallback for the complete run.
+4. A worker resuming a checkpoint continues on the same GPU type.
 
 The A100 80 GB is the safest choice for Qwen image gradients, multi-page
 resumes, EOT, and adaptive defenses. L40S is the better balance for inference
 and Donut work. A40 is a reasonable 48 GB fallback if the L40S queue is long.
 Avoid P100 for this project; 16 GB is too restrictive. Use V100 only for small
 smoke tests after confirming the code path works without BF16.
+
+### Replace estimates with smoke-test measurements
+
+Every stage records completed examples and elapsed seconds during its smoke
+test. Estimate the remaining time before the team submits:
+
+```text
+seconds_per_work_unit = smoke_elapsed_seconds / completed_work_units
+estimated_worker_hours =
+    seconds_per_work_unit * largest_worker_work_units / 3600
+estimated_number_of_submissions =
+    ceil(estimated_worker_hours / Slurm_cutoff_hours)
+```
+
+A work unit is one final model inference for baselines and transfer stages, and
+one complete `(document, epsilon)` or `(document, patch condition)` optimization
+for attack stages. Add a 20% buffer. Publish the measured estimate with the
+frozen config before all five teammates submit.
 
 CARC resource references:
 
