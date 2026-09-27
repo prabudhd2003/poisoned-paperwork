@@ -4,6 +4,8 @@ CORD v2,train,35,,289000,verified,,Sub Total is 289000; cash is 300000 and chang
 CORD v2,train,52,,30000,verified,,Sub Total and cash are both 30000; change is 0
 CORD v2,train,113,,22000,verified,,Item amount and cash are both 22000
 CORD v2,train,122,,,exclude,,No explicit final total is printed; 24500 can only be derived using arithmetic
+CORD v2,train,135,,"55,800",verified,,Final BALANCE DUE is 55.800; source total_price contains both 55.834 before rounding and 55.800 after rounding
+CORD v2,train,153,,"57,000",verified,,Receipt explicitly prints TOTAL Rp57.000; source label has an extra zero as 57.0000
 CORD v2,train,338,,22000,verified,,Thai Tea amount and cash are both 22000
 CORD v2,train,460,,11000,verified,,Sub Total and cash are both 11000; discount and change are 0
 CORD v2,train,468,,167000,verified,,Cash is 167000 and the directly printed line amounts sum to the same value

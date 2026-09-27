@@ -115,7 +115,8 @@ poisoned-paperwork/
 │   └── requirements.lock.txt      # exact resolved versions
 ├── notebooks/
 │   ├── 01_data_loading.ipynb      # pinned downloads + count assertions
-│   └── 02_data_exploration.ipynb  # samples, statistics, readiness audit, label review
+│   ├── 02_data_exploration.ipynb  # samples, statistics, readiness audit, label review
+│   └── 03_data_preprocessing.ipynb # corrections, normalization, splits, manifests
 ├── scripts/
 │   ├── setup_carc.sh              # build the paperwork env + Jupyter kernel
 │   └── activate_paperwork.sh      # source this for a shell
@@ -161,6 +162,8 @@ during processing.
 `status` is `verified` only when the value on the receipt is unambiguous;
 `ambiguous` or `exclude` otherwise. Totals are recorded exactly as printed,
 including decimal marks and thousands separators — normalization happens later.
+Two additional CORD rows with ambiguous or malformed source annotations are
+also corrected in this file so preprocessing contains no hidden special cases.
 
 That leaves **1,985 labeled receipts** for the total-extraction task and
 **1,000 résumés** for the degree task.
@@ -168,20 +171,34 @@ That leaves **1,985 labeled receipts** for the total-extraction task and
 **Environment.** The `paperwork` conda env is built and registered as a Jupyter
 kernel on CARC, with model caches redirected into the repo.
 
+**Preprocessing (`03_data_preprocessing.ipynb`).** The reviewed labels are
+applied to modeling copies, receipt totals are normalized, the seven blank
+résumé pages are removed, and all 83 raw degree strings are mapped to seven
+ordered canonical levels. The raw downloaded datasets remain unchanged.
+
+- SROIE: 500 train / 126 validation / 361 test. The validation set is a
+  deterministic 20% split of the official training set; the official test set
+  is untouched.
+- CORD v2: 798 train / 100 validation / 100 test after excluding two receipts
+  that require arithmetic rather than extraction.
+- Résumés: 850 train / 75 validation / 75 test; all 1,000 remain usable and 992
+  have a valid next-degree adversarial target.
+- `data/processed/master_manifest.{csv,parquet}` contains metadata for all
+  2,987 raw documents, including usability and attack eligibility, without
+  duplicating image data.
+
+All generated outputs live under `data/processed/` and are gitignored. Run the
+notebook after pulling on CARC to recreate them.
+
 ### Next
 
-1. **`03_data_processing.ipynb`** — apply the manual labels, normalize totals to
-   a canonical numeric form, drop the excluded receipts and the seven blank
-   résumé pages, map the 83 raw degree strings to ordered canonical levels, and
-   build the disjoint attack / detector-training / held-out splits. All variants
-   of one document must stay in the same split.
-2. **Clean accuracy baselines** — Qwen2.5-VL-3B on receipt totals and résumé
+1. **Clean accuracy baselines** — Qwen2.5-VL-3B on receipt totals and résumé
    degrees, with a fixed prompt and exact-match scoring. Attacks are only ever
    evaluated on documents the model already answers correctly, so this defines
    the evaluation set.
-3. **Evaluation harness** — save/reload-through-PNG scoring, exact-match on the
+2. **Evaluation harness** — save/reload-through-PNG scoring, exact-match on the
    target, and the perceptibility metrics (L∞, LPIPS, SSIM).
-4. **Donut reproduction** — reproduce the Pintore et al. attack to validate the
+3. **Donut reproduction** — reproduce the Pintore et al. attack to validate the
    implementation before pointing it at Qwen.
-5. **Qwen PGD** at ε ∈ {2, 4, 8, 16}, then transfer to InternVL2.5-4B, EOT
+4. **Qwen PGD** at ε ∈ {2, 4, 8, 16}, then transfer to InternVL2.5-4B, EOT
    robustness, patches, and the three defenses.
