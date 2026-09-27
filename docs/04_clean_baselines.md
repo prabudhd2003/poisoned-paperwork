@@ -1,8 +1,11 @@
 # 04 - Clean model baselines
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/04_clean_baselines.ipynb`
+- Stage command: `baseline`
+- Implementation: `src/stages/baseline.py`
+- Active config: `configs/baseline/active.json`
+- CPU analysis: `notebooks/04_baseline_analysis.ipynb`
 
 ## Purpose
 
@@ -113,7 +116,7 @@ Store `raw_response` before normalization.
 Normalization code must be shared by every later notebook and unit-tested with
 representative strings.
 
-## Notebook procedure
+## Stage implementation procedure
 
 ### 1. CPU preflight
 
@@ -155,7 +158,7 @@ For each usable document and model/task configuration:
 5. Repeat the frozen run on test only after the stage owner signs off on the
    validation summary.
 
-## Five-worker plan
+## Five-worker CARC plan
 
 Workers shard sorted document IDs according to the shared execution contract.
 Each worker runs these jobs sequentially for its assigned documents:
@@ -168,25 +171,27 @@ If startup cost is too high, use three independent run IDs and let workers
 complete the Qwen-receipt, Qwen-resume, and Donut-receipt runs separately. A
 run is complete only when all five shards for that run are merged.
 
-The five notebook worker sections must be only:
+After the stage owner freezes and pushes the implementation and config, each
+teammate submits exactly one command:
 
-```python
-run_clean_baseline(worker_id=0, num_workers=5, config=CONFIG)
-run_clean_baseline(worker_id=1, num_workers=5, config=CONFIG)
-run_clean_baseline(worker_id=2, num_workers=5, config=CONFIG)
-run_clean_baseline(worker_id=3, num_workers=5, config=CONFIG)
-run_clean_baseline(worker_id=4, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh baseline user1  # Prabudhd
+bash scripts/submit_stage.sh baseline user2  # Gary
+bash scripts/submit_stage.sh baseline user3  # Saaketh
+bash scripts/submit_stage.sh baseline user4  # Khalid
+bash scripts/submit_stage.sh baseline user5  # Shail
 ```
 
-Each teammate runs only their assigned call in their own CARC GPU session and
-does not save notebook cell outputs back to Git.
+The launcher requests one L40S 48 GB GPU, 8 CPUs, 32 GB system RAM, and four
+hours for each worker. The baseline analysis notebook is opened only after all
+five worker outputs merge.
 
 ## Exact outputs
 
 Raw resumable outputs:
 
 ```text
-outputs/04_clean_baselines/<run_id>/
+outputs/baseline/<run_id>/
 ├── config.json
 ├── environment.json
 ├── assignments/
@@ -209,7 +214,7 @@ prediction_normalized, parse_status, clean_correct, runtime_seconds,
 peak_gpu_memory_mb, worker_id, seed, git_commit, status, error
 ```
 
-## Results shown in the notebook
+## Results shown in `04_baseline_analysis.ipynb`
 
 1. Exact-match accuracy and 95% bootstrap confidence interval by model,
    dataset, task, and split.
@@ -238,5 +243,5 @@ Example summary shape:
 - Output normalization tests pass.
 - Qwen and Donut produce deterministic answers on the smoke set.
 - Test data is untouched until prompt and processor configs are frozen.
-- Clean-correct ID files exist for notebooks 05 and 06.
+- Clean-correct ID files exist for the `donut_attack` and `qwen_attack` stages.
 - Failures and parse failures are reported, never silently discarded.

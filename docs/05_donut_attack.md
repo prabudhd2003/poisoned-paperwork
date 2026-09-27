@@ -1,8 +1,11 @@
 # 05 - Donut targeted-attack reproduction
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/05_donut_attack.ipynb`
+- Stage command: `donut_attack`
+- Implementation: `src/stages/donut_attack.py`
+- Active config: `configs/donut_attack/active.json`
+- CPU analysis: `notebooks/05_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -27,8 +30,8 @@ This is an implementation-validation stage, not the main project result.
 ```text
 data/processed/sroie/validation/
 data/processed/cord_v2/validation/
-outputs/04_clean_baselines/<frozen_donut_run>/merged/predictions.parquet
-outputs/04_clean_baselines/<frozen_donut_run>/merged/clean_correct_ids.txt
+outputs/baseline/<frozen_donut_run>/merged/predictions.parquet
+outputs/baseline/<frozen_donut_run>/merged/clean_correct_ids.txt
 ```
 
 Select only documents satisfying all of the following:
@@ -37,7 +40,7 @@ Select only documents satisfying all of the following:
 - validation split during development;
 - `usable=True`;
 - `attack_eligible=True`;
-- Donut `clean_correct=True` under the frozen notebook-04 config.
+- Donut `clean_correct=True` under the frozen `baseline` config.
 
 Begin with a deterministic smoke subset of ten SROIE and ten CORD documents.
 After implementation checks pass, run all clean-correct validation receipts.
@@ -97,7 +100,7 @@ normalized tensor space. Projection and reported epsilon must refer to the
 original 0-255 RGB image. Do not accidentally interpret epsilon in normalized
 model space.
 
-## Notebook procedure
+## Stage implementation procedure
 
 ### 1. Attack unit tests on CPU/GPU
 
@@ -151,7 +154,7 @@ examples and avoids one missing person leaving an entire epsilon unfinished.
 For each document and epsilon, use this directory:
 
 ```text
-outputs/05_donut_attack/<run_id>/shards/worker_00/
+outputs/donut_attack/<run_id>/shards/worker_00/
 ├── checkpoints/<experiment_key>/state.pt
 ├── images/<experiment_key>.png
 └── records/<experiment_key>.json
@@ -163,16 +166,23 @@ hash, and model revision. Save every 10 iterations using a temporary file and
 atomic rename. On CARC timeout, restart the same worker; it skips final records
 and resumes partial attack states.
 
-Each worker cell calls only:
+Each teammate submits the same stage with their fixed identity:
 
-```python
-run_donut_attacks(worker_id=N, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh donut_attack user1  # Prabudhd
+bash scripts/submit_stage.sh donut_attack user2  # Gary
+bash scripts/submit_stage.sh donut_attack user3  # Saaketh
+bash scripts/submit_stage.sh donut_attack user4  # Khalid
+bash scripts/submit_stage.sh donut_attack user5  # Shail
 ```
+
+The launcher requests one L40S 48 GB GPU, 8 CPUs, 48 GB system RAM, and eight
+hours for each worker. The same command resumes completed and partial work.
 
 ## Exact outputs
 
 ```text
-outputs/05_donut_attack/<run_id>/merged/
+outputs/donut_attack/<run_id>/merged/
 ├── attacks.parquet
 ├── attacks.csv
 ├── failures.csv
@@ -190,7 +200,7 @@ clean_image_sha256, attacked_image_sha256, attack_runtime_seconds,
 final_target_loss, early_stop_reason, checkpoint_resumed
 ```
 
-## Results shown in the notebook
+## Results shown in `05_attack_analysis.ipynb`
 
 1. Conditional ASR by epsilon and dataset, using reloaded images.
 2. Harmful-output rate by epsilon and dataset.
@@ -217,6 +227,6 @@ Expected summary layout:
 - Every eligible validation record has one result for each frozen epsilon.
 - Interrupted-run equivalence is tested.
 - In-memory and reloaded success are reported separately.
-- The Donut configuration to be reused by notebook 06 is frozen.
+- The Donut configuration to be reused by the `qwen_attack` stage is frozen.
 - Zero attack success is reported honestly if the implementation checks pass;
   never tune on test examples simply to force a positive result.

@@ -1,8 +1,11 @@
 # 06 - Main Qwen full-page attacks
 
-## Notebook
+## GPU stage and analysis notebook
 
-`notebooks/06_qwen_attacks.ipynb`
+- Stage command: `qwen_attack`
+- Implementation: `src/stages/qwen_attack.py`
+- Active config: `configs/qwen_attack/active.json`
+- CPU analysis: `notebooks/05_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -28,9 +31,9 @@ notebook, so checkpointing and five-worker sharding are mandatory.
 data/processed/sroie/{validation,test}/
 data/processed/cord_v2/{validation,test}/
 data/processed/resume_parsing_vision/{validation,test}/
-outputs/04_clean_baselines/<frozen_qwen_run>/merged/predictions.parquet
-outputs/04_clean_baselines/<frozen_qwen_run>/merged/clean_correct_ids.txt
-outputs/05_donut_attack/<frozen_validation_run>/merged/summary.json
+outputs/baseline/<frozen_qwen_run>/merged/predictions.parquet
+outputs/baseline/<frozen_qwen_run>/merged/clean_correct_ids.txt
+outputs/donut_attack/<frozen_validation_run>/merged/summary.json
 ```
 
 Attack only records satisfying:
@@ -48,12 +51,12 @@ start only after the attack config is frozen and marked `frozen_for_test=true`.
 - Model: `Qwen/Qwen2.5-VL-3B-Instruct`
 - Revision: `66285546d2b821cf421d4f5eb2576359d3770cd3`
 - Prompt, output normalization, image limits, generation settings, and
-  precision: load unchanged from the frozen notebook-04 Qwen config.
+  precision: load unchanged from the frozen `baseline` Qwen config.
 - Freeze every model parameter. Only uploaded-image pixels are optimized.
 - Do not use quantized weights for gradient attacks.
 
 The validation attack is invalid if its baseline prediction differs from the
-stored notebook-04 clean prediction. Record and stop on such configuration
+stored `baseline` clean prediction. Record and stop on such configuration
 drift rather than attacking under a silently changed pipeline.
 
 ## Attack definition
@@ -129,12 +132,13 @@ fallback before test execution: gradient accumulation across pages or attack
 only the page known to contain the highest degree. Do not change the policy per
 test document.
 
-## Notebook procedure
+## Stage implementation procedure
 
 ### 1. Reuse Donut-tested components
 
 Reuse projection, checkpoint I/O, metrics, and saved-image verification from
-notebook 05. Add Qwen-specific tests rather than copying those functions.
+the `donut_attack` stage. Add Qwen-specific tests rather than copying those
+functions.
 
 ### 2. Qwen gradient smoke test
 
@@ -169,7 +173,7 @@ all epsilon settings.
 Checkpoint each document/epsilon every 10 iterations:
 
 ```text
-outputs/06_qwen_attacks/<run_id>/shards/worker_00/
+outputs/qwen_attack/<run_id>/shards/worker_00/
 ├── checkpoints/<experiment_key>/state.pt
 ├── images/<experiment_key>/page_000.png
 └── records/<experiment_key>.json
@@ -179,19 +183,24 @@ The state contains all fields required in the shared execution contract plus
 the exact processed image grid, chat template hash, target token IDs, and best
 known attack tensor. A restarted job must verify all hashes before resuming.
 
-Worker cells call:
+Each teammate submits one fixed shard:
 
-```python
-run_qwen_attacks(worker_id=N, num_workers=5, config=CONFIG)
+```bash
+bash scripts/submit_stage.sh qwen_attack user1  # Prabudhd
+bash scripts/submit_stage.sh qwen_attack user2  # Gary
+bash scripts/submit_stage.sh qwen_attack user3  # Saaketh
+bash scripts/submit_stage.sh qwen_attack user4  # Khalid
+bash scripts/submit_stage.sh qwen_attack user5  # Shail
 ```
 
-Five people can therefore run workers 0-4 concurrently on separate CARC GPU
-allocations. Nobody should edit the notebook during a frozen run.
+The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve
+hours for each worker. Five people can run concurrently. Nobody should edit the
+stage implementation or active config during a frozen run.
 
 ## Exact outputs
 
 ```text
-outputs/06_qwen_attacks/<run_id>/merged/
+outputs/qwen_attack/<run_id>/merged/
 ├── attacks.parquet
 ├── attacks.csv
 ├── page_metrics.parquet
@@ -200,7 +209,7 @@ outputs/06_qwen_attacks/<run_id>/merged/
 └── summary.json
 ```
 
-Each attack record contains notebook-05 fields plus:
+Each attack record contains the `donut_attack` fields plus:
 
 ```text
 document_page_count, attacked_page_count, target_token_ids_hash,
@@ -209,7 +218,7 @@ processor_max_abs_difference, mean_target_log_probability,
 gradient_norm_final, peak_gpu_memory_mb
 ```
 
-## Results shown in the notebook
+## Results shown in `05_attack_analysis.ipynb`
 
 1. Conditional ASR versus epsilon, with separate SROIE, CORD, receipt-overall,
    and resume curves.

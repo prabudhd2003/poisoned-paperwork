@@ -5,8 +5,9 @@
 #   bash scripts/setup_carc.sh
 #
 # Run it on a GPU node so torch is verified against a real device:
-#   salloc --account=yzhao010_1531 --partition=gpu --gres=gpu:1 \
-#          --cpus-per-task=8 --mem=32G --time=2:00:00
+#   salloc --account=yzhao010_1531 --partition=gpu --ntasks=1 \
+#          --gpus-per-task=l40s:1 --cpus-per-task=8 --mem=32G --time=2:00:00
+#   srun --pty bash -l
 
 set -euo pipefail
 

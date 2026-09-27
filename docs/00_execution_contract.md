@@ -1,7 +1,7 @@
 # 00 - Shared execution contract
 
-This contract applies to notebooks 04-10 and to any helper code created for
-them. An LLM or teammate implementing a notebook should treat every item marked
+This contract applies to every GPU stage script and to analysis notebooks
+04-06. An LLM or teammate implementing a stage should treat every item marked
 **required** as an acceptance criterion.
 
 ## Fixed project choices
@@ -87,54 +87,80 @@ The exact same deterministic clean pipeline must be used before and after an
 attack. Keep transformations differentiable during optimization when required,
 but always verify the final saved file through the real inference pipeline.
 
-## Notebook structure
+## Code and notebook structure
 
-Every GPU notebook must follow this section order:
+Long GPU loops never live in notebooks. Each stage is implemented once as:
 
-1. **Purpose and success criteria** - markdown only.
-2. **Configuration** - run ID, split, task, model revision, seed, and worker
-   settings in one visible cell.
-3. **CPU preflight** - paths, input counts, schema, Git commit, and disk space.
-4. **GPU preflight** - allocated GPU, CUDA, model load, and one-example smoke
-   test. Fail before the long run if any check is wrong.
-5. **Shared functions** - import tested helpers; do not copy five versions of
-   model or metric code.
-6. **Worker 0** - calls the common runner with `worker_id=0`.
-7. **Worker 1** - calls the common runner with `worker_id=1`.
-8. **Worker 2** - calls the common runner with `worker_id=2`.
-9. **Worker 3** - calls the common runner with `worker_id=3`.
-10. **Worker 4** - calls the common runner with `worker_id=4`.
-11. **CPU merge and validation** - combines shards only after completion.
-12. **Summary** - tables, small plots, failures, and the next-stage path.
+```text
+src/stages/<stage>.py
+```
 
-The five worker cells call the same function. They differ only in worker ID.
-Do not maintain five separate copies of attack logic.
+The module exposes:
+
+```python
+def run(config, config_path, user_id, worker_id, num_workers):
+    ...
+```
+
+It must use reusable code from `src/` for models, prompts,
+normalization, sharding, checkpointing, attacks, metrics, and merging. The
+generic `scripts/run_gpu_stage.py` dispatcher calls this function. Do not place
+stage-specific logic inside the Slurm file or duplicate it five times.
+
+Each stage implementation follows this order:
+
+1. Validate the tracked config and compute its SHA-256.
+2. Validate the requested user ID and fixed worker ID.
+3. Load metadata and save the deterministic worker assignment.
+4. Check existing final records and resumable checkpoints.
+5. Load one model on the allocated GPU.
+6. Run only missing experiment keys, saving atomically after each unit.
+7. Unload the model and release GPU memory when changing models.
+8. Validate the shard and write `WORKER_COMPLETE.json`.
+
+The three remaining notebooks are CPU-only views of merged outputs:
+
+- `04_baseline_analysis.ipynb`;
+- `05_attack_analysis.ipynb`;
+- `06_defense_and_final_analysis.ipynb`.
+
+They may display saved images and recompute summary statistics, but must not
+load a VLM, optimize an image, or fill missing GPU results.
 
 ## Five-person CARC execution
 
-One person is the **stage owner**. That person implements and tests the notebook
-on a tiny smoke subset, freezes the config, commits it, and tells the other four
-people the exact Git commit and `RUN_ID`.
+One person is the **stage owner**. That person implements and tests the stage
+module on a tiny smoke subset, freezes `configs/<stage>/active.json`, commits
+it, and tells the other four people the exact Git commit and stage name.
+
+The identity mapping never changes:
+
+| User ID | Name | Worker ID |
+|---|---|---:|
+| `user1` | Prabudhd | 0 |
+| `user2` | Gary | 1 |
+| `user3` | Saaketh | 2 |
+| `user4` | Khalid | 3 |
+| `user5` | Shail | 4 |
 
 Each teammate then:
 
 1. Pulls the same Git commit on CARC.
-2. Requests their own GPU allocation.
-3. Uses one unique worker ID from 0 through 4.
-4. Runs only the common setup and their assigned worker cell.
-5. Does not edit or save executed output into the source notebook.
+2. Runs `bash scripts/submit_stage.sh <stage> <user_id>`.
+3. Records the returned Slurm job ID.
+4. Does not edit code or the active config during the run.
+5. Restarts with the exact same command after a timeout or recoverable failure.
 6. Reports the worker completion file to the stage owner.
 
-Environment variables should control worker selection:
+Example for the Qwen stage:
 
 ```bash
-export PP_RUN_ID=qwen_receipt_pgd_v1
-export PP_NUM_WORKERS=5
-export PP_WORKER_ID=0        # unique value 0, 1, 2, 3, or 4
+bash scripts/submit_stage.sh qwen_attack user1  # Prabudhd, shard 0
+bash scripts/submit_stage.sh qwen_attack user2  # Gary, shard 1
 ```
 
-The implementation must also support a future Slurm array using
-`SLURM_ARRAY_TASK_ID`, but the notebook variable takes precedence when set.
+The launcher supplies CARC resources, environment variables, paths, and the
+fixed worker ID automatically. Teammates never choose GPU flags or record IDs.
 
 ### Deterministic sharding
 
@@ -180,11 +206,11 @@ gitignored. Never store model weights in the home directory or in Git.
 
 ### Atomic records
 
-- The unit of completion is one unique experiment key, not a whole notebook.
+- The unit of completion is one unique experiment key, not a whole job.
 - Write `<key>.json.tmp`, flush and close it, then rename it to `<key>.json`.
 - A final record is never overwritten unless `FORCE=True` is explicitly set.
 - On restart, skip valid final records and continue missing work.
-- Attack notebooks save the current image tensor, iteration, optimizer state,
+- Attack stages save the current image tensor, iteration, optimizer state,
   and random generator state every 10 optimization steps.
 - A worker writes `WORKER_COMPLETE.json` only after validating all assigned
   experiment keys.
@@ -224,9 +250,9 @@ Pillow, GPU model, and GPU driver versions.
 
 ## Shared code rule
 
-Notebooks should explain and orchestrate the experiment. Reusable logic belongs
-under `src/poisoned_paperwork/`, with small tests under `tests/`. At minimum,
-later implementation should provide shared helpers for:
+Scripts run the experiment; notebooks explain and analyze completed outputs.
+Reusable logic belongs under `src/`, with small tests under
+`tests/`. At minimum, later implementation should provide shared helpers for:
 
 - dataset loading and schema checks;
 - prompts and output normalization;
@@ -235,8 +261,9 @@ later implementation should provide shared helpers for:
 - attacks and transformations;
 - metrics and result merging.
 
-An LLM implementing a notebook must inspect existing helpers before creating a
-new one. Do not duplicate subtly different normalization or metric functions.
+An LLM implementing a stage or notebook must inspect existing helpers before
+creating a new one. Do not duplicate subtly different normalization or metric
+functions.
 
 ## GPU and safety preflight
 
@@ -269,5 +296,5 @@ Every stage merge must check:
 8. Failures are counted and displayed rather than silently removed.
 
 Write merged machine-readable results as both Parquet and CSV, plus a compact
-`summary.json`. Small final tables and figures selected by notebook 10 will be
+`summary.json`. Small final tables and figures selected by notebook 06 will be
 copied to tracked `reports/final/`; raw experiment outputs stay gitignored.
