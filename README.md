@@ -20,9 +20,222 @@ The data pipeline is complete and ready for modeling.
 | Explore and audit all documents | `notebooks/02_data_exploration.ipynb` | Done |
 | Review receipt labels | `annotations/receipt_total_labels.csv` | Done |
 | Create modeling-ready datasets | `notebooks/03_data_preprocessing.ipynb` | Done |
-| Implement and run clean baselines | `baseline` GPU stage | **Next** |
-| Donut, Qwen, transfer, EOT, and defense experiments | GPU stage scripts | Planned |
+| Donut receipt clean baseline | `src/stages/baseline.py` | Implemented; GPU smoke test pending |
+| Donut targeted attack | `src/stages/donut_attack.py` | Implemented; GPU smoke test pending |
+| Qwen baseline and remaining attacks | GPU stage scripts | Planned |
 | Analyze results | notebooks 04-06 | Planned |
+
+## Donut baseline and attack review
+
+This section is the handoff for the Donut implementation. The code is ready for
+team review and CARC smoke testing, but it should not be merged into `main` or
+used for reported results until the GPU acceptance checklist below passes.
+
+### Scope and scientific intent
+
+Donut is the project's smaller white-box model for validating the targeted
+image-optimization pipeline before the main Qwen attack. The implementation
+currently covers SROIE and CORD receipt-total extraction only. It does not run
+Donut on resumes and does not implement the Qwen baseline.
+
+There are two related but distinct experiment definitions:
+
+| Experiment | Dataset/task | Loss | Epsilon and step settings |
+|---|---|---|---|
+| Paper-method reproduction | Donut targeted full-document attack | Paper target-logit margin | Paper reports epsilon 32, step size 2, 100 steps |
+| Project adaptation | SROIE/CORD receipt-total manipulation | Margin or cross-entropy comparison | Planned epsilon 2, 4, 8, 16 sweep |
+
+The current active baseline config is a 20-document validation smoke test. No
+attack config is active yet because a reviewed full clean baseline must produce
+the clean-correct input set first.
+
+### Files reviewers should inspect
+
+| File | Responsibility |
+|---|---|
+| `src/models/donut.py` | Pinned Donut loading, prompt construction, clean generation, differentiable resize/pad/normalization |
+| `src/normalization.py` | Conservative dataset-specific receipt-total parsing |
+| `src/attacks/donut.py` | Target losses, RGB-space projection, Adam/sign optimization, checkpoint save/resume |
+| `src/stages/baseline.py` | Clean receipt selection, five-worker inference, provenance, atomic records, merge |
+| `src/stages/donut_attack.py` | Clean-correct selection, attack execution, PNG verification, metrics, merge |
+| `tests/test_donut_attack.py` | Projection, loss masking, gradients, frozen weights, resume equivalence, preprocessing tests |
+| `tests/test_normalization.py` | SROIE/CORD parsing and ambiguous-output rejection |
+| `configs/baseline/active.json` | Reviewed 20-document baseline smoke run |
+| `configs/donut_attack/example_validation.json` | Attack template; baseline path must be replaced before activation |
+
+### Baseline data flow
+
+The clean baseline is required because attack success is meaningful only when
+Donut originally answers that same receipt correctly.
+
+```text
+processed validation receipts
+        |
+        v
+pinned Donut + receipt_total_v1 prompt
+        |
+        v
+raw response -> conservative normalization -> clean_correct
+        |
+        v
+outputs/baseline/<run_id>/merged/predictions.parquet
+        |
+        v
+clean-correct and attack-eligible IDs consumed by donut_attack
+```
+
+The selection contains 126 SROIE and 100 CORD validation receipts for a full
+run. SROIE validation examples retain their original `source_split="train"`
+identifier, so their record IDs are intentionally shaped like
+`sroie/train/<document_id>` even though `experiment_split` is `validation`.
+
+Each baseline record contains the raw and normalized response, clean target,
+attack target, exact-match result, parsing status, model and Git revisions,
+prompt text and ID, processor settings, worker ID, runtime, and peak GPU memory.
+The merge refuses duplicate, overlapping, or missing record assignments.
+
+### Attack definition
+
+The attack changes only the input image. Donut parameters are placed in eval
+mode, have `requires_grad=False`, and are never passed to the attack optimizer.
+The optimized image is represented as an RGB float tensor in `[0,1]`, while
+epsilon and step size are always configured and reported in ordinary 0-255
+pixel units.
+
+After every update, the candidate is projected as:
+
+```text
+candidate = clamp(candidate, clean - epsilon, clean + epsilon)
+candidate = clamp(candidate, 0, 255)
+candidate = quantize(candidate)  # when enabled by the frozen config
+```
+
+The code supports:
+
+- `paper_margin`: mean difference between the highest logit and the requested
+  target-token logit, with zero contribution once the target token is top-1;
+- `cross_entropy`: teacher-forced target-token cross-entropy for the planned
+  project comparison;
+- Adam optimization, matching the authors' released Donut implementation;
+- sign-gradient PGD as an explicit alternative for controlled comparisons.
+
+Prompt and padding positions are excluded explicitly. The target sequence is
+the precomputed receipt `attack_target` followed by `</s_answer>`. The attack
+backpropagates through a differentiable approximation of Donut's aspect-ratio
+preserving resize, center padding, and ImageNet normalization. Before a worker
+runs, this approximation is compared numerically with the official processor;
+the run stops when the configured mean-error tolerance is exceeded.
+
+### Correctness and recovery controls
+
+The stages implement the following safeguards:
+
+- exact pinned model revision
+  `b19d2e332684b0e2d35d9144ce34047767335cf8`;
+- validation-only development unless `frozen_for_test=true`;
+- matching baseline model revision, prompt ID, and exact prompt text;
+- attack selection restricted to usable, attack-eligible, clean-correct rows;
+- deterministic sorted record IDs and fixed five-worker assignment;
+- atomic records and checkpoints, with no overwrite of completed records;
+- checkpoint provenance checks for clean image, config hash, and model revision;
+- optimizer, Python, NumPy, and PyTorch RNG state restoration;
+- loss, target log probability, decoded answer, exact-target status, and
+  observed L-infinity distance at each checkpoint;
+- lossless PNG output followed by file close, reload, and fresh inference;
+- success counted from the reloaded prediction, not only in-memory output;
+- post-reload L-infinity assertion plus LPIPS and SSIM;
+- merge only after all five `WORKER_COMPLETE.json` files exist;
+- refusal to run from an uncommitted worktree by default.
+
+### Output artifacts
+
+The baseline produces:
+
+```text
+outputs/baseline/<run_id>/merged/
+├── predictions.parquet
+├── predictions.csv
+├── clean_correct_ids.txt
+├── clean_incorrect_ids.txt
+├── failures.csv
+└── summary.json
+```
+
+The attack produces:
+
+```text
+outputs/donut_attack/<run_id>/merged/
+├── attacks.parquet
+├── attacks.csv
+├── failures.csv
+├── successful_attack_ids.txt
+└── summary.json
+```
+
+Individual attack JSON records retain the full optimization trace. The flat
+Parquet and CSV tables omit the nested trace and contain the final metrics used
+by the analysis notebook.
+
+### Validation completed so far
+
+Completed locally:
+
+- Python syntax compilation for all new modules;
+- JSON configuration validation;
+- receipt normalization tests;
+- deterministic sharding tests;
+- mapping all 226 receipt validation IDs back to the processed datasets;
+- Slurm submission dry runs for Khalid's `user4` worker;
+- Git whitespace checks.
+
+Not yet completed because the local Python environment has no PyTorch/CUDA:
+
+- the PyTorch attack unit tests in `tests/test_donut_attack.py`;
+- loading the real pinned Donut checkpoint;
+- official-versus-differentiable processor parity measurement;
+- real nonzero input-gradient verification;
+- GPU memory and runtime measurement;
+- PNG-persistent targeted success;
+- interrupted-versus-uninterrupted real-model equivalence.
+
+### Team review and CARC acceptance checklist
+
+Before merging this branch:
+
+1. Review the files in the table above, especially target-token indexing,
+   processor equivalence, projection order, and normalization behavior.
+2. On a CARC GPU node, activate the environment and run:
+
+   ```bash
+   export PYTHONPATH="$PWD/src"
+   python -m unittest tests/test_donut_attack.py tests/test_normalization.py -v
+   ```
+
+3. Run Khalid's baseline smoke shard interactively or through Slurm:
+
+   ```bash
+   bash scripts/submit_stage.sh baseline user4
+   ```
+
+4. Inspect raw answers, normalized answers, deterministic repeats, processor
+   settings, runtime, and peak GPU memory. Do not proceed if the model produces
+   empty or malformed responses.
+5. After the smoke run passes, create a new baseline config and run ID with
+   `smoke_per_dataset` removed. All five teammates submit their worker command.
+6. Put that full run's merged `predictions.parquet` path into a new Donut attack
+   config. Never point the production sweep at the 20-document smoke baseline.
+7. Run one attack receipt at epsilon 8 and confirm finite nonzero image
+   gradients, frozen model parameters, the pixel bound, checkpoint resume, and
+   save/reload behavior.
+8. Run the 20-document attack smoke set and review at least five clean,
+   adversarial, and magnified-difference triplets.
+9. Freeze a new validation sweep config only after team approval. Test data
+   remains untouched until the validation choices are frozen.
+
+Additional details are in
+[`configs/baseline/README.md`](configs/baseline/README.md),
+[`configs/donut_attack/README.md`](configs/donut_attack/README.md), and
+[`docs/05_donut_attack.md`](docs/05_donut_attack.md).
 
 ### Modeling-ready data
 
@@ -46,8 +259,8 @@ used only to inspect completed outputs, analyze metrics, and build figures.
 ```text
 configs/                         # frozen JSON experiment settings
 src/
-├── models/                      # model-specific adapters (planned)
-├── attacks/                     # PGD/EOT/transform helpers (planned)
+├── models/                      # Donut adapter implemented; others planned
+├── attacks/                     # Donut targeted optimization implemented
 ├── stages/                      # one module per GPU stage (implemented in order)
 ├── sharding.py                  # deterministic five-way document split
 └── team.py                      # fixed user-to-worker mapping
