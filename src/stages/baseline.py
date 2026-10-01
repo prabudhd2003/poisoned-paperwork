@@ -236,7 +236,12 @@ def _merge_if_complete(
 
 
 def run(config, config_path, user_id, worker_id, num_workers):
-    """Run one deterministic clean Donut baseline shard."""
+    """Run one deterministic clean baseline shard (Donut by default, Qwen if configured)."""
+    if config.get("model_family") == "qwen":
+        from stages.baseline_qwen import run_qwen_baseline
+
+        return run_qwen_baseline(config, config_path, user_id, worker_id, num_workers)
+
     _validate_config(config)
     if not torch.cuda.is_available():
         raise RuntimeError("The Donut baseline requires a CUDA GPU; submit it through CARC Slurm.")
