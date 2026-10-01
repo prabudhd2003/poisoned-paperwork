@@ -1,9 +1,12 @@
-# Immediate next task: implement the clean baseline stage
+# Immediate next task: integrate Donut and complete the clean baseline
 
-This document is the complete handoff for the next implementation task. The
-assigned owner should implement and verify the clean baseline stage. The other
-four teammates should not submit production jobs until the owner announces
-that the smoke test passed and provides the exact Git commit and run ID.
+This document is the complete handoff for the next implementation task. A
+Donut receipt baseline and Donut targeted-attack scaffold already exist in Git,
+but the complete project baseline still requires integration, correctness
+fixes, Qwen inference, and résumé support. The assigned owner should finish and
+verify one unified clean baseline stage. The other four teammates should not
+submit production jobs until the owner announces that the smoke test passed
+and provides the exact Git commit and run ID.
 
 ## Outcome
 
@@ -21,6 +24,124 @@ This stage does not train a model and does not create adversarial images.
 - Analysis notebook: `notebooks/04_baseline_analysis.ipynb`, created only after
   merged baseline results exist
 
+## Current implementation state
+
+The existing Donut implementation is available in Git commit:
+
+```text
+ba0032fbbce420864aed6421ff5e908dc1e344e0
+```
+
+If those files are not already present in the working branch, inspect them
+without checking out or overwriting a dirty worktree:
+
+```bash
+git show ba0032f:src/models/donut.py
+git show ba0032f:src/attacks/donut.py
+git show ba0032f:src/stages/baseline.py
+git show ba0032f:src/stages/donut_attack.py
+git show ba0032f:src/normalization.py
+git show ba0032f:tests/test_donut_attack.py
+git show ba0032f:tests/test_normalization.py
+git show ba0032f:configs/baseline/active.json
+```
+
+Do not blindly copy the entire commit over current files. Read the current
+working tree and integrate only after comparing both versions. Preserve
+unrelated notebook or user changes.
+
+### What is already implemented
+
+| Existing file | Implemented behavior |
+|---|---|
+| `src/models/donut.py` | Pinned Donut DocVQA loading, prompt template, deterministic clean inference, RGB tensor conversion, and differentiable processor approximation |
+| `src/attacks/donut.py` | Target-token cross-entropy and margin losses, L-infinity projection, Adam/sign optimization, and attack checkpoint save/load |
+| `src/normalization.py` | Conservative SROIE and CORD receipt-total normalization |
+| `src/stages/baseline.py` | Donut-only SROIE/CORD selection, five-way sharding, atomic prediction records, provenance, progress, completion markers, and automatic merge |
+| `src/stages/donut_attack.py` | Clean-correct selection, targeted image attack, PNG save/reload verification, L-infinity/LPIPS/SSIM metrics, checkpoint resume, and merge |
+| `tests/test_donut_attack.py` | CPU tests for projection, target loss positions, frozen model weights, optimization, checkpoint resume, and differentiable preprocessing |
+| `tests/test_normalization.py` | Receipt normalization tests |
+| `configs/baseline/active.json` | A 20-receipt Donut smoke configuration, not a complete baseline config |
+| `configs/donut_attack/example_validation.json` | An inactive attack template that requires a completed Donut baseline path |
+
+The existing code is a useful starting point. It is intentionally Donut-only,
+has not completed real CARC GPU validation, and must not be described as the
+complete project baseline.
+
+### What remains for a complete baseline
+
+1. Add the pinned Qwen adapter and deterministic inference.
+2. Run Qwen on SROIE, CORD, and all retained résumé pages.
+3. Add exact seven-label résumé normalization.
+4. Replace the Donut-only config schema with one unified Qwen-plus-Donut
+   baseline config.
+5. Change output filenames and merge uniqueness from `record_id` to a complete
+   experiment key so Qwen and Donut can both produce a row for one receipt.
+6. Validate existing record contents before skipping them on resume.
+7. Validate exact dataset and expected experiment counts before declaring a
+   worker or merged run complete.
+8. Write explicit failed records so one permanently failing document does not
+   make a run impossible to close and audit.
+9. Validate config hash, Git commit, model revision, prompt, schema, and status
+   during merge.
+10. Produce separate Qwen and Donut clean-correct ID files.
+11. Record missing provenance fields, including precision, input page count,
+    prompt text hash, and GPU driver.
+12. Add baseline, checkpoint, merge, corrupted-record, and test-freeze tests.
+13. Add a clear owner-only smoke command and a CPU merge command.
+14. Run actual Qwen and Donut CARC smoke tests before team submissions.
+
+### Existing-code corrections required before production
+
+The following behaviors in the starting implementation must be changed rather
+than carried forward:
+
+- Do not skip a record only because `<key>.json` exists. Parse it and verify all
+  required fields, `status`, config hash, model revision, prompt ID, and
+  experiment key. A corrupt, partial, or stale record must be rerun.
+- Do not use `record_id` alone as the filename or merge key. Receipts have both
+  Qwen and Donut baseline experiments.
+- Do not count arbitrary `*.json` files as proof of completion. Compare the
+  exact observed experiment-key set with the exact expected set.
+- Do not define the expected run from whatever subset happens to load. Assert
+  the locked validation/test counts in this document.
+- Do not leave failures only in an append-only log. Write an auditable final
+  failed record with the same schema and `status="failed"`.
+- Do not use generic `clean_correct_ids.txt` after multiple models are present.
+- Do not treat the current 20-receipt `active.json` as a full validation run.
+- Do not merge reported results until both real model adapters pass CARC smoke
+  tests.
+
+The targeted-attack code is outside the baseline's immediate execution path.
+Preserve it and its tests, but do not expand or run the attack until the full
+Donut clean baseline has completed and been reviewed.
+
+## Ordered integration plan for an LLM
+
+An LLM completing this task should work in this order:
+
+1. Read all required files below and inspect `git status --short`.
+2. Compare the current branch with commit `ba0032f`; do not checkout over local
+   changes.
+3. Integrate and retain `src/models/donut.py`, `src/attacks/donut.py`, the
+   Donut tests, and receipt normalization.
+4. Extract generic data/checkpoint/merge behavior from the Donut-only baseline
+   instead of duplicating it inside two model paths.
+5. Implement strict record validation and exact experiment-key helpers first.
+6. Add `src/models/qwen.py` and unit-test the prompt/message construction with
+   mocked model objects.
+7. Extend normalization with résumé labels and tests.
+8. Rewrite `src/stages/baseline.py` as the unified Qwen-plus-Donut orchestrator.
+9. Create the unified config and exact expected experiment set.
+10. Add the owner smoke script and standalone CPU merge script.
+11. Run all CPU tests without downloading models.
+12. Run a Donut CARC smoke test, then a Qwen CARC smoke test, using the exact
+    production adapters.
+13. Run the complete five-worker validation round and merge it.
+14. Freeze prompts/settings, create a new test run ID, and run the five-worker
+    held-out test round.
+15. Create the analysis notebook only after merged outputs pass all checks.
+
 ## Required reading before an LLM generates code
 
 An LLM or developer must inspect these files in this order before editing. Do
@@ -36,37 +157,48 @@ launcher and data contract.
 3. `docs/04_clean_baselines.md`
    - Exact baseline models, revisions, prompts, metrics, outputs, and scientific
      completion criteria.
-4. `src/team.py`
+4. Existing Donut implementation at commit `ba0032f`:
+   - `src/models/donut.py`
+   - `src/attacks/donut.py`
+   - `src/stages/baseline.py`
+   - `src/stages/donut_attack.py`
+   - `src/normalization.py`
+   - `tests/test_donut_attack.py`
+   - `tests/test_normalization.py`
+   - `configs/baseline/active.json`
+   - Understand what can be reused and the corrections listed above. Do not
+     regenerate working Donut math from scratch without a concrete reason.
+5. `src/team.py`
    - Fixed mapping from `user1` through `user5` to worker IDs.
-5. `src/sharding.py`
+6. `src/sharding.py`
    - Existing deterministic document assignment. Reuse it; do not invent a
      second sharding rule.
-6. `scripts/run_gpu_stage.py`
+7. `scripts/run_gpu_stage.py`
    - Imports `stages.baseline` and calls its `run(...)` function.
-7. `scripts/submit_stage.sh`
+8. `scripts/submit_stage.sh`
    - Already requests the L40S, CPU, memory, time limit, log files, config, and
      worker ID. Teammates must not allocate a production GPU manually.
-8. `scripts/slurm/gpu_stage.sbatch`
+9. `scripts/slurm/gpu_stage.sbatch`
    - Activates the CARC environment and starts the Python dispatcher.
-9. `scripts/setup_carc.sh` and `scripts/activate_paperwork.sh`
+10. `scripts/setup_carc.sh` and `scripts/activate_paperwork.sh`
    - The CARC runtime is the `paperwork` conda environment using Python 3.11.
-10. `env/requirements.txt` and `env/requirements.lock.txt`
+11. `env/requirements.txt` and `env/requirements.lock.txt`
     - Installed model and data-library versions. Add a dependency only if it is
       genuinely missing, and update both through the setup process.
-11. `data/processed/preprocessing_summary.csv`
+12. `data/processed/preprocessing_summary.csv`
     - Expected document counts by dataset and split.
-12. `data/processed/master_manifest.parquet`
+13. `data/processed/master_manifest.parquet`
     - Inspect its schema and a few rows, not the entire table in a prompt.
-13. The three `data/processed/<dataset>/dataset_dict.json` files and split
+14. The three `data/processed/<dataset>/dataset_dict.json` files and split
     `dataset_info.json` files.
     - SROIE and CORD contain one `image` per document. Résumés contain an
       ordered `images` list; all retained pages form one document.
-14. `notebooks/03_data_preprocessing.ipynb`
+15. `notebooks/03_data_preprocessing.ipynb`
     - Consult only when the processed schema or split construction is unclear.
       Do not duplicate preprocessing inside the baseline stage.
-15. `tests/test_team_and_sharding.py`
+16. `tests/test_team_and_sharding.py`
     - Preserve the existing five-worker behavior.
-16. `.gitignore`
+17. `.gitignore`
     - Data, model caches, logs, outputs, checkpoints, and model weights must
       remain outside Git.
 
@@ -156,25 +288,31 @@ What is the highest degree level stated in this resume? Return exactly one label
 Prompt changes are allowed only during validation. Create a new prompt ID for
 every change. Never silently edit the text attached to an existing prompt ID.
 
-## Files to create
+## Files to integrate, add, or modify
 
-Keep shared helpers directly under `src/`; do not introduce a nested package
-for this task. The existing `src/stages/` directory remains the stage entry
-point expected by the launcher.
+Preserve the existing model-specific Donut modules. Use `src/models/` for model
+adapters and `src/attacks/` for attack logic. Keep generic loading,
+normalization, checkpointing, and experiment-key helpers directly under `src/`.
+The existing `src/stages/` directory remains the launcher entry point.
 
-| File | Required responsibility |
-|---|---|
-| `src/data.py` | Locate the repo, load the manifest and processed datasets, validate counts/fields, and return a document with either `image` or ordered `images` |
-| `src/normalization.py` | Normalize SROIE amounts, CORD rupiah amounts, and the seven résumé labels without guessing |
-| `src/models.py` | Reusable Qwen and Donut loading/inference adapters with pinned revisions and deterministic generation |
-| `src/checkpoints.py` | Atomic JSON writes, config/environment snapshots, valid-record checks, resumable skipping, and completion markers |
-| `src/stages/baseline.py` | Orchestrate the assigned baseline shard and expose the required `run(...)` function |
-| `scripts/smoke_baseline.py` | Owner-only interactive smoke test on two SROIE, two CORD, and two résumé documents |
-| `scripts/merge_baseline.py` | CPU merge that requires all five completion markers and rejects missing/duplicate experiment keys |
-| `configs/baseline/active.json` | Frozen config used by the launcher |
-| `tests/test_normalization.py` | Representative valid, invalid, and ambiguous normalization cases |
-| `tests/test_baseline.py` | Filtering, experiment keys, model scope, output schema, counts, and test-split protection |
-| `tests/test_checkpoints.py` | Atomic writes, valid completed records, corrupted records, and restart skipping |
+| File | Action | Required responsibility |
+|---|---|---|
+| `src/models/donut.py` | Integrate and retain | Pinned Donut loading, official clean inference, and differentiable preprocessing. Add configurable precision only after the required FP32/FP16 comparison. |
+| `src/attacks/donut.py` | Integrate and retain | Keep attack primitives isolated from the clean baseline. Apply checkpoint provenance fixes without coupling attacks to Qwen. |
+| `src/models/qwen.py` | Add | Pinned Qwen loading, official processor/chat template, deterministic receipt and multi-page résumé inference, and explicit unloading. |
+| `src/data.py` | Add | Locate the repo, load the manifest and processed datasets, assert counts/fields, and return one document with either `image` or ordered `images`. |
+| `src/normalization.py` | Extend | Retain tested receipt normalization and add strict seven-label résumé normalization. |
+| `src/checkpoints.py` | Add | Atomic JSON writes, config/environment snapshots, required-field validation, exact experiment keys, resumable skipping, and completion markers. |
+| `src/stages/baseline.py` | Refactor | Replace Donut-only orchestration with one Qwen-plus-Donut stage using the required `run(...)` signature. |
+| `src/stages/donut_attack.py` | Preserve for later | Do not run until the Donut baseline is complete. Fix stale-record validation and exact merge-key validation before production attacks. |
+| `scripts/smoke_baseline.py` | Add | Owner-only interactive smoke test on two SROIE, two CORD, and two résumé documents. |
+| `scripts/merge_baseline.py` | Add | CPU merge requiring five completion markers and exact expected experiment keys. It may call shared merge functions used by the automatic merge. |
+| `configs/baseline/active.json` | Replace after smoke review | Unified frozen Qwen-plus-Donut configuration. The existing 20-receipt Donut config remains a smoke reference, not production. |
+| `tests/test_normalization.py` | Extend | Retain receipt cases and add résumé successes, explanations, invalid labels, empty output, and ambiguity. |
+| `tests/test_donut_attack.py` | Integrate and retain | Preserve the attack-math regression tests even though attacks run later. |
+| `tests/test_baseline.py` | Add | Filtering, expected counts, experiment keys, model scope, output schema, multi-page résumés, failures, and test protection using mocked adapters. |
+| `tests/test_checkpoints.py` | Add | Atomic writes, valid completed records, corrupt/stale records, config mismatches, and restart skipping. |
+| `tests/test_merge_baseline.py` | Add | Assignment gaps/overlaps, missing markers, missing/duplicate keys, provenance mismatches, row counts, and model-specific ID outputs. |
 
 Modify `env/requirements.txt` only if an import required for this design is not
 already present. Do not commit downloaded model weights or runtime outputs.
@@ -183,6 +321,10 @@ Do not create `notebooks/04_baseline_analysis.ipynb` until the first real merged
 results exist. The notebook must visualize saved results, not rerun models.
 
 ## Configuration contract
+
+The starting Donut config stores one top-level `model_id` and filters to two
+receipt datasets. Keep it only as a smoke reference. The complete baseline
+must use the unified schema below so one frozen run describes both model paths.
 
 `configs/baseline/active.json` must include, at minimum:
 
@@ -305,21 +447,27 @@ The function must:
 4. Call `assigned_record_ids(...)` from `src/sharding.py`.
 5. Save the full expected assignment for the worker before model loading.
 6. Create the complete expected experiment-key set for the assigned documents.
-7. Run Qwen on every assigned receipt and résumé.
-8. Run Donut only on assigned SROIE and CORD receipts.
+   The validation run has 527 keys and the frozen test run has 997 keys.
+7. Reuse the integrated Donut adapter to run Donut only on assigned SROIE and
+   CORD receipts.
+8. Run Qwen on every assigned receipt and résumé, with all résumé pages passed
+   together in original order.
 9. Save one JSON record immediately after every model/document inference.
 10. Use a temporary file plus atomic rename; never write a final record
     directly.
-11. On restart, skip only records that exist, parse as JSON, match the current
-    config hash, and contain every required field with `status="complete"`.
+11. On restart, skip only records that exist, parse as JSON, match the expected
+    experiment key, current config hash, model revision and prompt, and contain
+    every required field with `status` equal to `complete` or an explicitly
+    allowed final `failed` state.
 12. Record inference exceptions as explicit failed records and continue when
     safe. Never silently drop a document.
 13. Load one large model at a time. Unload it and clear GPU memory before
     loading the second model.
 14. Record model revision, prompt ID, Git commit, GPU name, precision, runtime,
     and peak GPU memory.
-15. Write `WORKER_COMPLETE.json` only after verifying every expected key has a
-    complete or explicit failed record.
+15. Write `WORKER_COMPLETE.json` only after comparing the exact observed key
+    set with the exact expected key set and verifying every key has a complete
+    or explicit failed record.
 
 The unique experiment key must include at least:
 
@@ -502,19 +650,19 @@ The printed commit must match the owner's announced commit. Submit exactly one
 assigned shard:
 
 ```bash
-# Prabudhd
+# Worker 0
 bash scripts/submit_stage.sh baseline user1
 
-# Gary
+# Worker 1
 bash scripts/submit_stage.sh baseline user2
 
-# Saaketh
+# Worker 2
 bash scripts/submit_stage.sh baseline user3
 
-# Khalid
+# Worker 3
 bash scripts/submit_stage.sh baseline user4
 
-# Shail
+# Worker 4
 bash scripts/submit_stage.sh baseline user5
 ```
 
@@ -630,13 +778,12 @@ Config: configs/baseline/active.json
 GPU: L40S 48 GB
 
 Pull the repository, verify the commit, and run only your assigned command:
-user1 Prabudhd -> bash scripts/submit_stage.sh baseline user1
-user2 Gary     -> bash scripts/submit_stage.sh baseline user2
-user3 Saaketh  -> bash scripts/submit_stage.sh baseline user3
-user4 Khalid   -> bash scripts/submit_stage.sh baseline user4
-user5 Shail    -> bash scripts/submit_stage.sh baseline user5
+user1 / worker 0 -> bash scripts/submit_stage.sh baseline user1
+user2 / worker 1 -> bash scripts/submit_stage.sh baseline user2
+user3 / worker 2 -> bash scripts/submit_stage.sh baseline user3
+user4 / worker 3 -> bash scripts/submit_stage.sh baseline user4
+user5 / worker 4 -> bash scripts/submit_stage.sh baseline user5
 
 Send back the Slurm job ID. If the job times out, rerun the same command.
 Do not edit or pull a different commit until this run is complete.
 ```
-
