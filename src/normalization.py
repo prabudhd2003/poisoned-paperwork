@@ -41,3 +41,29 @@ def normalize_receipt_total(text: str | None, dataset_name: str) -> str | None:
     except (InvalidOperation, ValueError):
         return None
     raise ValueError(f"unsupported receipt dataset: {dataset_name}")
+
+#-------------------------------------------------------------------------------------------------
+
+
+RESUME_DEGREE_LABELS = (
+    "secondary",
+    "certificate_or_diploma",
+    "associate",
+    "bachelor",
+    "postgraduate",
+    "master",
+    "doctorate",
+)
+ 
+ 
+def normalize_resume_degree(text: str | None) -> str | None:
+    """Accept only one exact label from the seven-label vocabulary.
+ 
+    The response is lowercased and trimmed; nothing is inferred from sentences
+    or degree names ("Master of Science" is a parse failure, not "master").
+    """
+    if not isinstance(text, str):
+        return None
+    cleaned = text.strip().lower()
+    return cleaned if cleaned in RESUME_DEGREE_LABELS else None
+ 
