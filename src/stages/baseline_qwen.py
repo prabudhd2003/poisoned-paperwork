@@ -13,6 +13,7 @@ import os
 import random
 import subprocess
 import time
+import fcntl
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from models.qwen import (
 )
 from normalization import normalize_receipt_total, normalize_resume_degree
 from sharding import assigned_record_ids
+from team import get_team_member
 
 
 MODEL_TAG = "qwen2_5_vl_3b"
@@ -100,7 +102,7 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("Qwen revision must match the project execution contract")
     if not config["jobs"]:
         raise ValueError("config must define at least one job")
-    seen: set[tuple[str, str]] = set()
+    seen_tasks: set[str] = set()
     for job in config["jobs"]:
         for field in ("task", "datasets", "prompt_id"):
             if field not in job:
@@ -117,10 +119,11 @@ def validate_config(config: dict[str, Any]) -> None:
                     f"prompt_id {job['prompt_id']!r} already exists with different "
                     "text; create a new prompt ID instead of editing it"
                 )
-        marker = (job["task"], job["prompt_id"])
-        if marker in seen:
-            raise ValueError(f"duplicate job for task/prompt: {marker}")
-        seen.add(marker)
+        if job["task"] in seen_tasks:
+            raise ValueError(
+                f"only one frozen prompt per task is supported; duplicate task: {job['task']}"
+            )
+        seen_tasks.add(job["task"])
 
 
 def job_prompt_text(job: dict[str, Any]) -> str:
@@ -240,6 +243,151 @@ def record_is_final(path: Path, config_sha256: str) -> bool:
     )
 
 
+def _merge_if_complete(
+    output_root: Path,
+    *,
+    expected_keys: set[str],
+    expected_record_ids: set[str],
+    config_sha256: str,
+    num_workers: int,
+) -> bool:
+    """Merge Qwen records only after every shard is complete and consistent."""
+    markers = [
+        output_root / "shards" / f"worker_{worker_id:02d}" / "WORKER_COMPLETE.json"
+        for worker_id in range(num_workers)
+    ]
+    if not all(path.is_file() for path in markers):
+        return False
+
+    import pandas as pd
+    config_run_id = json.loads((output_root / "config.json").read_text())["run_id"]
+
+    lock_path = output_root / ".merge.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        assignments: list[str] = []
+        records_by_key: dict[str, dict[str, Any]] = {}
+        for worker_id, marker_path in enumerate(markers):
+            marker = json.loads(marker_path.read_text())
+            if (
+                marker.get("run_id") != config_run_id
+                or marker.get("worker_id") != worker_id
+                or marker.get("config_sha256") != config_sha256
+            ):
+                raise RuntimeError(f"worker {worker_id} completion marker has mismatched provenance")
+
+            assignment_path = output_root / "assignments" / f"worker_{worker_id:02d}.txt"
+            if not assignment_path.is_file():
+                raise RuntimeError(f"worker {worker_id} assignment is missing")
+            worker_assignment = [
+                line for line in assignment_path.read_text().splitlines() if line
+            ]
+            if len(worker_assignment) != len(set(worker_assignment)):
+                raise RuntimeError(f"worker {worker_id} assignment contains duplicates")
+            assignments.extend(worker_assignment)
+            worker_assignment_set = set(worker_assignment)
+
+            record_dir = output_root / "shards" / f"worker_{worker_id:02d}" / "records"
+            worker_record_count = 0
+            for path in sorted(record_dir.glob("*.json")):
+                record = json.loads(path.read_text())
+                if not record_is_final(path, config_sha256):
+                    raise RuntimeError(f"invalid or wrong-config record during merge: {path}")
+                if record["record_id"] not in worker_assignment_set:
+                    raise RuntimeError(
+                        f"worker {worker_id} produced an unassigned record: {record['record_id']}"
+                    )
+                key = experiment_key(
+                    record["record_id"], record["task"], record["prompt_id"],
+                    record["experiment_split"],
+                )
+                if key in records_by_key:
+                    raise RuntimeError(f"duplicate baseline experiment key: {key}")
+                records_by_key[key] = record
+                worker_record_count += 1
+            if marker.get("expected_records") != worker_record_count:
+                raise RuntimeError(
+                    f"worker {worker_id} marker count does not match its final records"
+                )
+
+        if len(assignments) != len(set(assignments)):
+            raise RuntimeError("baseline worker assignments overlap")
+        if set(assignments) != expected_record_ids:
+            raise RuntimeError("baseline assignments do not cover the expected documents")
+        if set(records_by_key) != expected_keys:
+            missing = expected_keys - records_by_key.keys()
+            extra = records_by_key.keys() - expected_keys
+            raise RuntimeError(
+                f"baseline experiment keys mismatch (missing={len(missing)}, extra={len(extra)})"
+            )
+        if {r["record_id"] for r in records_by_key.values()} != expected_record_ids:
+            raise RuntimeError("baseline records do not cover the expected documents")
+
+        frame = pd.DataFrame(records_by_key.values()).sort_values(
+            ["dataset_name", "task", "record_id"]
+        )
+        merged = output_root / "merged"
+        merged.mkdir(parents=True, exist_ok=True)
+        parquet_tmp = merged / "predictions.parquet.tmp"
+        csv_tmp = merged / "predictions.csv.tmp"
+        frame.to_parquet(parquet_tmp, index=False)
+        frame.to_csv(csv_tmp, index=False)
+        os.replace(parquet_tmp, merged / "predictions.parquet")
+        os.replace(csv_tmp, merged / "predictions.csv")
+
+        clean_correct = sorted(
+            frame.loc[frame["clean_correct"].eq(True), "record_id"].unique()
+        )
+        clean_incorrect = sorted(
+            frame.loc[frame["clean_correct"].ne(True), "record_id"].unique()
+        )
+        _atomic_text(
+            merged / "clean_correct_ids.txt",
+            "".join(f"{value}\n" for value in clean_correct),
+        )
+        _atomic_text(
+            merged / "clean_incorrect_ids.txt",
+            "".join(f"{value}\n" for value in clean_incorrect),
+        )
+
+        failures: list[dict[str, Any]] = []
+        for worker_id in range(num_workers):
+            path = output_root / "shards" / f"worker_{worker_id:02d}" / "failures.jsonl"
+            if path.is_file():
+                failures.extend(
+                    json.loads(line) for line in path.read_text().splitlines() if line.strip()
+                )
+        failures_tmp = merged / "failures.csv.tmp"
+        pd.DataFrame(failures).to_csv(failures_tmp, index=False)
+        os.replace(failures_tmp, merged / "failures.csv")
+
+        grouped = frame.groupby(
+            ["model_id", "dataset_name", "task", "experiment_split"], dropna=False
+        ).agg(
+            documents=("record_id", "size"),
+            clean_correct=("clean_correct", "sum"),
+            parse_failures=("parse_status", lambda values: int((values == "failed").sum())),
+            inference_failures=("status", lambda values: int((values == "failed").sum())),
+            median_runtime_seconds=("runtime_seconds", "median"),
+            p95_runtime_seconds=("runtime_seconds", lambda values: values.quantile(0.95)),
+            peak_gpu_memory_mb=("peak_gpu_memory_mb", "max"),
+        ).reset_index()
+        grouped["exact_match_accuracy"] = grouped["clean_correct"] / grouped["documents"]
+        _atomic_json(
+            merged / "summary.json",
+            {
+                "records": len(frame),
+                "clean_correct": len(clean_correct),
+                "clean_incorrect": len(clean_incorrect),
+                "failures_logged": len(failures),
+                "groups": json.loads(grouped.to_json(orient="records")),
+                "merged_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        return True
+
+
 # --------------------------------------------------------------------------- #
 # Data selection / loading
 # --------------------------------------------------------------------------- #
@@ -317,6 +465,13 @@ def run_qwen_baseline(
     import torch
 
     validate_config(config)
+    member = get_team_member(user_id)
+    if member.worker_id != worker_id:
+        raise ValueError(
+            f"{user_id} must use worker {member.worker_id}, not worker {worker_id}"
+        )
+    if num_workers != 5:
+        raise ValueError("the baseline execution contract requires exactly five workers")
     if not torch.cuda.is_available():
         raise RuntimeError("The Qwen baseline requires a CUDA GPU; submit through CARC Slurm.")
 
@@ -346,6 +501,15 @@ def run_qwen_baseline(
         job_manifest = select_job_manifest(manifest, job, config)
         job_manifests.append(job_manifest)
         job_assigned.append(assigned_record_ids(job_manifest.index, worker_id, num_workers))
+
+    expected_keys: set[str] = set()
+    expected_record_ids: set[str] = set()
+    for job, job_manifest in zip(config["jobs"], job_manifests):
+        expected_record_ids.update(job_manifest.index)
+        expected_keys.update(
+            experiment_key(rid, job["task"], job["prompt_id"], config["split"])
+            for rid in job_manifest.index
+        )
 
     union = sorted({rid for assigned in job_assigned for rid in assigned})
     assignment_path = output_root / "assignments" / f"worker_{worker_id:02d}.txt"
@@ -502,4 +666,11 @@ def run_qwen_baseline(
             "git_commit": git_commit,
             "completed_at": datetime.now(timezone.utc).isoformat(),
         },
+    )
+    _merge_if_complete(
+        output_root,
+        expected_keys=expected_keys,
+        expected_record_ids=expected_record_ids,
+        config_sha256=config_sha256,
+        num_workers=num_workers,
     )

@@ -22,7 +22,8 @@ The data pipeline is complete and ready for modeling.
 | Create modeling-ready datasets | `notebooks/03_data_preprocessing.ipynb` | Done |
 | Donut receipt clean baseline | `src/stages/baseline.py` | Implemented; GPU smoke test pending |
 | Donut targeted attack | `src/stages/donut_attack.py` | Implemented; GPU smoke test pending |
-| Qwen baseline and remaining attacks | GPU stage scripts | Planned |
+| Qwen clean baseline | `src/stages/baseline_qwen.py` | Implemented; GPU smoke test pending |
+| Qwen attacks and remaining stages | GPU stage scripts | Planned |
 | Analyze results | notebooks 04-06 | Planned |
 
 ## Donut baseline and attack review
@@ -259,7 +260,7 @@ used only to inspect completed outputs, analyze metrics, and build figures.
 ```text
 configs/                         # frozen JSON experiment settings
 src/
-├── models/                      # Donut adapter implemented; others planned
+├── models/                      # Donut and Qwen adapters implemented; InternVL planned
 ├── attacks/                     # Donut targeted optimization implemented
 ├── stages/                      # one module per GPU stage (implemented in order)
 ├── sharding.py                  # deterministic five-way document split
@@ -547,9 +548,9 @@ CARC resource references:
 | 6 | `defenses` | [Defenses and adaptive attacks](docs/09_defenses_and_adaptive_attacks.md) | Notebook 06 |
 | 7 | CPU only | [Final results and figures](docs/10_results_and_figures.md) | Notebook 06 |
 
-The immediate task is to implement and smoke-test the `baseline` stage. Follow
-the self-contained [immediate baseline handoff](docs/imm_next.md), then create
-`04_baseline_analysis.ipynb` after its five worker shards finish.
+The immediate task is to smoke-test the Qwen and Donut `baseline` stage on CARC.
+Follow the [baseline handoff](docs/imm_next.md), then create
+`04_baseline_analysis.ipynb` after all five worker shards finish.
 
 ## Data sources
 
