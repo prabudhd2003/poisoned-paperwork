@@ -17,13 +17,21 @@ DEFAULT_MAX_PIXELS = 1280 * 28 * 28
 DEFAULT_MAX_NEW_TOKENS = 32
 
 
-def select_dtype(device):
-    """BF16 when the GPU supports it, otherwise FP16 (per the baseline spec)."""
+def select_dtype(device, precision: str = "auto"):
+    """Resolve and validate the requested inference precision."""
     import torch
 
-    if device.type == "cuda" and torch.cuda.is_bf16_supported():
+    if precision == "auto":
+        precision = "bfloat16" if device.type == "cuda" and torch.cuda.is_bf16_supported() else "float16"
+    if precision == "bfloat16":
+        if device.type == "cuda" and not torch.cuda.is_bf16_supported():
+            raise RuntimeError("the requested GPU does not support Qwen bfloat16 inference")
         return torch.bfloat16
-    return torch.float16
+    if precision == "float16":
+        return torch.float16
+    if precision == "float32":
+        return torch.float32
+    raise ValueError("precision must be auto, bfloat16, float16, or float32")
 
 
 def build_messages(num_images: int, prompt: str) -> list[dict[str, Any]]:
@@ -44,6 +52,7 @@ class QwenVL:
         device,
         model_id: str = DEFAULT_MODEL_ID,
         revision: str = DEFAULT_REVISION,
+        precision: str = "auto",
         min_pixels: int = DEFAULT_MIN_PIXELS,
         max_pixels: int = DEFAULT_MAX_PIXELS,
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
@@ -59,7 +68,7 @@ class QwenVL:
         self.min_pixels = int(min_pixels)
         self.max_pixels = int(max_pixels)
         self.max_new_tokens = int(max_new_tokens)
-        self.dtype = select_dtype(device)
+        self.dtype = select_dtype(device, precision)
 
         self.processor = AutoProcessor.from_pretrained(
             model_id,

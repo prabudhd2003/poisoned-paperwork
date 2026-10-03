@@ -53,7 +53,8 @@ the 536 held-out test documents.
 
 - Model: `Qwen/Qwen2.5-VL-3B-Instruct`
 - Revision: `66285546d2b821cf421d4f5eb2576359d3770cd3`
-- Precision: BF16 when the allocated GPU supports it; otherwise FP16.
+- Precision: BF16 on the requested L40S. The stage stops instead of silently
+  changing precision on an incompatible GPU.
 - Batch size: 1 initially.
 - Generation: greedy, `do_sample=False`, temperature omitted,
   `max_new_tokens=32`.
@@ -67,8 +68,7 @@ the 536 held-out test documents.
 - Model: `naver-clova-ix/donut-base-finetuned-docvqa`
 - Revision: `b19d2e332684b0e2d35d9144ce34047767335cf8`
 - Scope: SROIE and CORD receipt totals only.
-- Precision: FP32 for the first correctness smoke test, then FP16 if outputs
-  match on a fixed 20-document comparison set.
+- Precision: FP32 for the smoke and validation baseline.
 - Batch size: 1.
 - Processor and input size: use the checkpoint's official processor settings.
 - Generation: deterministic and long enough to include the short numeric
@@ -123,9 +123,9 @@ representative strings.
 1. Find the repository root portably.
 2. Load only metadata first and assert counts and fields.
 3. Confirm there is no overlap between experiment splits.
-4. Create tracked configs:
-   - `configs/04_clean_baselines/qwen_v1.json`
-   - `configs/04_clean_baselines/donut_v1.json`
+4. Validate the tracked unified configs:
+   - `configs/baseline/smoke.json`
+   - `configs/baseline/active.json`
 5. Create deterministic worker assignments.
 6. Refuse test execution unless the config has `frozen_for_test=true`.
 
@@ -163,13 +163,9 @@ For each usable document and model/task configuration:
 Workers shard sorted document IDs according to the shared execution contract.
 Each worker runs these jobs sequentially for its assigned documents:
 
-1. Qwen receipt baseline.
-2. Qwen resume baseline.
-3. Donut receipt baseline.
-
-If startup cost is too high, use three independent run IDs and let workers
-complete the Qwen-receipt, Qwen-resume, and Donut-receipt runs separately. A
-run is complete only when all five shards for that run are merged.
+1. Qwen baseline for every assigned receipt and resume.
+2. Unload Qwen and clear GPU memory.
+3. Donut baseline for every assigned receipt.
 
 After the stage owner freezes and pushes the implementation and config, each
 teammate submits exactly one command:
@@ -193,16 +189,21 @@ Raw resumable outputs:
 ```text
 outputs/baseline/<run_id>/
 ├── config.json
-├── environment.json
 ├── assignments/
-├── shards/worker_00/records/*.json
+├── shards/worker_00/
+│   ├── environment.json
+│   ├── records/*.json
+│   └── WORKER_COMPLETE.json
 └── merged/
     ├── predictions.parquet
     ├── predictions.csv
-    ├── clean_correct_ids.txt
-    ├── clean_incorrect_ids.txt
+    ├── qwen_clean_correct_ids.txt
+    ├── qwen_clean_incorrect_ids.txt
+    ├── donut_clean_correct_ids.txt
+    ├── donut_clean_incorrect_ids.txt
     ├── failures.csv
-    └── summary.json
+    ├── summary.json
+    └── merge_manifest.json
 ```
 
 Each prediction record must contain:

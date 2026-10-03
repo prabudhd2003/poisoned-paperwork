@@ -1,21 +1,16 @@
-# Donut receipt baseline configuration
+# Baseline configurations
 
-`example_donut_validation.json` is a four-document smoke-test template. It is
-not an active or frozen experiment.
+- `smoke.json`: owner-only interactive validation smoke test. It selects two
+  SROIE receipts, two CORD receipts, and two resumes and repeats every model
+  prediction. Run it with `python scripts/smoke_baseline.py` on one L40S.
+- `active.json`: full five-worker validation run. It selects 301 documents and
+  requires exactly 527 prediction records at merge time.
 
-`active.json` is the reviewed 20-document smoke run (10 receipts per dataset),
-distributed as four receipts per worker. Commit the code and config before
-submitting it. The merged output is:
+Qwen runs on all three datasets. Donut runs only on SROIE and CORD. Both models
+use the same receipt prompt. Every model revision, prompt, processor setting,
+seed, and precision is tracked in the JSON and copied into the output folder.
 
-```text
-outputs/baseline/<run_id>/merged/predictions.parquet
-```
-
-After checking deterministic predictions, parsing, and GPU memory, create a new
-validation run configuration with a new `run_id` and remove
-`smoke_per_dataset`. Do not reuse the smoke run ID. The resulting full
-validation `predictions.parquet` is the input to `donut_attack`.
-
-This first implementation intentionally covers only the pinned Donut model on
-SROIE and CORD receipts. Qwen and resume baselines should be added as separate
-reviewed configurations rather than silently changing this run.
+Never change one of these files while its `run_id` is queued or running. Create
+a new file and a new `run_id` for any revised experiment. A future test config
+must set `split` to `test`, set `frozen_for_test` to `true`, and name the
+accepted `validation_run_id`; the expected merged size is 997 records.

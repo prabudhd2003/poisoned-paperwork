@@ -1,5 +1,5 @@
 {
-  "run_id": "baseline_validation_v1",
+  "run_id": "baseline_smoke_v1",
   "stage": "baseline",
   "split": "validation",
   "frozen_for_test": false,
@@ -7,6 +7,7 @@
   "seed": 566,
   "output_root": "outputs/baseline",
   "datasets": ["sroie", "cord_v2", "resume_parsing_vision"],
+  "smoke_per_dataset": 2,
   "models": {
     "qwen": {
       "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
@@ -33,6 +34,6 @@
       "text": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
     }
   },
-  "determinism_check_per_model_per_worker": 1,
-  "abort_after_consecutive_empty": 5
+  "determinism_check_per_model_per_worker": 100,
+  "abort_after_consecutive_empty": 3
 }

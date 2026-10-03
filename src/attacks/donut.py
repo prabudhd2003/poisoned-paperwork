@@ -47,11 +47,14 @@ def project_linf(
     projected = torch.maximum(torch.minimum(candidate, clean + epsilon), clean - epsilon)
     projected = projected.clamp(0.0, 1.0)
     if quantize:
-        projected = torch.round(projected * 255.0) / 255.0
-        # Rounding is safe for integer-valued epsilon budgets, but project once
-        # more so this helper remains correct for arbitrary configured budgets.
-        projected = torch.maximum(torch.minimum(projected, clean + epsilon), clean - epsilon)
-        projected = projected.clamp(0.0, 1.0)
+        clean_pixels = clean * 255.0
+        lower = torch.ceil(clean_pixels - float(epsilon_255)).clamp(0, 255)
+        upper = torch.floor(clean_pixels + float(epsilon_255)).clamp(0, 255)
+        if torch.any(lower > upper):
+            raise ValueError("no quantized pixel exists inside the requested epsilon ball")
+        projected_pixels = torch.round(projected * 255.0)
+        projected_pixels = torch.maximum(torch.minimum(projected_pixels, upper), lower)
+        projected = projected_pixels / 255.0
     return projected
 
 

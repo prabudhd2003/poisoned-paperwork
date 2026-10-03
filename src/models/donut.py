@@ -99,6 +99,7 @@ class DonutDocVQA:
         device: torch.device,
         model_id: str = DEFAULT_MODEL_ID,
         revision: str = DEFAULT_REVISION,
+        precision: str = "float32",
         max_length: int = 64,
     ) -> None:
         try:
@@ -109,10 +110,18 @@ class DonutDocVQA:
         self.device = device
         self.model_id = model_id
         self.revision = revision
+        precision_types = {
+            "float32": torch.float32,
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+        }
+        if precision not in precision_types:
+            raise ValueError("precision must be float32, float16, or bfloat16")
+        self.dtype = precision_types[precision]
         self.max_length = int(max_length)
         self.processor = AutoProcessor.from_pretrained(model_id, revision=revision)
         self.model = AutoModelForVision2Seq.from_pretrained(
-            model_id, revision=revision, torch_dtype=torch.float32
+            model_id, revision=revision, torch_dtype=self.dtype
         ).to(device)
         self.model.eval()
         for parameter in self.model.parameters():
@@ -187,7 +196,7 @@ class DonutDocVQA:
     def predict_pil(self, image: Image.Image, question: str) -> str:
         prompt = self.prompt(question)
         inputs = self.processor(images=image.convert("RGB"), text=prompt, return_tensors="pt")
-        pixel_values = inputs["pixel_values"].to(self.device)
+        pixel_values = inputs["pixel_values"].to(device=self.device, dtype=self.dtype)
         prompt_ids = inputs.get("input_ids")
         if prompt_ids is None:
             prompt_ids = self._token_ids(prompt)
