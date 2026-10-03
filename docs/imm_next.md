@@ -60,6 +60,30 @@ worker 0 of 5. It does not submit a job.
 
 ## Step 2: owner-only interactive smoke test
 
+### Recommended unattended submission
+
+To queue the test and safely close the laptop, make sure no interactive
+`salloc` request is still pending, then run:
+
+```bash
+bash scripts/submit_smoke_baseline.sh a100 02:00:00
+```
+
+This uses `sbatch`, so CARC retains the job after disconnect. The command prints
+the job ID and exact output/error log paths. On returning, inspect it with:
+
+```bash
+squeue -j <job_id>
+sacct -j <job_id> --format=JobID,State,Elapsed,ExitCode,NodeList
+tail -n 100 logs/pp_baseline_smoke_<job_id>.out
+tail -n 100 logs/pp_baseline_smoke_<job_id>.err
+```
+
+Success requires Slurm state `COMPLETED`, exit code `0:0`, and the final log
+line `SMOKE TEST COMPLETED SUCCESSFULLY`.
+
+### Attended interactive alternative
+
 Run from a CARC login node:
 
 ```bash

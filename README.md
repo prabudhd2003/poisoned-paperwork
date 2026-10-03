@@ -55,6 +55,19 @@ but do not mix model settings or configs between workers.
 Only `user1` runs the first smoke test. Request an interactive L40S from a CARC
 login node:
 
+For an unattended run that survives closing the laptop, submit the smoke test
+as a Slurm batch job (A100, A40, and L40S are supported):
+
+```bash
+bash scripts/submit_smoke_baseline.sh a100 02:00:00
+```
+
+The command prints a job ID and log paths, then it is safe to disconnect. Check
+the result later with `squeue`, `sacct`, and the saved logs. Do not keep an
+interactive `salloc` request queued at the same time.
+
+For an attended interactive run instead:
+
 ```bash
 salloc --account=yzhao010_1531 --partition=gpu \
   --nodes=1 --ntasks=1 --cpus-per-task=8 \
