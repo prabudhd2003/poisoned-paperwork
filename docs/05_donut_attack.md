@@ -31,7 +31,7 @@ This is an implementation-validation stage, not the main project result.
 data/processed/sroie/validation/
 data/processed/cord_v2/validation/
 outputs/baseline/<frozen_donut_run>/merged/predictions.parquet
-outputs/baseline/<frozen_donut_run>/merged/clean_correct_ids.txt
+outputs/baseline/<frozen_run>/merged/donut_clean_correct_ids.txt
 ```
 
 Select only documents satisfying all of the following:

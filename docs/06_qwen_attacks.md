@@ -32,7 +32,7 @@ data/processed/sroie/{validation,test}/
 data/processed/cord_v2/{validation,test}/
 data/processed/resume_parsing_vision/{validation,test}/
 outputs/baseline/<frozen_qwen_run>/merged/predictions.parquet
-outputs/baseline/<frozen_qwen_run>/merged/clean_correct_ids.txt
+outputs/baseline/<frozen_run>/merged/qwen_clean_correct_ids.txt
 outputs/donut_attack/<frozen_validation_run>/merged/summary.json
 ```
 
