@@ -92,6 +92,14 @@ class ConfigAndPlanTests(unittest.TestCase):
 
 
 class ImagesAndMessagesTests(unittest.TestCase):
+    def test_installed_transformers_has_supported_donut_auto_class(self):
+        import transformers
+
+        self.assertTrue(
+            hasattr(transformers, "AutoModelForImageTextToText")
+            or hasattr(transformers, "AutoModelForVision2Seq")
+        )
+
     def test_all_resume_pages_precede_question(self):
         self.assertEqual(row_images({"images": ["one", "two"]}), ["one", "two"])
         content = build_messages(2, "question")[0]["content"]

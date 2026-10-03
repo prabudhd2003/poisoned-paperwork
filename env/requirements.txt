@@ -6,7 +6,7 @@
 # env/requirements.lock.txt -- that is the file to trust for reproducing results.
 
 # --- vision-language models -------------------------------------------------
-transformers>=4.51         # Qwen2.5-VL needs >=4.49; see note below
+transformers>=4.51,<6      # adapters support the v4/v5 vision auto-class names
 accelerate>=1.0
 qwen-vl-utils>=0.0.8
 timm>=1.0                  # InternVL2.5 pulls this via trust_remote_code
@@ -32,8 +32,6 @@ ipywidgets>=8,<9
 matplotlib>=3.8
 tqdm>=4.66
 
-# NOTE (2026-09-22): the first install on CARC resolved to transformers 5.x,
-# datasets 5.x and pandas 3.x -- all major versions ahead of what notebooks
-# 01/02 were written against. If Qwen2.5-VL fails to load with a config or
-# processor error, pin "transformers<5" and re-run. Do not pre-emptively
-# downgrade; check requirements.lock.txt for what is actually installed.
+# NOTE (2026-10-03): CARC currently resolves to transformers 5.x. Donut uses
+# AutoModelForImageTextToText on v5 and the former AutoModelForVision2Seq name
+# on older v4 installations. Check requirements.lock.txt for the resolved build.

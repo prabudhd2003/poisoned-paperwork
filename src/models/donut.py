@@ -103,7 +103,13 @@ class DonutDocVQA:
         max_length: int = 64,
     ) -> None:
         try:
-            from transformers import AutoModelForVision2Seq, AutoProcessor
+            from transformers import AutoProcessor
+            try:
+                # Transformers 5 renamed this auto-class. Prefer the new name
+                # while retaining compatibility with the CARC/local v4 setup.
+                from transformers import AutoModelForImageTextToText as DonutAutoModel
+            except ImportError:
+                from transformers import AutoModelForVision2Seq as DonutAutoModel
         except ImportError as exc:
             raise RuntimeError("transformers is required to load Donut") from exc
 
@@ -120,7 +126,7 @@ class DonutDocVQA:
         self.dtype = precision_types[precision]
         self.max_length = int(max_length)
         self.processor = AutoProcessor.from_pretrained(model_id, revision=revision)
-        self.model = AutoModelForVision2Seq.from_pretrained(
+        self.model = DonutAutoModel.from_pretrained(
             model_id, revision=revision, torch_dtype=self.dtype
         ).to(device)
         self.model.eval()
