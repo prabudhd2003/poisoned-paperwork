@@ -1,0 +1,18 @@
+{
+  "run_id": "donut_receipt_validation_example_replace_me",
+  "frozen_for_test": false,
+  "require_clean_git": true,
+  "seed": 566,
+  "split": "validation",
+  "datasets": [
+    "sroie",
+    "cord_v2"
+  ],
+  "smoke_per_dataset": 2,
+  "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+  "model_revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+  "prompt_id": "receipt_total_v1",
+  "question": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+  "max_length": 64,
+  "determinism_check_per_worker": 1
+}
