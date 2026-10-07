@@ -1,0 +1,33 @@
+{
+  "run_id": "donut_smoke_khalid_v1",
+  "frozen_for_test": false,
+  "require_clean_git": true,
+  "seed": 566,
+  "split": "validation",
+  "datasets": [
+    "sroie",
+    "cord_v2"
+  ],
+  "smoke_per_dataset": 1,
+  "baseline_predictions": "outputs/baseline/baseline_validation_v1/merged/predictions.parquet",
+  "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+  "model_revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+  "max_length": 64,
+  "prompt_id": "receipt_total_v1",
+  "question": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+  "lpips_backbone": "alex",
+  "processor_parity_mean_tolerance": 0.05,
+  "attack": {
+    "epsilons_255": [
+      8
+    ],
+    "step_size_255": {
+      "8": 2
+    },
+    "max_steps": 100,
+    "loss_type": "cross_entropy",
+    "optimizer": "sign",
+    "quantize_each_step": true,
+    "checkpoint_interval": 10
+  }
+}
