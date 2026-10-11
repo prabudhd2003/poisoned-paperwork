@@ -8,7 +8,7 @@ code:
 
 | Track | Datasets | Owner | Stage module | Active config |
 |---|---|---|---|---|
-| Receipt (primary study) | SROIE, CORD | _receipt owner (TBD)_ | `src/stages/qwen_attack_receipt.py` | `configs/qwen_attack/receipt_active.json` |
+| Receipt (primary study) | SROIE, CORD | Saaketh | `src/stages/qwen_attack_receipt.py` | `configs/qwen_attack/receipt_active.json` |
 | Resume (secondary case study) | resume_parsing_vision | Shail | `src/stages/qwen_attack_resume.py` | `configs/qwen_attack/resume_active.json` |
 
 Both tracks share:
@@ -246,7 +246,7 @@ are placeholders until the Donut rule is inherited.
 
 | Purpose | Receipt run ID | Resume run ID |
 |---|---|---|
-| Smoke (owner only) | `qwen_receipt_smoke_<owner>_v1` | `qwen_resume_smoke_shail_v1` |
+| Smoke (owner only) | `qwen_receipt_smoke_saaketh_v1` | `qwen_resume_smoke_shail_v1` |
 | Validation (5 shards) | `qwen_receipt_validation_v1` | `qwen_resume_validation_v1` |
 | Test (5 shards) | `qwen_receipt_test_v1` | `qwen_resume_test_v1` |
 
