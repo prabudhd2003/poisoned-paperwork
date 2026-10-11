@@ -56,10 +56,18 @@ Example after the stage owner has created the active config and implementation:
 
 ```bash
 # Prabudhd
-bash scripts/submit_stage.sh qwen_attack user1
+bash scripts/submit_stage.sh donut_attack user1
 
 # Gary
-bash scripts/submit_stage.sh qwen_attack user2
+bash scripts/submit_stage.sh donut_attack user2
+```
+
+`qwen_attack` is split into a receipt track and a resume track with separate
+owners, configs, and run IDs, so each teammate submits one command per track:
+
+```bash
+bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/receipt_active.json
+bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/resume_active.json
 ```
 
 The remaining three teammates use `user3`, `user4`, and `user5`. The launcher
@@ -72,7 +80,7 @@ passes the same frozen run ID to every worker.
 |---:|---|---|---|---|
 | 1 | `baseline` | [Clean baselines](04_clean_baselines.md) | L40S 48 GB | 04 |
 | 2 | `donut_attack` | [Donut targeted attack](05_donut_attack.md) | L40S 48 GB | 05 |
-| 3 | `qwen_attack` | [Qwen full-page attacks](06_qwen_attacks.md) | A100 80 GB | 05 |
+| 3 | `qwen_attack` (receipt + resume tracks) | [Qwen full-page attacks](06_qwen_attacks.md) | A100 80 GB | 05 |
 | 4 | `transfer_robustness` | [Transfer and digital robustness](07_transfer_and_digital_robustness.md) | L40S 48 GB | 05 |
 | 5 | `eot_patch` | [EOT patch and physical pilot](08_eot_patch_and_physical_pilot.md) | A100 80 GB | 05 |
 | 6 | `defenses` | [Defenses and adaptive attacks](09_defenses_and_adaptive_attacks.md) | A100 80 GB | 06 |

@@ -1,21 +1,44 @@
 # 06 - Main Qwen full-page attacks
 
-## GPU stage and analysis notebook
+## Two tracks, one stage
 
-- Stage command: `qwen_attack`
-- Implementation: `src/stages/qwen_attack.py`
-- Active config: `configs/qwen_attack/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+The Qwen attack is split into two **tracks** that are developed and run
+independently, so two owners can work in parallel without editing each other's
+code:
+
+| Track | Datasets | Owner | Stage module | Active config |
+|---|---|---|---|---|
+| Receipt (primary study) | SROIE, CORD | _receipt owner (TBD)_ | `src/stages/qwen_attack_receipt.py` | `configs/qwen_attack/receipt_active.json` |
+| Resume (secondary case study) | resume_parsing_vision | Shail | `src/stages/qwen_attack_resume.py` | `configs/qwen_attack/resume_active.json` |
+
+Both tracks share:
+
+- **one stage name**, `qwen_attack`, and one output root, `outputs/qwen_attack/`;
+- **one attack core**, `src/attacks/qwen.py` (objective, differentiable
+  preprocessing, PGD loop, save/reload verification, checkpoint state);
+- the frozen `baseline` Qwen config, prompt, processor settings, and
+  clean-correct IDs;
+- the five-worker sharding contract in `00_execution_contract.md`.
+
+`src/stages/qwen_attack.py` is a small router that reads `config["track"]` and
+calls the matching track module. Nobody edits the router to add track logic.
+
+Each track has its own config, run ID, smoke test, validation run, frozen test
+run, and merge. Receipt results are complete and reportable without the resume
+track; resume work never blocks receipts.
+
+- CPU analysis: `notebooks/05_attack_analysis.ipynb` reads both tracks' merged
+  outputs.
 
 ## Purpose
 
 Run the main white-box targeted-attack experiment against
 Qwen2.5-VL-3B-Instruct. The primary study is receipt-total extraction on SROIE
-and CORD. Resume degree extraction is the secondary case study and begins only
-after the receipt pipeline is stable.
+and CORD. Resume degree extraction is the secondary case study.
 
 **GPU required:** yes, on CARC. This is the most memory- and time-intensive
-notebook, so checkpointing and five-worker sharding are mandatory.
+stage, so checkpointing and five-worker sharding are mandatory for validation
+and test runs of both tracks.
 
 ## Questions answered
 
@@ -27,24 +50,36 @@ notebook, so checkpointing and five-worker sharding are mandatory.
 
 ## Inputs
 
+Both tracks read the **frozen** baseline run. Do not re-run or edit the
+baseline to obtain these files; they are in the shared CARC project space (or
+are copied unchanged from it, verified by SHA-256).
+
 ```text
-data/processed/sroie/{validation,test}/
-data/processed/cord_v2/{validation,test}/
-data/processed/resume_parsing_vision/{validation,test}/
+data/processed/master_manifest.parquet
+data/processed/sroie/{validation,test}/                  # receipt track
+data/processed/cord_v2/{validation,test}/                # receipt track
+data/processed/resume_parsing_vision/{validation,test}/  # resume track
 outputs/baseline/<frozen_qwen_run>/merged/predictions.parquet
-outputs/baseline/<frozen_run>/merged/qwen_clean_correct_ids.txt
-outputs/donut_attack/<frozen_validation_run>/merged/summary.json
+outputs/baseline/<frozen_qwen_run>/merged/qwen_clean_correct_ids.txt
+outputs/baseline/<frozen_qwen_run>/merged/merge_manifest.json
+outputs/donut_attack/<frozen_validation_run>/merged/summary.json  # receipt step-size rule
 ```
+
+The validation baseline run is `baseline_validation_v1`. Each track config
+records the SHA-256 of the baseline config and `predictions.parquet` and
+refuses to start if either differs.
 
 Attack only records satisfying:
 
 - `usable=True`;
 - `attack_eligible=True`;
 - Qwen `clean_correct=True` under the exact frozen baseline config;
+- dataset is in the track's `datasets` list;
 - split equals the run's declared split.
 
 Use validation for implementation and hyperparameter decisions. Test attacks
-start only after the attack config is frozen and marked `frozen_for_test=true`.
+start only after that track's attack config is frozen and marked
+`frozen_for_test=true`.
 
 ## Model and prompt
 
@@ -55,18 +90,30 @@ start only after the attack config is frozen and marked `frozen_for_test=true`.
 - Freeze every model parameter. Only uploaded-image pixels are optimized.
 - Do not use quantized weights for gradient attacks.
 
-The validation attack is invalid if its baseline prediction differs from the
-stored `baseline` clean prediction. Record and stop on such configuration
-drift rather than attacking under a silently changed pipeline.
+A run is invalid if any document's clean prediction differs from the stored
+`baseline` clean prediction. Record and stop on such configuration drift rather
+than attacking under a silently changed pipeline.
 
-## Attack definition
+## Shared attack core: `src/attacks/qwen.py`
+
+The core is written once and used unchanged by both tracks, so receipt and
+resume numbers are produced by the same attack. It takes a list of page images
+(one page for receipts, all retained pages for resumes), the frozen prompt, the
+target string, and a track-supplied normalization function.
+
+**Ownership.** Shail creates the core in the first PR by moving the
+track-independent parts of his resume implementation (objective, differentiable
+preprocessing, PGD loop, save/reload, checkpoint contract) out of resume-only
+code. The receipt owner reviews that PR before merge. After merge, any change
+to `src/attacks/qwen.py` needs approval from both track owners, and a change
+made after a frozen run requires a new run ID for every affected track.
 
 ### Objective
 
 Create the exact chat template used at inference, append the complete desired
-assistant answer, and compute teacher-forced target-token cross-entropy. Mask
-system, user, visual-placeholder, and padding tokens so only assistant target
-tokens contribute to the loss.
+assistant answer followed by `<|im_end|>`, and compute teacher-forced
+target-token cross-entropy. Mask system, user, visual-placeholder, and padding
+tokens so only assistant target tokens contribute to the loss.
 
 For every checkpoint, record:
 
@@ -83,20 +130,25 @@ embedding. Maintain the attack variable in original RGB pixel space scaled to
 `[0,1]`. Projection uses epsilon divided by 255.
 
 Qwen's normal image processor may pass through PIL/NumPy operations that break
-gradients. If a differentiable resize/normalize path is implemented, it must:
+gradients. The differentiable resize/normalize path must:
 
 1. reproduce the frozen official processor's output dimensions;
 2. preserve aspect ratio and interpolation choices;
 3. match official processed tensors within a documented numeric tolerance;
 4. remain connected to the original image tensor;
-5. be tested on at least 20 varied receipt dimensions;
+5. be tested on at least 20 varied page dimensions, including at least 10
+   receipts and at least 5 resume pages;
 6. use the real official pipeline again for final saved-image verification.
+
+Report the parity error in **0-255 pixel units** as well as normalized units.
+The mean error must be well below the smallest epsilon (2/255); document the
+maximum error and where it occurs. Do not loosen the tolerance just to pass.
 
 Do not optimize only a post-resize tensor and call it an uploaded-image attack
 unless an inverse mapping to a bounded original-resolution PNG is implemented
 and verified.
 
-### Initial frozen candidate grid
+### Initial candidate grid
 
 ```text
 epsilon values: 2, 4, 8, 16 on the 0-255 scale
@@ -110,16 +162,23 @@ early stopping: only after target survives an immediate save/reload check
 seed: 566
 ```
 
+The epsilon grid, seed, and core are identical across tracks. Step count and
+step size are frozen per track from that track's validation run and recorded in
+its config.
+
 If 100 Qwen steps are computationally infeasible, compare 25, 50, and 100 on a
 fixed validation smoke subset, freeze one setting, and document the tradeoff.
 Never shorten only unsuccessful test attacks after observing their outcomes.
 
-### Receipt attack
+## Receipt track
 
 Optimize the one receipt image. The target is the exact normalized value in
 `attack_target`. Save as lossless RGB PNG at the original dimensions.
 
-### Resume attack
+Smoke subset: five SROIE and five CORD clean-correct validation receipts at
+epsilon 8.
+
+## Resume track
 
 Provide all retained pages in original order. Optimize all pages jointly under
 the same per-pixel epsilon bound, save one PNG per page, and count document
@@ -127,77 +186,144 @@ success only from a new multi-page inference over the reloaded files. Report
 L-infinity as the maximum across pages and LPIPS/SSIM both per page and averaged
 per document.
 
-If multi-page gradients exceed memory, choose and document one validation-only
-fallback before test execution: gradient accumulation across pages or attack
-only the page known to contain the highest degree. Do not change the policy per
-test document.
+If multi-page gradients exceed memory, choose and document one fallback during
+the resume smoke test, before the validation run: gradient accumulation across
+pages, or attack only the page known to contain the highest degree. Do not
+change the policy per document.
 
-## Stage implementation procedure
+Smoke subset: five single-page and five multi-page clean-correct validation
+resumes at epsilon 8.
 
-### 1. Reuse Donut-tested components
+## Gates
 
-Reuse projection, checkpoint I/O, metrics, and saved-image verification from
-the `donut_attack` stage. Add Qwen-specific tests rather than copying those
-functions.
+Each track moves through its own gates independently. Only gate 1 is shared.
 
-### 2. Qwen gradient smoke test
+1. **Shared core merged (both owners).** `src/attacks/qwen.py` merged with CPU
+   tests; processor parity passed on the 20+ varied page dimensions above;
+   nonzero finite gradients and target-loss reduction shown on one receipt and
+   one multi-page resume.
+2. **Track smoke (track owner alone).** The owner runs the smoke subset with
+   the one-worker smoke runner (see below). Verify bounds, checkpoint resume,
+   official-pipeline reload, and peak memory before expanding.
+3. **Track validation (all five teammates).** All clean-correct validation
+   documents of that track at all four epsilons, five shards. Use these runs to
+   freeze step count, step size, early stopping, and memory settings.
+4. **Track test (all five teammates).** Write a new immutable config with
+   `frozen_for_test=true`, its validation run ID, and a SHA-256 of the selected
+   settings. Run the held-out test set once without further tuning. Any bug fix
+   after inspecting test outputs requires a documented new run; never replace
+   results silently.
 
-Use five SROIE and five CORD clean-correct validation receipts at epsilon 8.
-Verify nonzero finite gradients, target-loss reduction, bounds, checkpoint
-resume, and official-pipeline reload. Display peak memory before expanding.
+If GPU queue time is scarce, receipt validation and test jobs go first.
 
-### 3. Validation receipt grid
+## Configs and run IDs
 
-Run all clean-correct validation receipts at all four epsilons. Use these runs
-to freeze step count, step size, early stopping, and any memory setting.
+Every config is tracked in Git under `configs/qwen_attack/` and contains at
+least:
 
-### 4. Resume case-study smoke and validation
+```json
+{
+  "stage": "qwen_attack",
+  "track": "receipt",
+  "run_id": "qwen_receipt_validation_v1",
+  "mode": "validation",
+  "split": "validation",
+  "datasets": ["sroie", "cord_v2"],
+  "frozen_for_test": false,
+  "seed": 566,
+  "baseline_run_id": "baseline_validation_v1",
+  "baseline_config_sha256": "...",
+  "baseline_predictions_sha256": "...",
+  "attack": {"epsilons_255": [2, 4, 8, 16], "max_steps": 100,
+             "step_size_255": {"2": 0.5, "4": 1.0, "8": 2.0, "16": 4.0},
+             "checkpoint_interval": 10}
+}
+```
 
-After the receipt pipeline passes merge checks, run five single-page and five
-multi-page resumes. Then run all eligible clean-correct validation resumes.
+The resume config is the same with `"track": "resume"`,
+`"datasets": ["resume_parsing_vision"]`, and its own run ID. Step sizes above
+are placeholders until the Donut rule is inherited.
 
-### 5. Freeze and run test once
+| Purpose | Receipt run ID | Resume run ID |
+|---|---|---|
+| Smoke (owner only) | `qwen_receipt_smoke_<owner>_v1` | `qwen_resume_smoke_shail_v1` |
+| Validation (5 shards) | `qwen_receipt_validation_v1` | `qwen_resume_validation_v1` |
+| Test (5 shards) | `qwen_receipt_test_v1` | `qwen_resume_test_v1` |
 
-Write a new immutable config with `frozen_for_test=true`, its validation run ID,
-and a SHA-256 of the selected settings. Run the held-out test set without
-further tuning. Any bug fix after inspecting test outputs requires a documented
-new run; never replace results silently.
+`receipt_active.json` and `resume_active.json` always point at the run the team
+should submit next. Owners change them only between runs.
 
-## Five-worker and timeout plan
+## How to run
 
-All workers receive disjoint documents and run the complete epsilon grid for
-each assigned document. Within a document, epsilon runs are sequential to limit
-GPU memory. The assignment is based on sorted record IDs and is identical for
-all epsilon settings.
+### Smoke (track owner only, one worker)
+
+Smoke tests follow the isolated one-worker pattern of
+`scripts/smoke_donut_attack.py`: a dedicated runner calls the track's
+`run(..., worker_id=0, num_workers=1)` with a smoke config whose
+`mode` is `"smoke"`. Track modules accept `num_workers=1` **only** when
+`mode == "smoke"`; validation and test runs require five workers.
+
+```bash
+python scripts/smoke_qwen_attack.py --config configs/qwen_attack/resume_smoke_shail.json --preflight  # CPU check
+sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/resume_smoke_shail.json                  # one A100
+```
+
+### Validation and test (everyone, five shards per track)
+
+Each teammate runs one command per track, with only their own user ID changed:
+
+```bash
+# Receipt track
+bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/receipt_active.json  # Prabudhd
+bash scripts/submit_stage.sh qwen_attack user2 configs/qwen_attack/receipt_active.json  # Gary
+bash scripts/submit_stage.sh qwen_attack user3 configs/qwen_attack/receipt_active.json  # Saaketh
+bash scripts/submit_stage.sh qwen_attack user4 configs/qwen_attack/receipt_active.json  # Khalid
+bash scripts/submit_stage.sh qwen_attack user5 configs/qwen_attack/receipt_active.json  # Shail
+
+# Resume track
+bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/resume_active.json   # Prabudhd
+bash scripts/submit_stage.sh qwen_attack user2 configs/qwen_attack/resume_active.json   # Gary
+bash scripts/submit_stage.sh qwen_attack user3 configs/qwen_attack/resume_active.json   # Saaketh
+bash scripts/submit_stage.sh qwen_attack user4 configs/qwen_attack/resume_active.json   # Khalid
+bash scripts/submit_stage.sh qwen_attack user5 configs/qwen_attack/resume_active.json   # Shail
+```
+
+The two tracks have different run IDs, so their jobs can run at the same time
+without touching each other's checkpoints. The launcher requests one A100
+80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve hours for each worker. After a
+timeout, resubmit the identical command; completed experiments are skipped and
+unfinished ones resume from their last checkpoint. Nobody edits
+`src/attacks/qwen.py`, a track module, or an active config during a run.
+
+## Sharding and checkpoints
+
+Within a track, all workers receive disjoint documents
+(`src/sharding.py: assigned_record_ids`, sorted record IDs modulo 5) and run
+the complete epsilon grid for each assigned document. Within a document,
+epsilon runs are sequential to limit GPU memory. Track modules use the shared
+helper; they do not invent their own assignment.
 
 Checkpoint each document/epsilon every 10 iterations:
 
 ```text
-outputs/qwen_attack/<run_id>/shards/worker_00/
-├── checkpoints/<experiment_key>/state.pt
-├── images/<experiment_key>/page_000.png
-└── records/<experiment_key>.json
+outputs/qwen_attack/<run_id>/
+├── assignments/worker_00.txt ... worker_04.txt
+├── shards/worker_00/
+│   ├── checkpoints/<experiment_key>/state.pt
+│   ├── images/<experiment_key>/page_000.png
+│   ├── records/<experiment_key>.json
+│   ├── progress.json
+│   └── WORKER_COMPLETE.json
+└── merged/
 ```
 
 The state contains all fields required in the shared execution contract plus
 the exact processed image grid, chat template hash, target token IDs, and best
 known attack tensor. A restarted job must verify all hashes before resuming.
 
-Each teammate submits one fixed shard:
-
-```bash
-bash scripts/submit_stage.sh qwen_attack user1  # Prabudhd
-bash scripts/submit_stage.sh qwen_attack user2  # Gary
-bash scripts/submit_stage.sh qwen_attack user3  # Saaketh
-bash scripts/submit_stage.sh qwen_attack user4  # Khalid
-bash scripts/submit_stage.sh qwen_attack user5  # Shail
-```
-
-The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve
-hours for each worker. Five people can run concurrently. Nobody should edit the
-stage implementation or active config during a frozen run.
-
 ## Exact outputs
+
+Each track run produces, after its own merge:
 
 ```text
 outputs/qwen_attack/<run_id>/merged/
@@ -209,14 +335,19 @@ outputs/qwen_attack/<run_id>/merged/
 └── summary.json
 ```
 
-Each attack record contains the `donut_attack` fields plus:
+Both tracks use the **same record schema** so downstream stages can
+concatenate them. Each attack record contains the `donut_attack` fields plus:
 
 ```text
-document_page_count, attacked_page_count, target_token_ids_hash,
+track, document_page_count, attacked_page_count, target_token_ids_hash,
 official_processor_shape, differentiable_processor_shape,
 processor_max_abs_difference, mean_target_log_probability,
 gradient_norm_final, peak_gpu_memory_mb
 ```
+
+Downstream stages (07-10) that read `outputs/qwen_attack/<run>/merged/` list
+the receipt run ID and, where resumes are in scope, the resume run ID in the
+results registry.
 
 ## Results shown in `05_attack_analysis.ipynb`
 
@@ -239,10 +370,13 @@ Primary result table:
 
 ## Completion criteria
 
-- Differentiable preprocessing is validated against the official processor.
+- `src/attacks/qwen.py` is shared by both tracks; differentiable preprocessing
+  is validated against the official processor on receipts and resume pages.
 - All attacked PNGs retain original dimensions and satisfy epsilon after reload.
-- All clean-correct validation candidates have results for four epsilons.
-- Test settings are frozen from validation before test inference.
-- All five worker shards merge without duplicates or missing keys.
+- All clean-correct validation candidates of each track have results for four
+  epsilons.
+- Each track's test settings are frozen from its own validation run before
+  test inference.
+- All five worker shards of each run merge without duplicates or missing keys.
 - Conditional ASR, harmful-output rate, LPIPS, SSIM, and runtime are reported.
 - Receipt results are complete even if the secondary resume study is reduced.

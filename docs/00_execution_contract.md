@@ -155,9 +155,14 @@ Each teammate then:
 Example for the Qwen stage:
 
 ```bash
-bash scripts/submit_stage.sh qwen_attack user1  # Prabudhd, shard 0
-bash scripts/submit_stage.sh qwen_attack user2  # Gary, shard 1
+bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/receipt_active.json  # Prabudhd, shard 0
+bash scripts/submit_stage.sh qwen_attack user2 configs/qwen_attack/receipt_active.json  # Gary, shard 1
 ```
+
+A stage may be split into independently owned **tracks** that share one stage
+name and output root but use separate configs and run IDs. `qwen_attack` has a
+receipt track and a resume track (see `06_qwen_attacks.md`); each teammate
+submits one command per track, and every track still uses all five shards.
 
 The launcher supplies CARC resources, environment variables, paths, and the
 fixed worker ID automatically. Teammates never choose GPU flags or record IDs.

@@ -32,7 +32,8 @@ selection, merging, and plots can run on CPU.
 ```text
 data/processed/<dataset>/{train,validation,test}/
 outputs/baseline/<qwen_run>/merged/predictions.parquet
-outputs/qwen_attack/<run_id>/merged/attacks.parquet
+outputs/qwen_attack/<receipt_run_id>/merged/attacks.parquet
+outputs/qwen_attack/<resume_run_id>/merged/attacks.parquet
 outputs/transfer_robustness/<run_id>/merged/transformation_trials.parquet
 outputs/eot_patch/<run_id>/merged/patch_attacks.parquet
 ```
@@ -127,7 +128,7 @@ Record the route, number of additional VLM passes, and total latency.
 Evaluate D1, D2, and D3 on:
 
 - all clean validation/test documents;
-- all completed full-page attacks from `qwen_attack`;
+- all completed full-page attacks from both `qwen_attack` tracks (receipt and resume runs);
 - all completed patch attacks from `eot_patch`.
 
 Report clean exact-match accuracy, conditional ASR, harmful-output rate, end-to-
