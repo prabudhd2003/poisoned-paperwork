@@ -30,7 +30,8 @@ Use only completed merged outputs:
 ```text
 outputs/baseline/<frozen_run>/merged/
 outputs/donut_attack/<frozen_run>/merged/
-outputs/qwen_attack/<frozen_run>/merged/
+outputs/qwen_attack/<frozen_receipt_run>/merged/
+outputs/qwen_attack/<frozen_resume_run>/merged/
 outputs/transfer_robustness/<frozen_run>/merged/
 outputs/eot_patch/<frozen_run>/merged/
 outputs/defenses/<frozen_run>/merged/

@@ -32,9 +32,14 @@ of `qwen_attack`.
 ```text
 data/processed/<dataset>/<split>/
 outputs/baseline/<frozen_qwen_run>/merged/predictions.parquet
-outputs/qwen_attack/<frozen_qwen_run>/merged/attacks.parquet
-outputs/qwen_attack/<frozen_qwen_run>/shards/*/images/
+outputs/qwen_attack/<frozen_qwen_receipt_run>/merged/attacks.parquet
+outputs/qwen_attack/<frozen_qwen_receipt_run>/shards/*/images/
+outputs/qwen_attack/<frozen_qwen_resume_run>/merged/attacks.parquet   # if resumes are in scope
+outputs/qwen_attack/<frozen_qwen_resume_run>/shards/*/images/
 ```
+
+`qwen_attack` has separate receipt and resume runs (see `06_qwen_attacks.md`);
+list both run IDs in the config and evaluate each run's records separately.
 
 Include every completed Qwen attack, not only successful ones, so overall
 transfer and survival denominators remain honest. Each attacked image hash must

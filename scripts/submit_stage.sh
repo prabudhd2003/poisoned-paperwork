@@ -5,7 +5,7 @@
 #   bash scripts/submit_stage.sh STAGE USER_ID [CONFIG] [--dry-run]
 #
 # Example:
-#   bash scripts/submit_stage.sh qwen_attack user1
+#   bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/receipt_active.json
 
 set -euo pipefail
 
@@ -66,6 +66,13 @@ case "$STAGE" in
     ;;
 esac
 
+if [[ "$STAGE" == "qwen_attack" && "$CONFIG_PATH" == "$REPO_ROOT/configs/qwen_attack/active.json" ]]; then
+  echo "qwen_attack has two tracks; pass the track config explicitly:" >&2
+  echo "  bash scripts/submit_stage.sh qwen_attack $USER_ID configs/qwen_attack/receipt_active.json" >&2
+  echo "  bash scripts/submit_stage.sh qwen_attack $USER_ID configs/qwen_attack/resume_active.json" >&2
+  exit 2
+fi
+
 if [[ "$CONFIG_PATH" != /* ]]; then
   CONFIG_PATH="$REPO_ROOT/$CONFIG_PATH"
 fi
@@ -86,6 +93,12 @@ print(value)
 PY
 )"
 
+TRACK="$(python3 - "$CONFIG_PATH" <<'PY'
+import json, pathlib, sys
+print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("track") or "")
+PY
+)"
+
 mkdir -p "$REPO_ROOT/logs"
 
 SBATCH_ARGS=(
@@ -98,7 +111,7 @@ SBATCH_ARGS=(
   --mem="$MEMORY"
   --time="$TIME_LIMIT"
   --gpus-per-task="$GPU_TYPE:1"
-  --job-name="pp_${STAGE}_w${WORKER_ID}"
+  --job-name="pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}"
   --chdir="$REPO_ROOT"
   --output="$REPO_ROOT/logs/%x_%j.out"
   --error="$REPO_ROOT/logs/%x_%j.err"
@@ -110,7 +123,7 @@ if [[ -n "$CONSTRAINT" ]]; then
 fi
 
 echo "Stage: $STAGE"
-echo "Run: $RUN_ID"
+echo "Run: $RUN_ID${TRACK:+ (track: $TRACK)}"
 echo "Team member: $USER_ID ($NAME)"
 echo "Worker shard: $WORKER_ID of 5"
 echo "GPU request: $GPU_TYPE ${CONSTRAINT:+($CONSTRAINT)}"
@@ -131,4 +144,4 @@ command -v sbatch >/dev/null 2>&1 || {
 JOB_ID="$(sbatch "${SBATCH_ARGS[@]}" "$REPO_ROOT/scripts/slurm/gpu_stage.sbatch")"
 echo "Submitted Slurm job $JOB_ID"
 echo "Monitor: squeue -j $JOB_ID"
-echo "Logs:    tail -f $REPO_ROOT/logs/pp_${STAGE}_w${WORKER_ID}_${JOB_ID}.out"
+echo "Logs:    tail -f $REPO_ROOT/logs/pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}_${JOB_ID}.out"

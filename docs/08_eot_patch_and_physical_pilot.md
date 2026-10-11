@@ -33,7 +33,7 @@ merging are CPU tasks.
 data/processed/sroie/{validation,test}/
 data/processed/cord_v2/{validation,test}/
 outputs/baseline/<qwen_run>/merged/predictions.parquet
-outputs/qwen_attack/<qwen_run>/merged/attacks.parquet
+outputs/qwen_attack/<qwen_receipt_run>/merged/attacks.parquet   # receipt track only
 outputs/transfer_robustness/<run_id>/merged/document_features.parquet
 outputs/transfer_robustness/<run_id>/merged/direct_transfer.parquet
 ```
