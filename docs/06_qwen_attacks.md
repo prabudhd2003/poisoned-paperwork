@@ -136,20 +136,25 @@ The threat model changes the uploaded RGB image, not an arbitrary normalized
 embedding. Maintain the attack variable in original RGB pixel space scaled to
 `[0,1]`. Projection uses epsilon divided by 255.
 
-Qwen's normal image processor may pass through PIL/NumPy operations that break
-gradients. The differentiable resize/normalize path must:
+Qwen's normal image processor uses PIL bicubic resizing, which breaks gradients
+and is not pixel-identical to PyTorch bicubic resizing. Use BPDA (a
+straight-through estimator): every model forward receives the **exact official
+PIL/NumPy processor values**, while the backward pass uses the differentiable
+PyTorch resize/normalize path. The implementation must:
 
 1. reproduce the frozen official processor's output dimensions;
 2. preserve aspect ratio and interpolation choices;
-3. match official processed tensors within a documented numeric tolerance;
-4. remain connected to the original image tensor;
+3. match official processed tensors within the strict exact-forward tolerance;
+4. remain connected to the original image tensor through the BPDA surrogate;
 5. be tested on at least 20 varied page dimensions, including at least 10
    receipts and at least 5 resume pages;
 6. use the real official pipeline again for final saved-image verification.
 
-Report the parity error in **0-255 pixel units** as well as normalized units.
-The mean error must be well below the smallest epsilon (2/255); document the
-maximum error and where it occurs. Do not loosen the tolerance just to pass.
+Report both exact-forward parity and raw surrogate error in **0-255 pixel
+units** as well as normalized units. The raw surrogate mean error must be well
+below the smallest epsilon (2/255); document its maximum error, but do not fail
+on isolated maximum differences caused by PIL versus PyTorch interpolation.
+Do not loosen the exact-forward or surrogate-mean tolerances just to pass.
 
 Do not optimize only a post-resize tensor and call it an uploaded-image attack
 unless an inverse mapping to a bounded original-resolution PNG is implemented
@@ -283,7 +288,9 @@ sbatch scripts/slurm/qwen_smoke.sbatch \
   configs/qwen_attack/resume_smoke_shail.json
 ```
 
-The batch job repeats processor parity before allocating the model. The smoke
+The batch job repeats processor parity before allocating the model. A passing
+result confirms a pixel-exact official forward, a bounded-mean differentiable
+surrogate, and the BPDA construction used by the attack. The smoke
 runner then requires exactly ten documents, no logged failure, finite metrics
 and traces, valid PNG hashes, and no epsilon violation. To prove resume, cancel
 one smoke attempt only after a `state.pt` exists, resubmit the exact command,
@@ -402,8 +409,9 @@ Primary result table:
 
 ## Completion criteria
 
-- `src/attacks/qwen.py` is shared by both tracks; differentiable preprocessing
-  is validated against the official processor on receipts and resume pages.
+- `src/attacks/qwen.py` is shared by both tracks; exact-forward BPDA
+  preprocessing is validated on receipts and resume pages, and its raw
+  differentiable surrogate error is recorded separately.
 - All attacked PNGs retain original dimensions and satisfy epsilon after reload.
 - All clean-correct validation candidates of each track have results for four
   epsilons.

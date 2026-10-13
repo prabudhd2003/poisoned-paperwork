@@ -25,7 +25,7 @@
   "prompt_id": "resume_degree_v1",
   "question": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
   "expected_validation_candidates": 74,
-  "processor_tolerance": {"max": 0.1, "mean": 0.005},
+  "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
   "notes": "Candidate settings. Set ready_for_production=true in a reviewed commit only after the resume smoke passes.",
   "attack": {
     "epsilons_255": [2, 4, 8, 16],
