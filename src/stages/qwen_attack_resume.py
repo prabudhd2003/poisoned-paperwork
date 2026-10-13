@@ -1,13 +1,12 @@
 """Resume-degree track for the shared Qwen adversarial attack core."""
 from __future__ import annotations
 
-import hashlib
 import json
+import math
 import os
 import platform
 import socket
 import subprocess
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,6 +39,17 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _validate_attack_config(config: dict[str, Any]) -> None:
+    required = {
+        "stage", "track", "mode", "run_id", "split", "datasets", "seed",
+        "baseline_run_id", "baseline_config", "baseline_config_sha256",
+        "baseline_predictions", "baseline_predictions_sha256",
+        "baseline_manifest", "baseline_summary", "baseline_correct_ids",
+        "baseline_environment", "model_id", "model_revision", "prompt_id",
+        "question", "processor_tolerance", "attack",
+    }
+    missing = sorted(required - config.keys())
+    if missing:
+        raise ValueError(f"resume config missing required fields: {missing}")
     if config.get("stage") != "qwen_attack" or config.get("track") != "resume":
         raise ValueError("resume config requires stage='qwen_attack' and track='resume'")
     if config.get("datasets") != ["resume_parsing_vision"]:
@@ -50,6 +60,21 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
         raise ValueError("test attacks require frozen_for_test=true")
     if config.get("mode") not in {"smoke", "validation", "test"}:
         raise ValueError("mode must be smoke, validation, or test")
+    if config["mode"] == "smoke" and config["split"] != "validation":
+        raise ValueError("smoke mode must use the validation split")
+    if config["mode"] == "validation" and config["split"] != "validation":
+        raise ValueError("validation mode must use the validation split")
+    if config["mode"] == "test" and config["split"] != "test":
+        raise ValueError("test mode must use the test split")
+    if config["mode"] != "smoke" and config.get("ready_for_production") is not True:
+        raise ValueError(
+            "Qwen resume production is gated; set ready_for_production=true only "
+            "after the CARC smoke is reviewed"
+        )
+    if config["mode"] == "test" and not config.get("validation_run_id"):
+        raise ValueError("test mode requires the frozen validation_run_id")
+    if config["mode"] == "smoke" and not config.get("owner_user_id"):
+        raise ValueError("smoke mode requires owner_user_id")
     if config.get("model_id") != DEFAULT_MODEL_ID or config.get("model_revision") != DEFAULT_REVISION:
         raise ValueError("resume attack must use the pinned Qwen2.5-VL-3B-Instruct revision")
     if config.get("prompt_id") != PROMPT_ID:
@@ -62,11 +87,21 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
         raise ValueError("max_steps and checkpoint_interval must be positive")
     if any(float(attack.get("step_size_255", {}).get(str(x), 0)) <= 0 for x in epsilons):
         raise ValueError("step_size_255 must provide a positive step for every epsilon")
+    if any(float(attack["step_size_255"][str(x)]) > x for x in epsilons):
+        raise ValueError("step_size_255 may not exceed its epsilon")
+    if attack.get("loss_type") != "cross_entropy":
+        raise ValueError("the shared Qwen attack currently requires loss_type='cross_entropy'")
     if attack.get("multi_page_fallback") not in {"gradient_accumulation_across_pages", "none"}:
         raise ValueError("multi_page_fallback must be gradient_accumulation_across_pages or none")
     tolerance = config.get("processor_tolerance", {})
     if float(tolerance.get("mean", -1)) < 0 or float(tolerance.get("max", -1)) < 0:
         raise ValueError("processor_tolerance must define nonnegative mean and max thresholds")
+    if float(tolerance["mean"]) > float(tolerance["max"]):
+        raise ValueError("processor mean tolerance may not exceed max tolerance")
+    for field in ("baseline_config_sha256", "baseline_predictions_sha256"):
+        value = config.get(field)
+        if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+            raise ValueError(f"{field} must be a lowercase SHA-256 value")
 
 
 def select_candidates(predictions, manifest, baseline):
@@ -207,6 +242,51 @@ def _immutable(path: Path, value: str) -> None:
         atomic_text(path, value)
 
 
+def _runtime_versions() -> dict[str, str]:
+    import datasets
+    import PIL
+    import torch
+    import transformers
+
+    return {
+        "torch": torch.__version__,
+        "transformers": transformers.__version__,
+        "datasets": datasets.__version__,
+        "pillow": PIL.__version__,
+    }
+
+
+def _validate_environment(versions: dict[str, str], baseline_environment: Path) -> None:
+    frozen = _read_json(baseline_environment)
+    for key, version in versions.items():
+        if frozen.get(key) != version:
+            raise RuntimeError(
+                f"baseline environment drift: {key} current={version}, "
+                f"frozen={frozen.get(key)}"
+            )
+
+
+def _build_provenance(
+    config: dict[str, Any], config_path: Path, root: Path, versions: dict[str, str]
+) -> dict[str, Any]:
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=root, text=True
+    ).strip()
+    return {
+        "run_id": config["run_id"],
+        "stage": "qwen_attack",
+        "track": "resume",
+        "config_sha256": sha256_file(config_path),
+        "git_commit": commit,
+        "baseline_config_sha256": config["baseline_config_sha256"],
+        "baseline_predictions_sha256": config["baseline_predictions_sha256"],
+        "processed_manifest_sha256": sha256_file(
+            root / "data/processed/master_manifest.parquet"
+        ),
+        "environment_hash": sha256_text(json.dumps(versions, sort_keys=True)),
+    }
+
+
 def _validate_saved_record(path: Path, expected: dict[str, Any]) -> bool:
     if not path.is_file():
         return False
@@ -216,16 +296,50 @@ def _validate_saved_record(path: Path, expected: dict[str, Any]) -> bool:
             raise RuntimeError(f"final record provenance mismatch in {key}: {path}")
     if record.get("status") != "complete":
         raise RuntimeError(f"final record is not complete: {path}")
-    import math
-    for key in ("linf_255", "lpips", "ssim", "final_loss", "runtime_seconds", "peak_gpu_memory_mb"):
-        if not math.isfinite(float(record[key])):
+    numeric_fields = (
+        "linf_255", "lpips", "ssim", "initial_loss", "final_loss", "best_loss",
+        "mean_target_log_probability", "gradient_norm_final", "runtime_seconds",
+        "peak_gpu_memory_mb",
+    )
+    for key in numeric_fields:
+        if record.get(key) is None or not math.isfinite(float(record[key])):
             raise RuntimeError(f"nonfinite final metric {key}: {path}")
     if not 0 <= record["linf_255"] <= record["epsilon_255"] + 1e-4 or not -1 <= record["ssim"] <= 1:
         raise RuntimeError(f"out-of-range final metric: {path}")
-    for image in record["images"]:
+    if record.get("targeted_success_reloaded") != record.get("saved_image_success"):
+        raise RuntimeError(f"saved-image success fields disagree: {path}")
+    images = record.get("images")
+    if not isinstance(images, list) or not images:
+        raise RuntimeError(f"final record has no saved page images: {path}")
+    expected_image_dir = (path.parent.parent / "images" / path.stem).resolve()
+    if record.get("document_page_count") is not None and len(images) != int(record["document_page_count"]):
+        raise RuntimeError(f"saved page count differs from document page count: {path}")
+    for page_index, image in enumerate(images):
         image_path = Path(image["path"])
-        if not image_path.is_file() or sha256_file(image_path) != image["sha256"]:
+        if image_path.resolve().parent != expected_image_dir:
+            raise RuntimeError(f"saved attack image is outside its experiment directory: {image_path}")
+        if image.get("page") != page_index:
+            raise RuntimeError(f"saved attack page order is invalid: {image_path}")
+        if not image_path.is_file() or sha256_file(image_path) != image.get("sha256"):
             raise RuntimeError(f"saved attack image is missing or changed: {image_path}")
+        for metric in ("linf_255", "lpips", "ssim"):
+            if image.get(metric) is None or not math.isfinite(float(image[metric])):
+                raise RuntimeError(f"nonfinite page metric {metric}: {image_path}")
+        if not 0 <= float(image["linf_255"]) <= float(record["epsilon_255"]) + 1e-4:
+            raise RuntimeError(f"page exceeds epsilon bound: {image_path}")
+        if not -1 <= float(image["ssim"]) <= 1:
+            raise RuntimeError(f"page SSIM is out of range: {image_path}")
+    if record.get("attacked_image_sha256") != [image["sha256"] for image in images]:
+        raise RuntimeError(f"record image-hash list disagrees with page metadata: {path}")
+    trace = record.get("optimization_trace")
+    if not isinstance(trace, list) or not trace:
+        raise RuntimeError(f"final record has no optimization trace: {path}")
+    for point in trace:
+        for key in ("target_loss", "mean_target_log_probability", "linf_255", "gradient_norm", "peak_gpu_memory_mb"):
+            if point.get(key) is None or not math.isfinite(float(point[key])):
+                raise RuntimeError(f"nonfinite trace field {key}: {path}")
+        if not 0 <= float(point["linf_255"]) <= float(record["epsilon_255"]) + 1e-4:
+            raise RuntimeError(f"trace exceeds epsilon bound: {path}")
     return True
 
 
@@ -281,6 +395,11 @@ def _merge_if_complete(output: Path, *, expected_ids: set[str], epsilons: list[i
                     raise RuntimeError(f"record provenance mismatch: {path}")
                 if record["record_id"] not in expected_ids or record["epsilon_255"] not in epsilons:
                     raise RuntimeError(f"unexpected record key: {path}")
+                expected_record = {**provenance, "experiment_key": path.stem,
+                    "record_id": record["record_id"], "epsilon_255": record["epsilon_255"],
+                    "worker_id": worker_id}
+                if not _validate_saved_record(path, expected_record):
+                    raise RuntimeError(f"invalid final record during merge: {path}")
                 key = (record["record_id"], record["epsilon_255"])
                 if key in keys:
                     raise RuntimeError(f"duplicate record key: {key}")
@@ -341,6 +460,34 @@ def _merge_if_complete(output: Path, *, expected_ids: set[str], epsilons: list[i
         return True
 
 
+def merge_if_complete(
+    config: dict[str, Any], config_path: str | Path, *, num_workers: int | None = None
+) -> bool:
+    """Re-run the strict Qwen-resume merge safely from a CARC CPU login node."""
+    _validate_attack_config(config)
+    config_path = Path(config_path).resolve()
+    root = config_path.parents[2]
+    _, selected, paths = _load_plan(config, root)
+    versions = _runtime_versions()
+    _validate_environment(versions, paths["baseline_environment"])
+    provenance = _build_provenance(config, config_path, root, versions)
+    if num_workers is None:
+        num_workers = 1 if config["mode"] == "smoke" else 5
+    expected_workers = 1 if config["mode"] == "smoke" else 5
+    if num_workers != expected_workers:
+        raise ValueError(
+            f"mode={config['mode']!r} requires num_workers={expected_workers}"
+        )
+    output = root / "outputs/qwen_attack" / config["run_id"]
+    return _merge_if_complete(
+        output,
+        expected_ids=set(selected.index),
+        epsilons=config["attack"]["epsilons_255"],
+        num_workers=num_workers,
+        provenance=provenance,
+    )
+
+
 def run(config, config_path, user_id, worker_id, num_workers):
     _validate_attack_config(config)
     expected_workers = 1 if config["mode"] == "smoke" else 5
@@ -363,20 +510,10 @@ def run(config, config_path, user_id, worker_id, num_workers):
         status = subprocess.check_output(["git", "status", "--porcelain"], cwd=root, text=True)
         if status.strip():
             raise RuntimeError("refusing to run from a dirty git worktree")
-    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
-    config_sha = sha256_file(config_path)
-    import datasets, lpips, PIL, transformers
-    versions = {"torch": torch.__version__, "transformers": transformers.__version__,
-                "datasets": datasets.__version__, "pillow": PIL.__version__}
-    frozen_env = _read_json(paths["baseline_environment"])
-    for key, version in versions.items():
-        if frozen_env.get(key) != version:
-            raise RuntimeError(f"baseline environment drift: {key} current={version}, frozen={frozen_env.get(key)}")
-    provenance = {"config_sha256": config_sha, "git_commit": commit,
-        "baseline_config_sha256": config["baseline_config_sha256"],
-        "baseline_predictions_sha256": config["baseline_predictions_sha256"],
-        "processed_manifest_sha256": sha256_file(root / "data/processed/master_manifest.parquet"),
-        "environment_hash": sha256_text(json.dumps(versions, sort_keys=True))}
+    import lpips
+    versions = _runtime_versions()
+    _validate_environment(versions, paths["baseline_environment"])
+    provenance = _build_provenance(config, config_path, root, versions)
     ids = selected.index.tolist() if num_workers == 1 else assigned_record_ids(selected.index, worker_id, num_workers)
     output = root / "outputs/qwen_attack" / config["run_id"]
     shard = output / "shards" / f"worker_{worker_id:02d}"

@@ -11,6 +11,13 @@ code:
 | Receipt (primary study) | SROIE, CORD | Saaketh | `src/stages/qwen_attack_receipt.py` | `configs/qwen_attack/receipt_active.json` |
 | Resume (secondary case study) | resume_parsing_vision | Shail | `src/stages/qwen_attack_resume.py` | `configs/qwen_attack/resume_active.json` |
 
+The resume implementation and shared core are merged. Resume production is
+deliberately blocked by `ready_for_production=false` until the CARC processor
+parity check, smoke run, saved-image inspection, and checkpoint-resume proof
+are accepted. Saaketh should branch from this shared core and add only the
+receipt-specific stage, configs, and tests unless both owners approve a core
+change.
+
 Both tracks share:
 
 - **one stage name**, `qwen_attack`, and one output root, `outputs/qwen_attack/`;
@@ -227,6 +234,7 @@ least:
   "track": "receipt",
   "run_id": "qwen_receipt_validation_v1",
   "mode": "validation",
+  "ready_for_production": false,
   "split": "validation",
   "datasets": ["sroie", "cord_v2"],
   "frozen_for_test": false,
@@ -242,11 +250,13 @@ least:
 
 The resume config is the same with `"track": "resume"`,
 `"datasets": ["resume_parsing_vision"]`, and its own run ID. Step sizes above
-are placeholders until the Donut rule is inherited.
+are candidate settings until the track smoke is accepted. Every non-smoke
+config must contain `ready_for_production=true`; both the launcher and stage
+reject a gated config before production work begins.
 
 | Purpose | Receipt run ID | Resume run ID |
 |---|---|---|
-| Smoke (owner only) | `qwen_receipt_smoke_saaketh_v1` | `qwen_resume_smoke_shail_v1` |
+| Smoke (owner only) | `qwen_receipt_smoke_saaketh_v1` | `qwen_resume_smoke_shail_v2` |
 | Validation (5 shards) | `qwen_receipt_validation_v1` | `qwen_resume_validation_v1` |
 | Test (5 shards) | `qwen_receipt_test_v1` | `qwen_resume_test_v1` |
 
@@ -264,9 +274,24 @@ Smoke tests follow the isolated one-worker pattern of
 `mode == "smoke"`; validation and test runs require five workers.
 
 ```bash
-python scripts/smoke_qwen_attack.py --config configs/qwen_attack/resume_smoke_shail.json --preflight  # CPU check
-sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/resume_smoke_shail.json                  # one A100
+python scripts/check_qwen_processor_parity.py \
+  --config configs/qwen_attack/resume_smoke_shail.json
+python scripts/smoke_qwen_attack.py \
+  --config configs/qwen_attack/resume_smoke_shail.json --preflight
+mkdir -p logs
+sbatch scripts/slurm/qwen_smoke.sbatch \
+  configs/qwen_attack/resume_smoke_shail.json
 ```
+
+The batch job repeats processor parity before allocating the model. The smoke
+runner then requires exactly ten documents, no logged failure, finite metrics
+and traces, valid PNG hashes, and no epsilon violation. To prove resume, cancel
+one smoke attempt only after a `state.pt` exists, resubmit the exact command,
+and confirm at least one final record reports `checkpoint_resumed=true`.
+
+After review, change only `ready_for_production` in
+`configs/qwen_attack/resume_active.json` to `true`, commit and push it, then
+have all five teammates pull the same commit and submit the commands below.
 
 ### Validation and test (everyone, five shards per track)
 
@@ -294,6 +319,13 @@ without touching each other's checkpoints. The launcher requests one A100
 timeout, resubmit the identical command; completed experiments are skipped and
 unfinished ones resume from their last checkpoint. Nobody edits
 `src/attacks/qwen.py`, a track module, or an active config during a run.
+
+The final worker merges automatically. A strict CPU-only retry is available:
+
+```bash
+python scripts/merge_qwen_resume.py \
+  --config configs/qwen_attack/resume_active.json
+```
 
 ## Sharding and checkpoints
 

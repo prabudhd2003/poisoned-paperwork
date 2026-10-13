@@ -2,17 +2,45 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+
+import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharding import assigned_record_ids
+from attacks.qwen import save_reload
 from stages import qwen_attack, qwen_attack_resume
 
 
 class ResumeCandidateTests(unittest.TestCase):
+    def config(self, mode="smoke"):
+        value = {
+            "stage": "qwen_attack", "track": "resume", "mode": mode,
+            "run_id": "resume_smoke", "owner_user_id": "user5",
+            "split": "validation", "datasets": ["resume_parsing_vision"],
+            "seed": 566, "baseline_run_id": "baseline_validation_v1",
+            "baseline_config": "baseline.json", "baseline_config_sha256": "a" * 64,
+            "baseline_predictions": "predictions.parquet",
+            "baseline_predictions_sha256": "b" * 64,
+            "baseline_manifest": "manifest.json", "baseline_summary": "summary.json",
+            "baseline_correct_ids": "ids.txt", "baseline_environment": "environment.json",
+            "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
+            "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+            "prompt_id": "resume_degree_v1", "question": "Question",
+            "processor_tolerance": {"max": 0.1, "mean": 0.005},
+            "attack": {"epsilons_255": [8], "max_steps": 1,
+                "checkpoint_interval": 1, "step_size_255": {"8": 1},
+                "loss_type": "cross_entropy",
+                "multi_page_fallback": "gradient_accumulation_across_pages"},
+        }
+        if mode != "smoke":
+            value["ready_for_production"] = True
+        return value
+
     def test_candidate_selection_filters_and_checks_labels(self):
         import pandas as pd
         model = {"model_id": "Qwen/Qwen2.5-VL-3B-Instruct", "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
@@ -51,15 +79,43 @@ class ResumeCandidateTests(unittest.TestCase):
 
     def test_non_smoke_rejects_one_worker(self):
         with self.assertRaisesRegex(ValueError, "num_workers=5"):
-            config = {"stage": "qwen_attack", "track": "resume", "datasets": ["resume_parsing_vision"],
-                "split": "validation", "mode": "validation", "attack": {"epsilons_255": [8],
-                    "max_steps": 1, "checkpoint_interval": 1, "step_size_255": {"8": 1},
-                    "multi_page_fallback": "gradient_accumulation_across_pages"},
-                "processor_tolerance": {"max": 0.1, "mean": 0.005},
-                "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
-                "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
-                "prompt_id": "resume_degree_v1"}
+            config = self.config("validation")
             qwen_attack_resume.run(config, Path("unused"), "user1", 0, 1)
+
+    def test_production_is_gated_until_smoke_review(self):
+        config = self.config("validation")
+        config["ready_for_production"] = False
+        with self.assertRaisesRegex(ValueError, "production is gated"):
+            qwen_attack_resume._validate_attack_config(config)
+        config["ready_for_production"] = True
+        qwen_attack_resume._validate_attack_config(config)
+
+    def test_test_mode_requires_validation_link(self):
+        config = self.config("test")
+        config["split"] = "test"
+        config["frozen_for_test"] = True
+        with self.assertRaisesRegex(ValueError, "validation_run_id"):
+            qwen_attack_resume._validate_attack_config(config)
+        config["validation_run_id"] = "qwen_resume_validation_v1"
+        qwen_attack_resume._validate_attack_config(config)
+
+    def test_loss_type_is_not_silently_ignored(self):
+        config = self.config()
+        config["attack"]["loss_type"] = "paper_margin"
+        with self.assertRaisesRegex(ValueError, "cross_entropy"):
+            qwen_attack_resume._validate_attack_config(config)
+
+    def test_save_reload_is_atomic_and_bounded(self):
+        clean = torch.full((3, 4, 5), 128 / 255)
+        candidate = clean + 20 / 255
+        with tempfile.TemporaryDirectory() as directory:
+            pages, metadata = save_reload(
+                [candidate], [clean], Path(directory) / "experiment", 8
+            )
+            self.assertEqual(len(pages), 1)
+            self.assertLessEqual(metadata[0]["linf_255"], 8.0001)
+            self.assertTrue((Path(directory) / "experiment/page_000.png").is_file())
+            self.assertFalse((Path(directory) / "experiment/page_000.png.tmp").exists())
 
     def test_router_rejects_receipt_dataset_for_resume(self):
         with self.assertRaisesRegex(ValueError, "accepts datasets"):

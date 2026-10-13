@@ -13,6 +13,7 @@ least contain:
 ```json
 {
   "run_id": "descriptive_unique_run_id",
+  "ready_for_production": false,
   "frozen_for_test": false,
   "seed": 566
 }
@@ -20,4 +21,5 @@ least contain:
 
 The complete stage-specific fields are defined in `docs/`. Never change an
 active configuration while workers are running. To revise settings, create a
-new config and a new `run_id`.
+new config and a new `run_id`. Attack launchers reject non-smoke configs until
+the owner reviews the smoke and commits `ready_for_production=true`.

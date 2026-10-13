@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Callable, Sequence
@@ -124,7 +125,9 @@ def save_reload(xs, clean, folder: Path, epsilon: float):
     for index, (x, original) in enumerate(zip(xs, clean)):
         path = folder / f"page_{index:03d}.png"
         bounded = project_linf(x.detach(), original, epsilon, quantize=True)
-        rgb_tensor_to_pil(bounded).save(path, format="PNG")
+        temporary = path.with_suffix(".png.tmp")
+        rgb_tensor_to_pil(bounded).save(temporary, format="PNG")
+        os.replace(temporary, path)
         with Image.open(path) as source:
             page = source.convert("RGB").copy()
         if page.size != (original.shape[2], original.shape[1]):

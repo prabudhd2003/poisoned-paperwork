@@ -2,7 +2,7 @@
   "stage": "qwen_attack",
   "track": "resume",
   "mode": "smoke",
-  "run_id": "qwen_resume_smoke_shail_v1",
+  "run_id": "qwen_resume_smoke_shail_v2",
   "owner_user_id": "user5",
   "split": "validation",
   "datasets": ["resume_parsing_vision"],
