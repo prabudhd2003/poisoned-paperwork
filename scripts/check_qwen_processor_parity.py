@@ -37,23 +37,24 @@ def _sample_pages(root: Path, split: str):
     for dataset_name, limit in targets:
         data = load_from_disk(str(root / "data" / "processed" / dataset_name))[split]
         accepted = 0
-        seen_sizes = {page.size for _, page in pages}
         for row in data:
             for page in row_images(row):
                 page = page.convert("RGB")
-                if page.size in seen_sizes:
-                    continue
                 pages.append((dataset_name, page))
-                seen_sizes.add(page.size)
                 accepted += 1
                 if accepted >= limit:
                     break
             if accepted >= limit:
                 break
-    if sum(name in {"sroie", "cord_v2"} for name, _ in pages) < 10:
-        raise RuntimeError("need at least ten receipt pages across SROIE and CORD")
-    if sum(name == "resume_parsing_vision" for name, _ in pages) < 5 or len(pages) < 20:
-        raise RuntimeError("need at least five resume pages and 20 varied total pages")
+    observed = {
+        dataset_name: sum(name == dataset_name for name, _ in pages)
+        for dataset_name, _ in targets
+    }
+    expected = dict(targets)
+    if observed != expected:
+        raise RuntimeError(
+            f"processor parity requires page counts {expected}; found {observed}"
+        )
     return pages
 
 
