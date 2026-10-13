@@ -83,6 +83,19 @@ if [[ ! -f "$CONFIG_PATH" ]]; then
   exit 2
 fi
 
+if [[ "$STAGE" == "qwen_attack" ]]; then
+  python3 - "$CONFIG_PATH" <<'PY'
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+config = json.loads(path.read_text())
+if config.get("mode") != "smoke" and config.get("ready_for_production") is not True:
+    raise SystemExit(
+        "Qwen production is gated. Review the track smoke, freeze its settings, "
+        "and set ready_for_production=true in a committed config before submitting."
+    )
+PY
+fi
+
 RUN_ID="$(python3 - "$CONFIG_PATH" <<'PY'
 import json, pathlib, sys
 path = pathlib.Path(sys.argv[1])

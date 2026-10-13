@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
@@ -18,8 +19,9 @@ def _tensor_pixels(image, processor, grid):
     gt, gh, gw = map(int, grid)
     raw = torch.from_numpy(__import__("numpy").array(image.convert("RGB")).copy())
     x = raw.permute(2, 0, 1).float().div(255).unsqueeze(0)
-    x = F.interpolate(x, size=(gh * p, gw * p), mode="bicubic", align_corners=False,
-                      antialias=True).clamp(0, 1)
+    if x.shape[-2:] != (gh * p, gw * p):
+        x = F.interpolate(x, size=(gh * p, gw * p), mode="bicubic",
+                          align_corners=False, antialias=True).clamp(0, 1)
     mean = x.new_tensor(ip.image_mean).reshape(1, 3, 1, 1)
     std = x.new_tensor(ip.image_std).reshape(1, 3, 1, 1)
     x = ((x - mean) / std).repeat(temporal, 1, 1, 1)
@@ -57,18 +59,27 @@ def _sample_pages(root: Path, split: str):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model-id", default="Qwen/Qwen2.5-VL-3B-Instruct")
-    parser.add_argument("--revision", default="66285546d2b821cf421d4f5eb2576359d3770cd3")
+    parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--split", choices=("validation",), default="validation")
     args = parser.parse_args()
     import torch
     from transformers import AutoProcessor
     from models.qwen import DEFAULT_MAX_PIXELS, DEFAULT_MIN_PIXELS, build_messages
 
-    processor = AutoProcessor.from_pretrained(args.model_id, revision=args.revision,
+    config_path = (ROOT / args.config).resolve() if not args.config.is_absolute() else args.config
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    tolerance = config.get("processor_tolerance") or {}
+    max_tolerance = float(tolerance.get("max", -1))
+    mean_tolerance = float(tolerance.get("mean", -1))
+    if min(max_tolerance, mean_tolerance) < 0:
+        raise SystemExit("Config must define nonnegative processor_tolerance.max and .mean")
+    processor = AutoProcessor.from_pretrained(config["model_id"], revision=config["model_revision"],
         min_pixels=DEFAULT_MIN_PIXELS, max_pixels=DEFAULT_MAX_PIXELS)
     pages = _sample_pages(ROOT, args.split)
     shapes = set()
+    maximum = 0.0
+    absolute_sum = 0.0
+    element_count = 0
     for index, (dataset_name, page) in enumerate(pages):
         prompt = "Read the document."
         text = processor.apply_chat_template(build_messages(1, prompt), tokenize=False,
@@ -82,6 +93,9 @@ def main():
                              f"{tuple(differentiable.shape)} vs {tuple(reference.shape)}")
         shapes.add(tuple(differentiable.shape))
         difference = (differentiable - reference).abs()
+        maximum = max(maximum, float(difference.max()))
+        absolute_sum += float(difference.double().sum())
+        element_count += difference.numel()
         ip = processor.image_processor
         p, temporal = int(ip.patch_size), int(ip.temporal_patch_size)
         scale = difference.new_tensor(ip.image_std).reshape(1, 3, 1, 1, 1) * 255
@@ -90,7 +104,18 @@ def main():
               f"processor_shape={list(reference.shape)} "
               f"max_error_255={float(error_255.max()):.6f} "
               f"mean_error_255={float(error_255.mean()):.6f}")
-    print(f"Checked {len(pages)} pages across {len(shapes)} processor tensor shapes on CPU.")
+    observed_mean = absolute_sum / element_count
+    print(
+        f"Checked {len(pages)} pages across {len(shapes)} processor tensor shapes on CPU; "
+        f"normalized max={maximum:.8f}, mean={observed_mean:.8f}."
+    )
+    if maximum > max_tolerance or observed_mean > mean_tolerance:
+        raise SystemExit(
+            "PROCESSOR PARITY FAILED: "
+            f"observed max/mean={maximum:.8f}/{observed_mean:.8f}, "
+            f"allowed={max_tolerance:.8f}/{mean_tolerance:.8f}"
+        )
+    print("PROCESSOR PARITY PASSED")
 
 
 if __name__ == "__main__":

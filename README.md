@@ -12,7 +12,9 @@ is the secondary case study.
 | Manual receipt-label repair | Complete |
 | Unified Qwen + Donut clean baseline | Implemented; CARC GPU smoke test required |
 | Donut targeted attack | Implemented scaffold; do not run until the baseline is accepted |
-| Qwen attacks, transfer tests, EOT, and defenses | Planned in `docs/` |
+| Qwen resume attack | Shared core and resume track implemented; CARC smoke required before production |
+| Qwen receipt attack | Saaketh can now implement it on the merged shared core |
+| Transfer tests, EOT, and defenses | Planned in `docs/` |
 
 The processed manifest contains 301 validation documents and 536 test
 documents. The unified baseline produces 527 validation predictions and 997

@@ -3,6 +3,7 @@
   "track": "resume",
   "mode": "validation",
   "run_id": "qwen_resume_validation_v1",
+  "ready_for_production": false,
   "owner_user_id": "user5",
   "split": "validation",
   "datasets": ["resume_parsing_vision"],
@@ -25,7 +26,7 @@
   "question": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
   "expected_validation_candidates": 74,
   "processor_tolerance": {"max": 0.1, "mean": 0.005},
-  "notes": "TODO: step sizes are provisional placeholders; freeze from resume validation smoke before submitting the full validation grid.",
+  "notes": "Candidate settings. Set ready_for_production=true in a reviewed commit only after the resume smoke passes.",
   "attack": {
     "epsilons_255": [2, 4, 8, 16],
     "max_steps": 100,
