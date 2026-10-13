@@ -1,188 +1,140 @@
-# Immediate next task: accept the clean baseline on CARC
+# Immediate next task: accept the Donut attack smoke on CARC
 
-The Qwen and Donut implementations are integrated into one checkpointed stage.
-No teammate should submit the 527-row production validation run until the
-owner-only GPU smoke test below passes and its saved predictions are reviewed.
+The clean validation baseline is already accepted. Do not rerun it. The next
+gate is the 20-receipt Donut targeted-attack smoke owned by Khalid (`user4`).
+Production remains deliberately disabled in `configs/donut_attack/active.json`
+until the smoke evidence below is reviewed.
 
-## What is implemented
+## Frozen input provenance
 
-- Qwen2.5-VL-3B-Instruct, pinned to revision
-  `66285546d2b821cf421d4f5eb2576359d3770cd3`, runs on SROIE, CORD v2, and all
-  retained pages of each resume.
-- Donut DocVQA, pinned to revision
-  `b19d2e332684b0e2d35d9144ce34047767335cf8`, runs on SROIE and CORD v2.
-- The real processed resume task name, `resume_highest_degree`, is used.
-- Documents are sorted and divided among workers. Both model experiments for a
-  receipt stay on the same worker.
-- One model is loaded at a time. It is unloaded before the second model loads.
-- Every inference becomes an atomic JSON checkpoint, including explicit failed
-  records. A restart skips only records matching the config, Git commit, model
-  revision, task, prompt, split, and exact experiment key.
-- The merge requires disjoint complete assignments, identical config hashes
-  and Git commits, and the exact expected experiment-key set.
-- Validation requires 527 records: 301 Qwen and 226 Donut.
-- Frozen test requires 997 records: 536 Qwen and 461 Donut.
-- Correct/incorrect ID lists are model-specific, so later attack stages cannot
-  accidentally mix Qwen and Donut eligibility.
+The Donut configs require the accepted baseline artifacts exactly:
 
-## Files to review before using GPU time
+```text
+run: baseline_validation_v1
+prediction records: 527
+inference Git commit: 5e387062d29b2a9b2b79de03c305c52d7b97f01f
+baseline config SHA-256: a371655bf97c99e6c08ac5da2b288ca48bf301ad0c2bdb21e4260c588266d05a
+predictions.parquet SHA-256: 483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0
+```
 
-1. `configs/baseline/smoke.json`
-2. `configs/baseline/active.json`
-3. `src/stages/baseline.py`
-4. `src/models/qwen.py`
-5. `src/models/donut.py`
-6. `src/data.py`
-7. `src/checkpoints.py`
-8. `src/normalization.py`
-9. `scripts/smoke_baseline.py`
-10. `scripts/merge_baseline.py`
-11. `scripts/submit_stage.sh`
+The attack stops if the saved predictions or merge manifest do not match these
+values. It also reruns clean inference for every selected receipt and stops on
+prediction drift.
 
 ## Step 1: update and run CPU checks
 
-From the shared CARC repository, verify that Git is clean and that the processed
-manifest exists:
+From the CARC login node:
 
 ```bash
 cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
 git pull origin main
 git status --short
-test -f data/processed/master_manifest.parquet && echo "processed data found"
 source scripts/activate_paperwork.sh
 export PYTHONPATH="$PWD/src"
 python -m unittest discover -s tests -v
-bash scripts/submit_stage.sh baseline user1 --dry-run
+sha256sum outputs/baseline/baseline_validation_v1/merged/predictions.parquet
+python scripts/smoke_donut_attack.py \
+  --config configs/donut_attack/smoke_validation.json --preflight
 ```
 
-The dry run must show one `l40s` GPU, 8 CPUs, 32 GB RAM, a four-hour limit, and
-worker 0 of 5. It does not submit a job.
+Do not submit unless the worktree is clean, all tests pass, the printed SHA-256
+matches the value above, and preflight selects exactly ten clean-correct SROIE
+and ten clean-correct CORD receipts.
 
-## Step 2: owner-only interactive smoke test
-
-### Recommended unattended submission
-
-To queue the test and safely close the laptop, make sure no interactive
-`salloc` request is still pending, then run:
+## Step 2: submit the unattended smoke job
 
 ```bash
-bash scripts/submit_smoke_baseline.sh a100 02:00:00
+sbatch scripts/slurm/donut_smoke.sbatch \
+  configs/donut_attack/smoke_validation.json
 ```
 
-This uses `sbatch`, so CARC retains the job after disconnect. The command prints
-the job ID and exact output/error log paths. On returning, inspect it with:
+Record the returned job ID. It is safe to disconnect after submission.
 
 ```bash
 squeue -j <job_id>
 sacct -j <job_id> --format=JobID,State,Elapsed,ExitCode,NodeList
-tail -n 100 logs/pp_baseline_smoke_<job_id>.out
-tail -n 100 logs/pp_baseline_smoke_<job_id>.err
+tail -n 100 logs/pp_donut_smoke_khalid_<job_id>.out
+tail -n 100 logs/pp_donut_smoke_khalid_<job_id>.err
 ```
 
-Success requires Slurm state `COMPLETED`, exit code `0:0`, and the final log
-line `SMOKE TEST COMPLETED SUCCESSFULLY`.
+Success requires Slurm state `COMPLETED`, exit code `0:0`, and the final smoke
+completion message.
 
-### Attended interactive alternative
-
-Run from a CARC login node:
+## Step 3: inspect the smoke artifacts
 
 ```bash
-salloc --account=yzhao010_1531 --partition=gpu \
-  --nodes=1 --ntasks=1 --cpus-per-task=8 \
-  --mem=32G --time=02:00:00 --gpus-per-task=l40s:1
-srun --pty bash -l
-cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
-source scripts/activate_paperwork.sh
-export PYTHONPATH="$PWD/src"
-nvidia-smi
-python scripts/smoke_baseline.py --config configs/baseline/smoke.json
+RUN=outputs/donut_attack/donut_validation_smoke_v1
+cat "$RUN/environment.json"
+cat "$RUN/merged/summary.json"
+cat "$RUN/merged/failures.csv"
+column -s, -t < "$RUN/merged/attacks.csv" | less -S
+find "$RUN/shards/worker_00/images" -type f | sort
+find "$RUN/shards/worker_00/records" -type f | sort
 ```
 
-This performs 10 experiments on one GPU:
+Acceptance checklist:
 
-| Dataset | Qwen | Donut | Total |
-|---|---:|---:|---:|
-| SROIE | 2 | 2 | 4 |
-| CORD v2 | 2 | 2 | 4 |
-| Resumes | 2 | 0 | 2 |
-| Total | 6 | 4 | 10 |
+- 20 unique documents and 20 final epsilon-8 attack records;
+- no inference failures or clean-prediction drift;
+- processor parity is below the configured tolerance and is documented;
+- every trace contains finite loss, target log probability, gradient norms,
+  prediction, exact-target status, and observed L-infinity distance;
+- every saved/reloaded image has `linf_255 <= 8.0001`;
+- LPIPS and SSIM are finite and visually plausible;
+- in-memory and reloaded success are reported separately;
+- five clean/adversarial/magnified-difference examples are inspected; and
+- unsuccessful attacks are retained and reported rather than tuned away.
 
-Every experiment is inferred twice. The script stops on nondeterminism and
-fails acceptance when an inference error is recorded. It automatically merges
-the one-worker smoke output.
+## Step 4: prove checkpoint resume
 
-## Step 3: inspect smoke artifacts
+On the first smoke attempt, wait until at least one `state.pt` checkpoint exists,
+then cancel the Slurm job once with `scancel <job_id>`. Resubmit the exact same
+config and confirm that the corresponding final record contains
+`checkpoint_resumed=true` and a continuous trace. Do not edit or delete any
+checkpoint, config, baseline artifact, or completed record. The remaining
+uninterrupted smoke examples provide the comparison for bounds and metrics.
+
+## Step 5: unlock and submit validation production
+
+After the team records smoke acceptance, edit only this field in
+`configs/donut_attack/active.json`:
+
+```json
+"ready_for_production": true
+```
+
+Commit and push that change. All five teammates then pull the same commit and
+submit exactly one shard:
 
 ```bash
-column -s, -t < outputs/baseline/baseline_smoke_v1/merged/predictions.csv | less -S
-cat outputs/baseline/baseline_smoke_v1/merged/summary.json
-cat outputs/baseline/baseline_smoke_v1/merged/failures.csv
+bash scripts/submit_stage.sh donut_attack user1
+bash scripts/submit_stage.sh donut_attack user2
+bash scripts/submit_stage.sh donut_attack user3
+bash scripts/submit_stage.sh donut_attack user4
+bash scripts/submit_stage.sh donut_attack user5
 ```
 
-Confirm all of the following:
-
-- 10 total rows, split as 6 Qwen and 4 Donut;
-- no inference failures;
-- every `deterministic` value is true;
-- SROIE outputs normalize to two decimals;
-- CORD outputs normalize to integer rupiah strings;
-- resume outputs are exactly one allowed degree label or an explicit parse
-  failure, never silently guessed;
-- resume `input_page_count` matches the saved pages;
-- raw answers, normalized answers, targets, runtime, and peak memory look sane;
-- the L40S did not approach its 48 GB limit.
-
-Parse failures or wrong predictions are model results and may remain, but they
-must be understandable from the raw responses. Inference failures, empty-output
-streaks, nondeterminism, missing pages, and out-of-memory errors block production.
-
-## Step 4: prove restart behavior
-
-Run the same smoke command again. It should reuse all 10 matching checkpoints,
-avoid loading either model, and finish quickly. If the current Git commit or
-config differs, it must rerun rather than trust stale records.
-
-## Step 5: submit the five production workers
-
-Exit the interactive node. From a normal CARC login shell, all teammates may
-submit concurrently:
-
-```bash
-bash scripts/submit_stage.sh baseline user1
-bash scripts/submit_stage.sh baseline user2
-bash scripts/submit_stage.sh baseline user3
-bash scripts/submit_stage.sh baseline user4
-bash scripts/submit_stage.sh baseline user5
-```
-
-No one runs `salloc` before these commands. `submit_stage.sh` requests the GPU
-and other resources from Slurm. Monitor with `squeue -u "$USER"` and inspect
-`logs/pp_baseline_w<worker>_<job>.out` and `.err`.
-
-If a job times out, that same teammate runs the same command again. Completed
-records are retained; only missing or stale records run. Do not change the
-config or `run_id` between retries.
+The active validation config attacks all 121 Donut clean-correct eligible
+receipts at epsilon 2, 4, 8, and 16, for 484 expected records. If a worker times
+out, the same teammate submits the same command again. Do not edit the config or
+run ID between retries.
 
 ## Step 6: merge and accept validation
 
-The final worker tries the merge automatically. It can also be checked on a CPU
-login node:
+The last worker attempts the merge automatically. It can also be checked on a
+CPU login node:
 
 ```bash
-python scripts/merge_baseline.py --config configs/baseline/active.json
-cat outputs/baseline/baseline_validation_v1/merged/summary.json
+python scripts/merge_donut_attack.py \
+  --config configs/donut_attack/active.json
+cat outputs/donut_attack/donut_validation_v1/merged/summary.json
+cat outputs/donut_attack/donut_validation_v1/merged/merge_manifest.json
 ```
 
-Acceptance requires exactly 527 records, five correct completion markers, one
-Git commit, one config hash, no missing/duplicate keys, and the four files:
+Acceptance requires 484 exact records, five correct worker markers, identical
+Git/config/baseline hashes, no missing or duplicate experiment keys, no epsilon
+violations, and explicit accounting of every failure.
 
-```text
-qwen_clean_correct_ids.txt
-qwen_clean_incorrect_ids.txt
-donut_clean_correct_ids.txt
-donut_clean_incorrect_ids.txt
-```
-
-Only after acceptance should the team create `04_baseline_analysis.ipynb` and
-activate the attack stages. Test remains untouched until validation decisions
-are frozen.
+Only after validation analysis freezes the Donut settings should a separate
+test config be created with `mode="test"`, `frozen_for_test=true`, and the
+accepted validation run ID.

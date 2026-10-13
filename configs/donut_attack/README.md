@@ -1,9 +1,16 @@
 # Donut attack configuration
 
-`example_validation.json` is a template, not an active experiment. It cannot
-run until `baseline_predictions` points at a completed, frozen Donut receipt
-baseline. Do not copy it to `active.json` until the stage owner has completed
-the GPU checks below.
+Configuration inventory:
+
+- `smoke_khalid.json`: two-document implementation check retained for debugging;
+- `smoke_validation.json`: the required 10-SROIE + 10-CORD acceptance smoke;
+- `active.json`: the four-epsilon validation sweep, deliberately committed with
+  `ready_for_production=false`; and
+- `example_validation.json`: a non-runnable template for later variants.
+
+Every runnable config pins the accepted baseline prediction hash, baseline
+config hash, merge manifest, and inference Git commit. The stage stops on any
+provenance or clean-prediction drift.
 
 The implemented attack supports two targeted teacher-forced losses:
 
@@ -18,17 +25,19 @@ verify success only after lossless PNG save/reload.
 
 ## Required GPU validation
 
-1. Point the template at baseline predictions and retain the 10-per-dataset
-   smoke selection.
-2. Copy it to `active.json` with a unique `run_id`.
-3. Request an interactive CARC L40S and activate the `paperwork` environment.
-4. Run one worker and inspect `environment.json`, especially processor parity.
-5. Confirm a nonzero input gradient, no model gradients, the requested L-inf
+1. Run the CPU preflight for `smoke_validation.json`.
+2. Submit `scripts/slurm/donut_smoke.sbatch` from the CARC login node.
+3. Inspect `environment.json`, especially processor parity.
+4. Confirm a nonzero input gradient, no model gradients, the requested L-inf
    bound, optimization traces, and PNG reload predictions.
-6. Interrupt one experiment at a checkpoint and confirm the resumed result
-   matches an uninterrupted run.
-7. Review five clean/adversarial/magnified-difference triplets before expanding
+5. Interrupt the job after a checkpoint once, resubmit unchanged, and confirm
+   `checkpoint_resumed=true` with a continuous trace.
+6. Review five clean/adversarial/magnified-difference triplets before expanding
    the epsilon grid or running all five worker shards.
+7. Change `ready_for_production` to `true`, commit, and only then submit the
+   five production workers.
+
+Commands are listed in `docs/imm_next.md` and `docs/05_donut_attack.md`.
 
 The paper's Donut full-document setting is `epsilon=32`, `step_size=2`, and
 `max_steps=100`. The project's planned receipt sweep is epsilon 2, 4, 8, and

@@ -1,5 +1,6 @@
 import random
 import copy
+import json
 import sys
 import tempfile
 import unittest
@@ -20,9 +21,86 @@ from attacks.donut import (
     targeted_token_loss,
 )
 from models.donut import differentiable_donut_preprocess
+from stages.donut_attack import (
+    DONUT_REQUIRED_RECORD_FIELDS,
+    _record_is_final,
+    _validate_config,
+)
 
 
 class DonutAttackPrimitiveTests(unittest.TestCase):
+    def smoke_config(self):
+        return {
+            "stage": "donut_attack",
+            "mode": "smoke",
+            "run_id": "smoke",
+            "seed": 566,
+            "split": "validation",
+            "output_root": "outputs/donut_attack",
+            "datasets": ["sroie", "cord_v2"],
+            "smoke_per_dataset": 1,
+            "baseline_predictions": "predictions.parquet",
+            "baseline_merge_manifest": "merge_manifest.json",
+            "baseline_predictions_sha256": "a" * 64,
+            "baseline_config_sha256": "b" * 64,
+            "baseline_git_commit": "c" * 40,
+            "attack": {
+                "epsilons_255": [8],
+                "step_size_255": {"8": 2},
+                "max_steps": 2,
+                "loss_type": "paper_margin",
+                "optimizer": "adam",
+            },
+        }
+
+    def test_config_gates_production_until_smoke_is_reviewed(self):
+        config = self.smoke_config()
+        _validate_config(config)
+        config["mode"] = "validation"
+        config.pop("smoke_per_dataset")
+        with self.assertRaisesRegex(ValueError, "ready_for_production"):
+            _validate_config(config)
+        config["ready_for_production"] = True
+        _validate_config(config)
+
+    def test_final_record_requires_exact_provenance(self):
+        config = self.smoke_config()
+        config_sha = "d" * 64
+        git_commit = "e" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "key.json"
+            record = {field: None for field in DONUT_REQUIRED_RECORD_FIELDS}
+            record.update({
+                "run_id": "smoke",
+                "stage": "donut_attack",
+                "experiment_key": "key",
+                "record_id": "sroie/validation/example",
+                "experiment_split": "validation",
+                "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+                "model_revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+                "git_commit": git_commit,
+                "config_sha256": config_sha,
+                "baseline_predictions_sha256": "a" * 64,
+                "worker_id": 0,
+                "seed": 566,
+                "epsilon_255": 8.0,
+                "status": "complete",
+                "error": None,
+            })
+            path.write_text(json.dumps(record))
+            self.assertTrue(_record_is_final(
+                path, config=config, config_sha256=config_sha,
+                git_commit=git_commit, record_id="sroie/validation/example",
+                epsilon=8.0, worker_id=0,
+            ))
+            record["git_commit"] = "f" * 40
+            path.write_text(json.dumps(record))
+            self.assertFalse(_record_is_final(
+                path, config=config, config_sha256=config_sha,
+                git_commit=git_commit, record_id="sroie/validation/example",
+                epsilon=8.0, worker_id=0,
+            ))
+
     def test_projection_enforces_pixel_space_bound_and_domain(self):
         clean = torch.tensor([[[0.0, 0.5, 1.0]]]).repeat(3, 1, 1)
         candidate = torch.tensor([[[-1.0, 0.9, 2.0]]]).repeat(3, 1, 1)
@@ -82,6 +160,28 @@ class DonutAttackPrimitiveTests(unittest.TestCase):
         self.assertGreater(float(result.adversarial.mean()), float(clean.mean()))
         self.assertLessEqual(float((result.adversarial - clean).abs().max() * 255), 8.0001)
         self.assertEqual(result.completed_steps, 10)
+
+    def test_checkpoint_metadata_contains_gradient_norms(self):
+        clean = torch.full((3, 2, 2), 0.5)
+        captured = {}
+
+        def objective(image):
+            return ((image - 0.7) ** 2).mean(), {}
+
+        def checkpoint(step, adversarial, best_loss, loss, metadata, optimizer):
+            captured.update(metadata)
+
+        targeted_image_attack(
+            clean,
+            objective,
+            epsilon_255=2,
+            step_size_255=1,
+            max_steps=1,
+            checkpoint_interval=1,
+            checkpoint_callback=checkpoint,
+        )
+        self.assertGreater(captured["gradient_l2"], 0)
+        self.assertGreater(captured["gradient_linf"], 0)
 
     def test_model_parameters_are_not_part_of_attack_update(self):
         model = torch.nn.Conv2d(3, 1, 1, bias=False)

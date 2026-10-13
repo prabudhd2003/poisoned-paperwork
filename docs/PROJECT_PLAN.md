@@ -4,6 +4,22 @@ This is the index for the remaining project work. GPU computation runs as
 checkpointed Python programs submitted to USC CARC. Notebooks are reserved for
 data preparation, inspection, analysis, and figures.
 
+## Status as of 2026-10-12
+
+- The five-worker validation baseline is accepted: 527 predictions on 301
+  documents with zero inference failures.
+- `04_baseline_analysis.ipynb` is complete and records 219 Qwen and 121 Donut
+  clean-correct receipt attack candidates.
+- Donut is the next runnable GPU stage. Its 20-receipt smoke config is ready;
+  production remains gated until smoke acceptance.
+- Qwen attack owners are implementing the shared core and two track modules.
+  Do not duplicate or edit their files without coordination.
+- Transfer, EOT, defenses, and final analysis remain unimplemented.
+- The prospective external set contains 11 of the planned 100 receipts.
+
+See [the proposal-feedback response](01_proposal_feedback_response.md) for the
+reasoning behind the external set, existing-attack reproduction, and defenses.
+
 Read [the execution contract](00_execution_contract.md) before implementing or
 running a GPU stage.
 
@@ -28,12 +44,14 @@ notebooks/
 ├── 02_data_exploration.ipynb
 ├── 03_data_preprocessing.ipynb
 ├── 04_baseline_analysis.ipynb
-├── 05_attack_analysis.ipynb
-└── 06_defense_and_final_analysis.ipynb
+├── 05_collected_receipt_preprocessing.ipynb
+├── 06_attack_analysis.ipynb
+└── 07_defense_and_final_analysis.ipynb
 ```
 
-The first three notebooks already prepare the data. The final three notebooks
-are CPU analysis notebooks and never contain a multi-hour model loop.
+The first three notebooks prepare the public datasets. The remaining four are
+CPU-only preparation or analysis notebooks and never contain a multi-hour
+model loop.
 
 ## Fixed team identities
 
@@ -78,13 +96,14 @@ passes the same frozen run ID to every worker.
 
 | Order | Stage command | Detailed plan | Recommended GPU | Analysis notebook |
 |---:|---|---|---|---|
-| 1 | `baseline` | [Clean baselines](04_clean_baselines.md) | L40S 48 GB | 04 |
-| 2 | `donut_attack` | [Donut targeted attack](05_donut_attack.md) | L40S 48 GB | 05 |
-| 3 | `qwen_attack` (receipt + resume tracks) | [Qwen full-page attacks](06_qwen_attacks.md) | A100 80 GB | 05 |
-| 4 | `transfer_robustness` | [Transfer and digital robustness](07_transfer_and_digital_robustness.md) | L40S 48 GB | 05 |
-| 5 | `eot_patch` | [EOT patch and physical pilot](08_eot_patch_and_physical_pilot.md) | A100 80 GB | 05 |
-| 6 | `defenses` | [Defenses and adaptive attacks](09_defenses_and_adaptive_attacks.md) | A100 80 GB | 06 |
-| 7 | CPU analysis | [Final results and figures](10_results_and_figures.md) | No GPU | 06 |
+| 1 | `baseline` | [Clean baselines](04_clean_baselines.md) | L40S 48 GB | 04 — complete |
+| 2 | `donut_attack` | [Donut targeted attack](05_donut_attack.md) | L40S 48 GB | 06 |
+| 3 | `qwen_attack` (receipt + resume tracks) | [Qwen full-page attacks](06_qwen_attacks.md) | A100 80 GB | 06 |
+| 4 | external receipt baseline/attack | [Proposal response](01_proposal_feedback_response.md) | L40S/A100 | 05 preprocessing; 06 analysis |
+| 5 | `transfer_robustness` | [Transfer and digital robustness](07_transfer_and_digital_robustness.md) | L40S 48 GB | 06 |
+| 6 | `eot_patch` | [EOT patch and physical pilot](08_eot_patch_and_physical_pilot.md) | A100 80 GB | 06 |
+| 7 | `defenses` | [Defenses and adaptive attacks](09_defenses_and_adaptive_attacks.md) | A100 80 GB | 07 |
+| 8 | CPU analysis | [Final results and figures](10_results_and_figures.md) | No GPU | 07 |
 
 ## Notebook responsibilities
 
@@ -96,7 +115,14 @@ Displays clean accuracy, parsing failures, latency, model examples, and the
 clean-correct document counts that become attack candidates. It must not load a
 VLM or generate missing predictions.
 
-### 05 - Attack analysis
+### 05 - Prospective receipt preprocessing
+
+Inputs: raw team-collected PNG receipts and blinded manual labels. Produces
+lossless RGB copies, hashes, diagnostics, and an immutable `external_test`
+manifest. It never runs a model. Raw receipts belong on CARC rather than public
+Git because they may contain personal or transaction information.
+
+### 06 - Attack analysis
 
 Inputs: merged outputs from `donut_attack`, `qwen_attack`,
 `transfer_robustness`, and `eot_patch`.
@@ -106,7 +132,7 @@ InternVL transfer, transformation robustness, EOT versus non-EOT patches, and
 the physical pilot. It may display images already produced by the scripts but
 must not optimize images itself.
 
-### 06 - Defense and final analysis
+### 07 - Defense and final analysis
 
 Inputs: all frozen merged results, especially `defenses`.
 

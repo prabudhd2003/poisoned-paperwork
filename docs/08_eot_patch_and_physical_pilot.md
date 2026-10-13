@@ -1,11 +1,20 @@
 # 08 - EOT patch, physical pilot, and survival predictors
 
+> **Status:** planned extension; no stage, config, or tests are implemented.
+> This is lower priority than the Qwen receipt attack and prospective clean
+> external evaluation.
+
+The 100 newly photographed receipts are a clean external generalization set,
+not this physical adversarial pilot. A receipt enters the physical-survival
+analysis only after a frozen adversarial page or patch is printed and
+photographed under the protocol below.
+
 ## GPU stage and analysis notebook
 
 - Stage command: `eot_patch`
 - Implementation: `src/stages/eot_patch.py`
 - Active config: `configs/eot_patch/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+- CPU analysis: `notebooks/06_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -254,7 +263,7 @@ outputs/eot_patch/<run_id>/merged/
 Patch images live in worker shard directories. Physical photos and their
 manifest stay in the physical directory. Record SHA-256 for every file.
 
-## Results shown in `05_attack_analysis.ipynb`
+## Results shown in `06_attack_analysis.ipynb`
 
 1. Non-EOT versus EOT digital success under every transformation.
 2. Patch success by dataset, patch area, and transformation.

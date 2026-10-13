@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -52,18 +53,57 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     _atomic_text(path, json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
+def _load_json(path: Path) -> dict[str, Any] | None:
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def _safe_key(record_id: str, epsilon: float, seed: int) -> str:
     base = f"{record_id}__donut__receipt_total__targeted__eps-{epsilon:g}__seed-{seed}"
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", base)
 
 
 def _validate_config(config: dict[str, Any]) -> None:
-    required = {"run_id", "seed", "split", "baseline_predictions", "attack"}
+    required = {
+        "stage", "mode", "run_id", "seed", "split", "output_root", "datasets",
+        "baseline_predictions", "baseline_merge_manifest",
+        "baseline_predictions_sha256", "baseline_config_sha256",
+        "baseline_git_commit", "attack",
+    }
     missing = sorted(required - config.keys())
     if missing:
         raise ValueError(f"Donut attack config is missing: {', '.join(missing)}")
+    if config["stage"] != "donut_attack":
+        raise ValueError("stage must be 'donut_attack'")
+    if config["mode"] not in {"smoke", "validation", "test"}:
+        raise ValueError("mode must be smoke, validation, or test")
+    if config["output_root"] != "outputs/donut_attack":
+        raise ValueError("output_root must be 'outputs/donut_attack'")
+    if set(config["datasets"]) != {"sroie", "cord_v2"}:
+        raise ValueError("datasets must contain exactly sroie and cord_v2")
+    if config["split"] not in {"validation", "test"}:
+        raise ValueError("split must be validation or test")
+    if config["mode"] == "smoke" and config["split"] != "validation":
+        raise ValueError("smoke mode must use the validation split")
+    if config["mode"] != "smoke" and config.get("smoke_per_dataset") is not None:
+        raise ValueError("smoke_per_dataset is allowed only in smoke mode")
+    if config["mode"] != "smoke" and not config.get("ready_for_production", False):
+        raise ValueError(
+            "production config is gated; set ready_for_production=true only after smoke review"
+        )
     if config["split"] == "test" and not config.get("frozen_for_test", False):
         raise ValueError("test attacks require frozen_for_test=true")
+    if config["mode"] == "test" and not config.get("validation_run_id"):
+        raise ValueError("test attacks require validation_run_id")
+    for field in (
+        "baseline_predictions_sha256", "baseline_config_sha256", "baseline_git_commit"
+    ):
+        value = config[field]
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{40,64}", value):
+            raise ValueError(f"{field} must be a lowercase Git/SHA-256 hexadecimal value")
     attack = config["attack"]
     for field in ("epsilons_255", "step_size_255", "max_steps", "loss_type"):
         if field not in attack:
@@ -92,17 +132,40 @@ def _validate_config(config: dict[str, Any]) -> None:
         raise ValueError("every step size must be positive")
 
 
+def _resolve_repo_path(repo_root: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else repo_root / path
+
+
 def _load_eligible_baseline(config: dict[str, Any], repo_root: Path):
     import pandas as pd
 
-    path = Path(config["baseline_predictions"])
-    if not path.is_absolute():
-        path = repo_root / path
+    path = _resolve_repo_path(repo_root, config["baseline_predictions"])
     if not path.is_file():
         raise FileNotFoundError(
             f"baseline predictions not found: {path}. Formal attacks require Donut "
             "clean-correct IDs from the baseline stage."
         )
+    observed_predictions_sha256 = _sha256_file(path)
+    if observed_predictions_sha256 != config["baseline_predictions_sha256"]:
+        raise ValueError(
+            "baseline predictions SHA-256 does not match the frozen config: "
+            f"{observed_predictions_sha256}"
+        )
+    provenance_path = _resolve_repo_path(repo_root, config["baseline_merge_manifest"])
+    provenance = _load_json(provenance_path)
+    if provenance is None:
+        raise FileNotFoundError(f"baseline merge provenance not found: {provenance_path}")
+    expected_provenance = {
+        "config_sha256": config["baseline_config_sha256"],
+        "git_commit": config["baseline_git_commit"],
+    }
+    for field, expected in expected_provenance.items():
+        if provenance.get(field) != expected:
+            raise ValueError(f"baseline merge {field} does not match the frozen config")
+    if int(provenance.get("records", -1)) != 527:
+        raise ValueError("baseline merge manifest must describe the accepted 527-record run")
+
     frame = pd.read_parquet(path)
     needed = {
         "record_id",
@@ -112,8 +175,14 @@ def _load_eligible_baseline(config: dict[str, Any], repo_root: Path):
         "model_revision",
         "prompt_id",
         "prompt_text",
+        "clean_target",
+        "attack_target",
         "clean_correct",
         "attack_eligible",
+        "status",
+        "parse_status",
+        "config_sha256",
+        "git_commit",
     }
     missing = sorted(needed - set(frame.columns))
     if missing:
@@ -143,6 +212,10 @@ def _load_eligible_baseline(config: dict[str, Any], repo_root: Path):
                 "with no currency symbol, label, or explanation.",
             )
         )
+        & frame["config_sha256"].eq(config["baseline_config_sha256"])
+        & frame["git_commit"].eq(config["baseline_git_commit"])
+        & frame["status"].eq("complete")
+        & frame["parse_status"].eq("ok")
         & frame["clean_correct"].eq(True)
         & frame["attack_eligible"].eq(True)
     ].copy()
@@ -157,6 +230,7 @@ def _load_eligible_baseline(config: dict[str, Any], repo_root: Path):
         )
     if selected.empty:
         raise ValueError("no clean-correct attack-eligible Donut receipts were selected")
+    selected.attrs["predictions_sha256"] = observed_predictions_sha256
     return selected.set_index("record_id", drop=False)
 
 
@@ -199,14 +273,74 @@ def _perceptibility(clean: torch.Tensor, adversarial: torch.Tensor, lpips_model)
     return lpips_value, ssim
 
 
-def _merge_if_complete(
-    output_root: Path,
+DONUT_REQUIRED_RECORD_FIELDS = {
+    "run_id", "stage", "experiment_key", "record_id", "dataset_name",
+    "experiment_split", "model_id", "model_revision", "git_commit",
+    "config_sha256", "baseline_predictions_sha256", "user_id", "worker_id",
+    "seed", "prompt_id", "clean_target", "target_text", "clean_prediction",
+    "clean_prediction_reverified", "epsilon_255", "step_size_255", "max_steps",
+    "completed_steps", "loss_type", "optimizer", "final_raw_response",
+    "final_prediction_normalized", "targeted_success_memory",
+    "targeted_success_reloaded", "linf_255", "lpips", "ssim",
+    "clean_image_sha256", "attacked_image_sha256", "image_width", "image_height",
+    "final_target_loss", "best_target_loss", "gradient_l2_final",
+    "gradient_linf_final",
+    "early_stop_reason", "checkpoint_resumed", "attack_runtime_seconds",
+    "status", "error",
+}
+
+
+def _record_is_final(
+    path: Path,
     *,
-    expected_record_ids: set[str],
-    epsilons: list[float],
-    num_workers: int,
+    config: dict[str, Any],
+    config_sha256: str,
+    git_commit: str,
+    record_id: str,
+    epsilon: float,
+    worker_id: int,
 ) -> bool:
-    """Merge exactly once after every worker has written its completion marker."""
+    record = _load_json(path)
+    if record is None or not DONUT_REQUIRED_RECORD_FIELDS <= set(record):
+        return False
+    expected = {
+        "run_id": config["run_id"],
+        "stage": "donut_attack",
+        "experiment_key": path.stem,
+        "record_id": record_id,
+        "experiment_split": config["split"],
+        "model_id": config.get("model_id", DEFAULT_MODEL_ID),
+        "model_revision": config.get("model_revision", DEFAULT_REVISION),
+        "git_commit": git_commit,
+        "config_sha256": config_sha256,
+        "baseline_predictions_sha256": config["baseline_predictions_sha256"],
+        "worker_id": worker_id,
+        "seed": int(config["seed"]),
+        "epsilon_255": float(epsilon),
+        "status": "complete",
+        "error": None,
+    }
+    return all(record.get(field) == value for field, value in expected.items())
+
+
+def merge_if_complete(
+    config: dict[str, Any], config_path: str | Path, *, num_workers: int = 5
+) -> bool:
+    """Strict CPU-safe merge. Return False while worker markers are incomplete."""
+    _validate_config(config)
+    config_path = Path(config_path).resolve()
+    repo_root = config_path.parents[2]
+    config_sha256 = _sha256_bytes(config_path.read_bytes())
+    baseline = _load_eligible_baseline(config, repo_root)
+    expected_record_ids = set(baseline.index)
+    epsilons = [float(value) for value in config["attack"]["epsilons_255"]]
+    seed = int(config["seed"])
+    output_root = repo_root / config["output_root"] / config["run_id"]
+    if not output_root.exists():
+        return False
+    copied_config = output_root / "config.json"
+    if not copied_config.is_file() or _sha256_file(copied_config) != config_sha256:
+        raise RuntimeError("run directory is missing the exact submitted Donut config")
     markers = [
         output_root / "shards" / f"worker_{worker_id:02d}" / "WORKER_COMPLETE.json"
         for worker_id in range(num_workers)
@@ -218,24 +352,79 @@ def _merge_if_complete(
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        assignments: list[str] = []
+        git_commits: set[str] = set()
+        records: dict[str, dict[str, Any]] = {}
         for worker_id in range(num_workers):
-            path = output_root / "assignments" / f"worker_{worker_id:02d}.txt"
-            assignments.extend(line for line in path.read_text().splitlines() if line)
-        if len(assignments) != len(set(assignments)):
-            raise RuntimeError("worker assignments overlap; refusing to merge")
-        if set(assignments) != expected_record_ids:
-            raise RuntimeError("worker assignments do not cover the expected baseline IDs")
+            marker = _load_json(markers[worker_id])
+            if marker is None:
+                raise RuntimeError(f"invalid worker marker: {markers[worker_id]}")
+            if (
+                marker.get("run_id") != config["run_id"]
+                or marker.get("stage") != "donut_attack"
+                or marker.get("worker_id") != worker_id
+                or marker.get("config_sha256") != config_sha256
+                or marker.get("baseline_predictions_sha256")
+                != config["baseline_predictions_sha256"]
+                or not marker.get("git_commit")
+            ):
+                raise RuntimeError(f"worker {worker_id} marker provenance mismatch")
+            git_commits.add(marker["git_commit"])
 
-        records: list[dict[str, Any]] = []
-        experiment_keys: set[str] = set()
-        for worker_id in range(num_workers):
+            expected_assignment = assigned_record_ids(
+                baseline.index, worker_id, num_workers
+            )
+            path = output_root / "assignments" / f"worker_{worker_id:02d}.txt"
+            assignment = path.read_text().splitlines() if path.is_file() else []
+            if assignment != expected_assignment:
+                raise RuntimeError(f"worker {worker_id} assignment is missing or incorrect")
+            expected_keys = {
+                _safe_key(record_id, epsilon, seed): (record_id, epsilon)
+                for record_id in expected_assignment
+                for epsilon in epsilons
+            }
+            if marker.get("expected_records") != len(expected_keys):
+                raise RuntimeError(f"worker {worker_id} marker count is incorrect")
             record_dir = output_root / "shards" / f"worker_{worker_id:02d}" / "records"
-            for path in sorted(record_dir.glob("*.json")):
-                if path.stem in experiment_keys:
-                    raise RuntimeError(f"duplicate experiment key during merge: {path.stem}")
-                experiment_keys.add(path.stem)
-                records.append(json.loads(path.read_text()))
+            actual_paths = {path.stem: path for path in record_dir.glob("*.json")}
+            if set(actual_paths) != set(expected_keys):
+                raise RuntimeError(f"worker {worker_id} record keys do not match assignment")
+            for key, (record_id, epsilon) in expected_keys.items():
+                path = actual_paths[key]
+                if not _record_is_final(
+                    path,
+                    config=config,
+                    config_sha256=config_sha256,
+                    git_commit=marker["git_commit"],
+                    record_id=record_id,
+                    epsilon=epsilon,
+                    worker_id=worker_id,
+                ):
+                    raise RuntimeError(f"invalid final record during merge: {path}")
+                record = _load_json(path)
+                numeric_fields = (
+                    "linf_255", "lpips", "ssim", "final_target_loss",
+                    "best_target_loss", "gradient_l2_final", "gradient_linf_final",
+                    "attack_runtime_seconds",
+                )
+                if any(
+                    record.get(field) is None
+                    or not math.isfinite(float(record[field]))
+                    for field in numeric_fields
+                ):
+                    raise RuntimeError(f"non-finite metric in final record: {path}")
+                if float(record["linf_255"]) > epsilon + 1e-4:
+                    raise RuntimeError(f"epsilon violation in final record: {path}")
+                image_path = record_dir.parent / "images" / f"{key}.png"
+                if (
+                    not image_path.is_file()
+                    or _sha256_file(image_path) != record.get("attacked_image_sha256")
+                ):
+                    raise RuntimeError(f"missing or changed attacked image: {image_path}")
+                if key in records:
+                    raise RuntimeError(f"duplicate experiment key during merge: {key}")
+                records[key] = record
+        if len(git_commits) != 1:
+            raise RuntimeError("Donut workers did not run the same Git commit")
         expected_count = len(expected_record_ids) * len(epsilons)
         if len(records) != expected_count:
             raise RuntimeError(
@@ -244,8 +433,26 @@ def _merge_if_complete(
 
         import pandas as pd
 
-        frame = pd.DataFrame(records).sort_values(["dataset_name", "record_id", "epsilon_255"])
+        fingerprint = _sha256_bytes("".join(
+            f"{key}:{_sha256_bytes(json.dumps(records[key], sort_keys=True).encode())}\n"
+            for key in sorted(records)
+        ).encode())
         merged = output_root / "merged"
+        merge_manifest_path = merged / "merge_manifest.json"
+        previous = _load_json(merge_manifest_path)
+        if previous:
+            if (
+                previous.get("records_fingerprint") == fingerprint
+                and previous.get("config_sha256") == config_sha256
+            ):
+                return True
+            raise RuntimeError("merged Donut outputs already exist for different inputs")
+        if merged.exists() and any(merged.iterdir()):
+            raise RuntimeError("merged directory exists without matching provenance")
+
+        frame = pd.DataFrame([records[key] for key in sorted(records)]).sort_values(
+            ["dataset_name", "record_id", "epsilon_255"]
+        )
         merged.mkdir(parents=True, exist_ok=True)
         parquet_tmp = merged / "attacks.parquet.tmp"
         csv_tmp = merged / "attacks.csv.tmp"
@@ -263,7 +470,9 @@ def _merge_if_complete(
                 failures.extend(
                     json.loads(line) for line in path.read_text().splitlines() if line.strip()
                 )
-        failure_frame = pd.DataFrame(failures)
+        failure_frame = pd.DataFrame(
+            failures, columns=["experiment_key", "record_id", "error"]
+        )
         failures_tmp = merged / "failures.csv.tmp"
         failure_frame.to_csv(failures_tmp, index=False)
         os.replace(failures_tmp, merged / "failures.csv")
@@ -292,10 +501,24 @@ def _merge_if_complete(
             merged / "summary.json",
             {
                 "records": len(records),
+                "expected_records": expected_count,
                 "unique_documents": int(frame["record_id"].nunique()),
                 "failures_logged": len(failures),
+                "config_sha256": config_sha256,
+                "git_commit": next(iter(git_commits)),
+                "baseline_predictions_sha256": config["baseline_predictions_sha256"],
                 "groups": json.loads(grouped.to_json(orient="records")),
                 "merged_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        _atomic_json(
+            merge_manifest_path,
+            {
+                "config_sha256": config_sha256,
+                "git_commit": next(iter(git_commits)),
+                "baseline_predictions_sha256": config["baseline_predictions_sha256"],
+                "records": len(records),
+                "records_fingerprint": fingerprint,
             },
         )
         return True
@@ -322,6 +545,10 @@ def _processor_parity(model: DonutDocVQA, image, device: torch.device) -> dict[s
 def run(config, config_path, user_id, worker_id, num_workers):
     """Run one deterministic worker shard."""
     _validate_config(config)
+    if config["mode"] == "smoke" and num_workers != 1:
+        raise ValueError("Donut smoke mode requires exactly one worker")
+    if config["mode"] != "smoke" and num_workers != 5:
+        raise ValueError("Donut validation and test runs require exactly five workers")
     if not torch.cuda.is_available():
         raise RuntimeError("The real Donut attack requires a CUDA GPU; submit it through CARC Slurm.")
 
@@ -343,7 +570,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
 
     baseline = _load_eligible_baseline(config, repo_root)
     assignments = assigned_record_ids(baseline.index, worker_id, num_workers)
-    output_root = repo_root / "outputs" / "donut_attack" / config["run_id"]
+    output_root = repo_root / config["output_root"] / config["run_id"]
     shard_root = output_root / "shards" / f"worker_{worker_id:02d}"
     assignment_path = output_root / "assignments" / f"worker_{worker_id:02d}.txt"
     expected_assignment = "".join(f"{record_id}\n" for record_id in assignments)
@@ -420,10 +647,25 @@ def run(config, config_path, user_id, worker_id, num_workers):
             "with no currency symbol, label, or explanation.",
         )
         target_text = row["attack_target"]
+        baseline_target = str(baseline.loc[record_id, "attack_target"])
+        if str(target_text) != baseline_target:
+            raise RuntimeError(f"attack target drift for {record_id}")
+        if str(row["clean_target"]) != str(baseline.loc[record_id, "clean_target"]):
+            raise RuntimeError(f"clean target drift for {record_id}")
         clean_pil = row["image"].convert("RGB")
         clean = pil_to_rgb_tensor(clean_pil, device=device)
         clean_bytes = clean.detach().mul(255).round().to(torch.uint8).cpu().numpy().tobytes()
         clean_sha256 = _sha256_bytes(clean_bytes)
+        clean_prediction_reverified_raw = model.predict_pil(clean_pil, question)
+        clean_prediction_reverified = normalize_receipt_total(
+            clean_prediction_reverified_raw, dataset_name
+        )
+        stored_clean_prediction = str(baseline.loc[record_id, "clean_prediction"])
+        if clean_prediction_reverified != stored_clean_prediction:
+            raise RuntimeError(
+                f"clean prediction drift for {record_id}: stored={stored_clean_prediction!r}, "
+                f"current={clean_prediction_reverified!r}"
+            )
 
         for epsilon in attack_config["epsilons_255"]:
             epsilon = float(epsilon)
@@ -431,7 +673,15 @@ def run(config, config_path, user_id, worker_id, num_workers):
             record_path = shard_root / "records" / f"{key}.json"
             image_path = shard_root / "images" / f"{key}.png"
             checkpoint_path = shard_root / "checkpoints" / key / "state.pt"
-            if record_path.is_file():
+            if _record_is_final(
+                record_path,
+                config=config,
+                config_sha256=config_sha256,
+                git_commit=git_commit,
+                record_id=record_id,
+                epsilon=epsilon,
+                worker_id=worker_id,
+            ):
                 completed_keys.append(key)
                 continue
 
@@ -486,6 +736,8 @@ def run(config, config_path, user_id, worker_id, num_workers):
                         )
                         == target_text,
                         "linf_255": _linf_255(clean, adversarial),
+                        "gradient_l2": metadata.get("gradient_l2"),
+                        "gradient_linf": metadata.get("gradient_linf"),
                     }
                 )
                 checkpoint_state(
@@ -541,6 +793,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
                 record = {
                     "run_id": config["run_id"],
                     "stage": "donut_attack",
+                    "experiment_key": key,
                     "record_id": record_id,
                     "dataset_name": dataset_name,
                     "experiment_split": config["split"],
@@ -550,6 +803,9 @@ def run(config, config_path, user_id, worker_id, num_workers):
                     "model_revision": model_revision,
                     "git_commit": git_commit,
                     "config_sha256": config_sha256,
+                    "baseline_predictions_sha256": config[
+                        "baseline_predictions_sha256"
+                    ],
                     "user_id": user_id,
                     "worker_id": worker_id,
                     "seed": seed,
@@ -562,6 +818,8 @@ def run(config, config_path, user_id, worker_id, num_workers):
                         if baseline.loc[record_id, "clean_prediction"] is None
                         else str(baseline.loc[record_id, "clean_prediction"])
                     ),
+                    "clean_prediction_reverified_raw": clean_prediction_reverified_raw,
+                    "clean_prediction_reverified": clean_prediction_reverified,
                     "epsilon_255": epsilon,
                     "step_size_255": float(
                         attack_config["step_size_255"][str(int(epsilon))]
@@ -591,6 +849,13 @@ def run(config, config_path, user_id, worker_id, num_workers):
                         [result.best_loss]
                         + [float(item["target_loss"]) for item in trace]
                     ),
+                    "gradient_l2_final": (
+                        trace[-1].get("gradient_l2") if trace else None
+                    ),
+                    "gradient_linf_final": (
+                        trace[-1].get("gradient_linf") if trace else None
+                    ),
+                    "early_stop_reason": result.early_stop_reason,
                     "checkpoint_resumed": resumed,
                     "optimization_trace": trace,
                     "started_at": started_at,
@@ -619,22 +884,45 @@ def run(config, config_path, user_id, worker_id, num_workers):
             )
 
     expected = len(assignments) * len(attack_config["epsilons_255"])
-    actual = len(list((shard_root / "records").glob("*.json")))
-    if actual != expected:
-        raise RuntimeError(f"worker incomplete: found {actual} final records, expected {expected}")
+    expected_records = {
+        _safe_key(record_id, float(epsilon), seed): (record_id, float(epsilon))
+        for record_id in assignments
+        for epsilon in attack_config["epsilons_255"]
+    }
+    actual_paths = {
+        path.stem: path for path in (shard_root / "records").glob("*.json")
+    }
+    if set(actual_paths) != set(expected_records):
+        raise RuntimeError(
+            f"worker record keys differ from the expected set ({len(actual_paths)} vs {expected})"
+        )
+    for key, (record_id, epsilon) in expected_records.items():
+        if not _record_is_final(
+            actual_paths[key],
+            config=config,
+            config_sha256=config_sha256,
+            git_commit=git_commit,
+            record_id=record_id,
+            epsilon=epsilon,
+            worker_id=worker_id,
+        ):
+            raise RuntimeError(f"worker has invalid final record: {actual_paths[key]}")
+    actual = len(actual_paths)
     _atomic_json(
         shard_root / "WORKER_COMPLETE.json",
         {
             "run_id": config["run_id"],
+            "stage": "donut_attack",
             "worker_id": worker_id,
+            "user_id": user_id,
             "expected_records": expected,
             "completed_records": actual,
+            "config_sha256": config_sha256,
+            "git_commit": git_commit,
+            "baseline_predictions_sha256": config[
+                "baseline_predictions_sha256"
+            ],
             "completed_at": datetime.now(timezone.utc).isoformat(),
         },
     )
-    _merge_if_complete(
-        output_root,
-        expected_record_ids=set(baseline.index),
-        epsilons=[float(value) for value in attack_config["epsilons_255"]],
-        num_workers=num_workers,
-    )
+    merge_if_complete(config, config_path, num_workers=num_workers)

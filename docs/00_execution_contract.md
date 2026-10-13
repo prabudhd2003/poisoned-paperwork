@@ -1,7 +1,7 @@
 # 00 - Shared execution contract
 
-This contract applies to every GPU stage script and to analysis notebooks
-04-06. An LLM or teammate implementing a stage should treat every item marked
+This contract applies to every GPU stage script and to notebooks 04-07. An LLM
+or teammate implementing a stage should treat every item marked
 **required** as an acceptance criterion.
 
 ## Fixed project choices
@@ -23,6 +23,16 @@ later notebook.
 
 Use validation splits to select prompts, thresholds, attack hyperparameters,
 and defense settings. Use test splits only after those choices are frozen.
+
+### Prospective external receipts
+
+The 100 team-collected receipts form an evaluation-only `external_test` set.
+Annotate and freeze its manifest before opening model predictions. Do not use
+these images to select prompts, attacks, thresholds, defenses, or stopping
+rules. Report external results separately from SROIE and CORD. Raw captures may
+contain personal information and belong in the access-controlled CARC project
+directory, not public Git. Preserve original HEIC files privately when
+available and use verified lossless RGB PNG copies for modeling.
 
 ### Models
 
@@ -118,11 +128,12 @@ Each stage implementation follows this order:
 7. Unload the model and release GPU memory when changing models.
 8. Validate the shard and write `WORKER_COMPLETE.json`.
 
-The three remaining notebooks are CPU-only views of merged outputs:
+The four remaining notebooks are CPU-only preparation or analysis views:
 
 - `04_baseline_analysis.ipynb`;
-- `05_attack_analysis.ipynb`;
-- `06_defense_and_final_analysis.ipynb`.
+- `05_collected_receipt_preprocessing.ipynb`;
+- `06_attack_analysis.ipynb`;
+- `07_defense_and_final_analysis.ipynb`.
 
 They may display saved images and recompute summary statistics, but must not
 load a VLM, optimize an image, or fill missing GPU results.
@@ -308,5 +319,5 @@ Every stage merge must check:
 8. Failures are counted and displayed rather than silently removed.
 
 Write merged machine-readable results as both Parquet and CSV, plus a compact
-`summary.json`. Small final tables and figures selected by notebook 06 will be
+`summary.json`. Small final tables and figures selected by notebook 07 will be
 copied to tracked `reports/final/`; raw experiment outputs stay gitignored.
