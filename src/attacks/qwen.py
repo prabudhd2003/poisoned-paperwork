@@ -25,6 +25,15 @@ def clear_rope(model) -> None:
             item.rope_deltas = None
 
 
+def exact_forward_bpda(surrogate: torch.Tensor, official: torch.Tensor) -> torch.Tensor:
+    """Use official values in the forward pass and surrogate gradients backward."""
+    if surrogate.shape != official.shape:
+        raise ValueError(
+            f"processor tensor shape differs: {tuple(surrogate.shape)} vs {tuple(official.shape)}"
+        )
+    return surrogate + (official.to(device=surrogate.device, dtype=surrogate.dtype) - surrogate).detach()
+
+
 class Objective:
     """Frozen chat prefix, exact target token sequence, and differentiable page inputs."""
     def __init__(self, wrapper, pages: Sequence[Image.Image], prompt: str, target: str,
@@ -58,7 +67,7 @@ class Objective:
             self.page_grid_slices.append((offset, offset + count))
             offset += count
 
-    def pixels(self, xs: Sequence[torch.Tensor], grad_page: int | None = None) -> torch.Tensor:
+    def _surrogate_pixels(self, xs: Sequence[torch.Tensor], grad_page: int | None = None) -> torch.Tensor:
         ip = self.ip
         p, temporal, merge = int(ip.patch_size), int(ip.temporal_patch_size), int(ip.merge_size)
         if len(xs) != len(self.grids):
@@ -82,22 +91,44 @@ class Objective:
             result.append(y)
         return torch.cat(result)
 
+    def _official_pixels(self, xs: Sequence[torch.Tensor]) -> torch.Tensor:
+        """Run the pinned PIL/NumPy processor on the current quantized RGB pages."""
+        pages = [rgb_tensor_to_pil(x.detach()) for x in xs]
+        processed = self.ip(images=pages, return_tensors="pt")
+        official_grids = processed.get("image_grid_thw")
+        if official_grids is None or official_grids.tolist() != self.grids.detach().cpu().tolist():
+            raise RuntimeError("official Qwen processor grid changed for the current attack pages")
+        return processed["pixel_values"].to(self.wrapper.device)
+
+    def pixels(self, xs: Sequence[torch.Tensor], grad_page: int | None = None) -> torch.Tensor:
+        surrogate = self._surrogate_pixels(xs, grad_page)
+        official = self._official_pixels(xs)
+        return exact_forward_bpda(surrogate, official)
+
     def parity(self, xs: Sequence[torch.Tensor]) -> dict:
-        diff, official = self.pixels(xs), self.prefix["pixel_values"].float()
-        if diff.shape != official.shape:
-            raise RuntimeError(f"processor tensor shape differs: {tuple(diff.shape)} vs {tuple(official.shape)}")
-        error = (diff - official).abs()
+        surrogate = self._surrogate_pixels(xs)
+        official = self._official_pixels(xs).to(device=surrogate.device, dtype=surrogate.dtype)
+        exact = exact_forward_bpda(surrogate, official)
+        error = (exact - official).abs()
+        surrogate_error = (surrogate - official).abs()
         p, temporal = int(self.ip.patch_size), int(self.ip.temporal_patch_size)
         scale = error.new_tensor(self.ip.image_std).reshape(1, 3, 1, 1, 1) * 255
         error_255 = error.reshape(-1, 3, temporal, p, p) * scale
+        surrogate_error_255 = surrogate_error.reshape(-1, 3, temporal, p, p) * scale
         stats = {"official_processor_shape": list(official.shape),
-                 "differentiable_processor_shape": list(diff.shape),
+                 "differentiable_processor_shape": list(surrogate.shape),
                  "processor_max_abs_difference": float(error.max()),
                  "processor_mean_abs_difference": float(error.mean()),
                  "processor_max_abs_difference_255": float(error_255.max()),
-                 "processor_mean_abs_difference_255": float(error_255.mean())}
+                 "processor_mean_abs_difference_255": float(error_255.mean()),
+                 "processor_surrogate_max_abs_difference": float(surrogate_error.max()),
+                 "processor_surrogate_mean_abs_difference": float(surrogate_error.mean()),
+                 "processor_surrogate_max_abs_difference_255": float(surrogate_error_255.max()),
+                 "processor_surrogate_mean_abs_difference_255": float(surrogate_error_255.mean()),
+                 "processor_gradient_method": "bpda_exact_official_forward"}
         if (stats["processor_max_abs_difference"] > self.tolerances["max"] or
-                stats["processor_mean_abs_difference"] > self.tolerances["mean"]):
+                stats["processor_mean_abs_difference"] > self.tolerances["mean"] or
+                stats["processor_surrogate_mean_abs_difference"] > self.tolerances["surrogate_mean"]):
             raise RuntimeError(f"Qwen preprocessing parity failed: {stats}")
         return stats
 

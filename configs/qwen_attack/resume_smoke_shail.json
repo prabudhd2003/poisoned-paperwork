@@ -25,7 +25,7 @@
   "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
   "prompt_id": "resume_degree_v1",
   "question": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
-  "processor_tolerance": {"max": 0.1, "mean": 0.005},
+  "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
   "attack": {
     "epsilons_255": [8],
     "max_steps": 25,

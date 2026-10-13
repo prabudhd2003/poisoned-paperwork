@@ -94,8 +94,10 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
     if attack.get("multi_page_fallback") not in {"gradient_accumulation_across_pages", "none"}:
         raise ValueError("multi_page_fallback must be gradient_accumulation_across_pages or none")
     tolerance = config.get("processor_tolerance", {})
-    if float(tolerance.get("mean", -1)) < 0 or float(tolerance.get("max", -1)) < 0:
-        raise ValueError("processor_tolerance must define nonnegative mean and max thresholds")
+    if any(float(tolerance.get(field, -1)) < 0 for field in ("mean", "max", "surrogate_mean")):
+        raise ValueError(
+            "processor_tolerance must define nonnegative mean, max, and surrogate_mean thresholds"
+        )
     if float(tolerance["mean"]) > float(tolerance["max"]):
         raise ValueError("processor mean tolerance may not exceed max tolerance")
     for field in ("baseline_config_sha256", "baseline_predictions_sha256"):
@@ -386,6 +388,8 @@ def _merge_if_complete(output: Path, *, expected_ids: set[str], epsilons: list[i
                     "epsilon_255", "targeted_success_reloaded", "linf_255", "lpips", "ssim",
                     "target_token_ids_hash", "official_processor_shape", "differentiable_processor_shape",
                     "processor_max_abs_difference", "processor_mean_abs_difference", "mean_target_log_probability",
+                    "processor_surrogate_max_abs_difference", "processor_surrogate_mean_abs_difference",
+                    "processor_gradient_method",
                     "gradient_norm_final", "peak_gpu_memory_mb", "worker_id", "seed", "git_commit",
                     "config_sha256", "document_page_count", "attacked_page_count", "status", "error"}
                 missing_fields = required_fields - record.keys()

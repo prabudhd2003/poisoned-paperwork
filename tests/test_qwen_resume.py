@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharding import assigned_record_ids
-from attacks.qwen import save_reload
+from attacks.qwen import exact_forward_bpda, save_reload
 from stages import qwen_attack, qwen_attack_resume
 
 
@@ -31,7 +31,7 @@ class ResumeCandidateTests(unittest.TestCase):
             "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
             "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
             "prompt_id": "resume_degree_v1", "question": "Question",
-            "processor_tolerance": {"max": 0.1, "mean": 0.005},
+            "processor_tolerance": {"max": 1e-6, "mean": 1e-8, "surrogate_mean": 0.005},
             "attack": {"epsilons_255": [8], "max_steps": 1,
                 "checkpoint_interval": 1, "step_size_255": {"8": 1},
                 "loss_type": "cross_entropy",
@@ -116,6 +116,14 @@ class ResumeCandidateTests(unittest.TestCase):
             self.assertLessEqual(metadata[0]["linf_255"], 8.0001)
             self.assertTrue((Path(directory) / "experiment/page_000.png").is_file())
             self.assertFalse((Path(directory) / "experiment/page_000.png.tmp").exists())
+
+    def test_bpda_uses_official_forward_and_surrogate_gradient(self):
+        surrogate = torch.tensor([1.0, 2.0], requires_grad=True)
+        official = torch.tensor([10.0, 20.0])
+        result = exact_forward_bpda(surrogate, official)
+        torch.testing.assert_close(result, official)
+        result.sum().backward()
+        torch.testing.assert_close(surrogate.grad, torch.ones_like(surrogate))
 
     def test_router_rejects_receipt_dataset_for_resume(self):
         with self.assertRaisesRegex(ValueError, "accepts datasets"):

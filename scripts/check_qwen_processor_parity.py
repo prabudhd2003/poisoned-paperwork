@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CPU-only parity check for Qwen's official and differentiable page preprocessing."""
+"""CPU-only parity check for Qwen's official-forward BPDA preprocessing."""
 from __future__ import annotations
 
 import argparse
@@ -65,6 +65,7 @@ def main():
     args = parser.parse_args()
     import torch
     from transformers import AutoProcessor
+    from attacks.qwen import exact_forward_bpda
     from models.qwen import DEFAULT_MAX_PIXELS, DEFAULT_MIN_PIXELS, build_messages
 
     config_path = (ROOT / args.config).resolve() if not args.config.is_absolute() else args.config
@@ -72,14 +73,17 @@ def main():
     tolerance = config.get("processor_tolerance") or {}
     max_tolerance = float(tolerance.get("max", -1))
     mean_tolerance = float(tolerance.get("mean", -1))
-    if min(max_tolerance, mean_tolerance) < 0:
-        raise SystemExit("Config must define nonnegative processor_tolerance.max and .mean")
+    surrogate_mean_tolerance = float(tolerance.get("surrogate_mean", -1))
+    if min(max_tolerance, mean_tolerance, surrogate_mean_tolerance) < 0:
+        raise SystemExit(
+            "Config must define nonnegative processor_tolerance.max, .mean, and .surrogate_mean"
+        )
     processor = AutoProcessor.from_pretrained(config["model_id"], revision=config["model_revision"],
         min_pixels=DEFAULT_MIN_PIXELS, max_pixels=DEFAULT_MAX_PIXELS)
     pages = _sample_pages(ROOT, args.split)
     shapes = set()
-    maximum = 0.0
-    absolute_sum = 0.0
+    maximum = surrogate_maximum = 0.0
+    absolute_sum = surrogate_absolute_sum = 0.0
     element_count = 0
     for index, (dataset_name, page) in enumerate(pages):
         prompt = "Read the document."
@@ -93,30 +97,39 @@ def main():
             raise SystemExit(f"shape mismatch page={index} dataset={dataset_name}: "
                              f"{tuple(differentiable.shape)} vs {tuple(reference.shape)}")
         shapes.add(tuple(differentiable.shape))
-        difference = (differentiable - reference).abs()
+        exact = exact_forward_bpda(differentiable, reference)
+        difference = (exact - reference).abs()
+        surrogate_difference = (differentiable - reference).abs()
         maximum = max(maximum, float(difference.max()))
+        surrogate_maximum = max(surrogate_maximum, float(surrogate_difference.max()))
         absolute_sum += float(difference.double().sum())
+        surrogate_absolute_sum += float(surrogate_difference.double().sum())
         element_count += difference.numel()
         ip = processor.image_processor
         p, temporal = int(ip.patch_size), int(ip.temporal_patch_size)
         scale = difference.new_tensor(ip.image_std).reshape(1, 3, 1, 1, 1) * 255
-        error_255 = difference.reshape(-1, 3, temporal, p, p) * scale
+        error_255 = surrogate_difference.reshape(-1, 3, temporal, p, p) * scale
         print(f"page={index:02d} dataset={dataset_name} input={page.width}x{page.height} "
               f"processor_shape={list(reference.shape)} "
               f"max_error_255={float(error_255.max()):.6f} "
               f"mean_error_255={float(error_255.mean()):.6f}")
     observed_mean = absolute_sum / element_count
+    surrogate_observed_mean = surrogate_absolute_sum / element_count
     print(
         f"Checked {len(pages)} pages across {len(shapes)} processor tensor shapes on CPU; "
-        f"normalized max={maximum:.8f}, mean={observed_mean:.8f}."
+        f"exact-forward normalized max={maximum:.8f}, mean={observed_mean:.8f}; "
+        f"surrogate normalized max={surrogate_maximum:.8f}, mean={surrogate_observed_mean:.8f}."
     )
-    if maximum > max_tolerance or observed_mean > mean_tolerance:
+    if (maximum > max_tolerance or observed_mean > mean_tolerance or
+            surrogate_observed_mean > surrogate_mean_tolerance):
         raise SystemExit(
             "PROCESSOR PARITY FAILED: "
-            f"observed max/mean={maximum:.8f}/{observed_mean:.8f}, "
-            f"allowed={max_tolerance:.8f}/{mean_tolerance:.8f}"
+            f"exact-forward max/mean={maximum:.8f}/{observed_mean:.8f}, "
+            f"allowed={max_tolerance:.8f}/{mean_tolerance:.8f}; "
+            f"surrogate mean={surrogate_observed_mean:.8f}, "
+            f"allowed={surrogate_mean_tolerance:.8f}"
         )
-    print("PROCESSOR PARITY PASSED")
+    print("PROCESSOR PARITY PASSED (exact official forward, differentiable BPDA backward)")
 
 
 if __name__ == "__main__":
