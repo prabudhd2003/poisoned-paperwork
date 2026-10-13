@@ -163,6 +163,25 @@ def select_candidates(predictions, manifest, baseline):
     return chosen.sort_values("record_id").set_index("record_id", drop=False)
 
 
+def select_smoke_candidates(candidates, count_per_page_group: int):
+    """Choose deterministic single- and multi-page smoke rows with an unambiguous index."""
+    import pandas as pd
+    n = int(count_per_page_group)
+    one = candidates.loc[candidates.input_page_count.eq(1)].head(n)
+    many = candidates.loc[candidates.input_page_count.gt(1)].head(n)
+    if n < 1 or len(one) != n or len(many) != n:
+        raise ValueError(
+            f"smoke needs {n} single-page and {n} multi-page candidates; "
+            f"found {len(one)} and {len(many)}"
+        )
+    # select_candidates intentionally retains record_id as both index and column.
+    # Drop the inherited index before sorting so pandas never has to guess which
+    # record_id the operation refers to, then restore the runtime index contract.
+    return (pd.concat([one, many], ignore_index=True)
+              .sort_values("record_id")
+              .set_index("record_id", drop=False))
+
+
 def _load_plan(config: dict[str, Any], repo_root: Path):
     import pandas as pd
     required = ("baseline_config", "baseline_predictions", "baseline_manifest", "baseline_summary",
@@ -212,12 +231,9 @@ def _load_plan(config: dict[str, Any], repo_root: Path):
     if config["split"] == "validation" and len(candidates) != int(config.get("expected_validation_candidates", 74)):
         raise ValueError(f"accepted baseline should have {config.get('expected_validation_candidates', 74)} resume candidates; found {len(candidates)}")
     if config["mode"] == "smoke":
-        n = int(config.get("smoke_per_page_group", 5))
-        one = candidates.loc[candidates.input_page_count.eq(1)].head(n)
-        many = candidates.loc[candidates.input_page_count.gt(1)].head(n)
-        if n < 1 or len(one) != n or len(many) != n:
-            raise ValueError(f"smoke needs {n} single-page and {n} multi-page candidates; found {len(one)} and {len(many)}")
-        candidates = pd.concat([one, many]).sort_values("record_id")
+        candidates = select_smoke_candidates(
+            candidates, int(config.get("smoke_per_page_group", 5))
+        )
     return baseline, candidates, paths
 
 

@@ -77,6 +77,16 @@ class ResumeCandidateTests(unittest.TestCase):
             for right in range(left + 1, 5):
                 self.assertTrue(set(shards[left]).isdisjoint(shards[right]))
 
+    def test_smoke_selection_handles_record_id_as_index_and_column(self):
+        import pandas as pd
+        candidates = pd.DataFrame([
+            {"record_id": "resume/z", "input_page_count": 2},
+            {"record_id": "resume/a", "input_page_count": 1},
+        ]).set_index("record_id", drop=False)
+        selected = qwen_attack_resume.select_smoke_candidates(candidates, 1)
+        self.assertEqual(list(selected.index), ["resume/a", "resume/z"])
+        self.assertEqual(list(selected.record_id), ["resume/a", "resume/z"])
+
     def test_non_smoke_rejects_one_worker(self):
         with self.assertRaisesRegex(ValueError, "num_workers=5"):
             config = self.config("validation")
