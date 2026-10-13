@@ -1,11 +1,22 @@
 # 05 - Donut targeted-attack reproduction
 
+## Status
+
+The attack primitive, Donut stage, strict merge, smoke runner, Slurm launcher,
+and configs are implemented and covered by CPU tests. The next gate is the
+owner-only 20-receipt CARC smoke in `configs/donut_attack/smoke_validation.json`.
+The production config exists but contains `ready_for_production=false`; the
+stage refuses to run it until the smoke is reviewed and that single flag is
+changed in a new commit.
+
 ## GPU stage and analysis notebook
 
 - Stage command: `donut_attack`
 - Implementation: `src/stages/donut_attack.py`
-- Active config: `configs/donut_attack/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+- Smoke config: `configs/donut_attack/smoke_validation.json`
+- Gated production config: `configs/donut_attack/active.json`
+- Strict CPU merge: `scripts/merge_donut_attack.py`
+- CPU analysis: `notebooks/06_attack_analysis.ipynb` (not yet created)
 
 ## Purpose
 
@@ -46,6 +57,19 @@ Begin with a deterministic smoke subset of ten SROIE and ten CORD documents.
 After implementation checks pass, run all clean-correct validation receipts.
 Do not use the test set to choose PGD steps, step size, loss, or stopping rules.
 
+The accepted baseline is verified before selection using all of the following:
+
+```text
+baseline run: baseline_validation_v1
+baseline Git commit: 5e387062d29b2a9b2b79de03c305c52d7b97f01f
+baseline config SHA-256: a371655bf97c99e6c08ac5da2b288ca48bf301ad0c2bdb21e4260c588266d05a
+predictions SHA-256: 483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0
+```
+
+Every selected clean prediction is rerun under the current Donut environment.
+Any mismatch with the stored baseline prediction stops the worker before its
+attack is counted.
+
 ## Model
 
 - `naver-clova-ix/donut-base-finetuned-docvqa`
@@ -62,10 +86,12 @@ Implement targeted L-infinity PGD over the model input image.
 
 ### Objective
 
-Use teacher forcing on the complete adversarial target token sequence. Minimize
-target-token cross-entropy while masking prompt and padding tokens. The target
-for each receipt is the precomputed `attack_target`, not a value invented in
-this notebook.
+Use teacher forcing on the complete adversarial target token sequence. The
+reproduction default minimizes the target-token-versus-top-logit margin from
+the reference attack; target-token cross-entropy remains available as a
+declared comparison. Both losses operate only at target-token positions, so
+prompt and padding positions are excluded. The target for each receipt is the
+precomputed `attack_target`, not a value invented during the attack.
 
 Log at every checkpoint:
 
@@ -121,6 +147,21 @@ Inspect loss curves and at least five clean/adversarial/difference triplets.
 Confirm that difference visualizations are magnified for inspection and never
 mistaken for the actual perturbation.
 
+Run from a CARC login node:
+
+```bash
+source scripts/activate_paperwork.sh
+export PYTHONPATH="$PWD/src"
+python scripts/smoke_donut_attack.py \
+  --config configs/donut_attack/smoke_validation.json --preflight
+sbatch scripts/slurm/donut_smoke.sbatch \
+  configs/donut_attack/smoke_validation.json
+```
+
+The smoke uses epsilon 8, 100 steps, step size 2, paper-margin loss, Adam,
+quantized projection, and checkpoint interval 10. These are candidates for the
+reproduction, not accepted results until the smoke evidence is reviewed.
+
 ### 3. Validation sweep
 
 Run all four epsilon values on all eligible validation receipts. Use the same
@@ -166,7 +207,8 @@ hash, and model revision. Save every 10 iterations using a temporary file and
 atomic rename. On CARC timeout, restart the same worker; it skips final records
 and resumes partial attack states.
 
-Each teammate submits the same stage with their fixed identity:
+After smoke acceptance, set `ready_for_production=true`, commit, and have each
+teammate submit the same stage with their fixed identity:
 
 ```bash
 bash scripts/submit_stage.sh donut_attack user1  # Prabudhd
@@ -187,20 +229,22 @@ outputs/donut_attack/<run_id>/merged/
 ├── attacks.csv
 ├── failures.csv
 ├── successful_attack_ids.txt
+├── merge_manifest.json
 └── summary.json
 ```
 
 Each attack record includes baseline provenance plus:
 
 ```text
-epsilon_255, step_size, max_steps, completed_steps, clean_prediction,
+epsilon_255, step_size_255, max_steps, completed_steps, clean_prediction,
 target_text, final_raw_response, final_prediction_normalized,
 targeted_success_memory, targeted_success_reloaded, linf_255, lpips, ssim,
 clean_image_sha256, attacked_image_sha256, attack_runtime_seconds,
-final_target_loss, early_stop_reason, checkpoint_resumed
+final_target_loss, best_target_loss, gradient_l2_final, gradient_linf_final,
+early_stop_reason, checkpoint_resumed
 ```
 
-## Results shown in `05_attack_analysis.ipynb`
+## Results shown in `06_attack_analysis.ipynb`
 
 1. Conditional ASR by epsilon and dataset, using reloaded images.
 2. Harmful-output rate by epsilon and dataset.

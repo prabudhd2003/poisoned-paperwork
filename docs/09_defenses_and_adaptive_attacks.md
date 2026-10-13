@@ -1,11 +1,15 @@
 # 09 - Defenses and adaptive attacks
 
+> **Status:** planned only; the defense stage, configs, detector pipeline, and
+> adaptive attacks are not implemented. Freeze the Qwen receipt validation
+> attack before implementing or tuning these defenses.
+
 ## GPU stage and analysis notebook
 
 - Stage command: `defenses`
 - Implementation: `src/stages/defenses.py`
 - Active config: `configs/defenses/active.json`
-- CPU analysis: `notebooks/06_defense_and_final_analysis.ipynb`
+- CPU analysis: `notebooks/07_defense_and_final_analysis.ipynb`
 
 ## Purpose
 
@@ -14,6 +18,11 @@ attacked documents, then re-optimize attacks against each complete defended
 pipeline. A defense is useful only if it lowers attack success without
 unacceptable clean-accuracy or latency costs and remains meaningful against an
 attacker who knows it.
+
+After all defense thresholds and adaptive settings are frozen on the official
+validation data, the same pipelines may be evaluated once on the prospective
+external receipts. External receipts must not train the detector or select a
+threshold, resize distribution, JPEG quality, vote rule, or adaptive lambda.
 
 **GPU required:** yes, on CARC, for Qwen inference, visual-feature extraction,
 majority voting, and adaptive attacks. Logistic-regression training, threshold
@@ -231,7 +240,7 @@ clean_correct, adversarial_target_success, additional_vlm_passes,
 end_to_end_latency_seconds
 ```
 
-## Results shown in `06_defense_and_final_analysis.ipynb`
+## Results shown in `07_defense_and_final_analysis.ipynb`
 
 1. Clean accuracy and attack success for no defense, D1, D2, and D3.
 2. Non-adaptive versus adaptive ASR for each defense.

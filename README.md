@@ -10,9 +10,12 @@ is the secondary case study.
 |---|---|
 | Download, audit, and preprocess SROIE, CORD v2, and English resumes | Complete |
 | Manual receipt-label repair | Complete |
-| Unified Qwen + Donut clean baseline | Implemented; CARC GPU smoke test required |
-| Donut targeted attack | Implemented scaffold; do not run until the baseline is accepted |
-| Qwen attacks, transfer tests, EOT, and defenses | Planned in `docs/` |
+| Unified Qwen + Donut clean validation baseline | **Accepted:** 527 predictions, five workers, zero inference failures |
+| Baseline analysis | Complete in `notebooks/04_baseline_analysis.ipynb` |
+| Donut targeted attack | Smoke-ready; production config is gated pending smoke review |
+| Qwen attacks | Router/launchers present; shared core and track modules are owned by the assigned Qwen developers |
+| Transfer, EOT, and defenses | Planned in `docs/`; not implemented |
+| Prospective external receipts | 11 of 100 collected and annotated; preprocessing notebook complete |
 
 The processed manifest contains 301 validation documents and 536 test
 documents. The unified baseline produces 527 validation predictions and 997
@@ -31,8 +34,21 @@ outputs/       checkpoints and results; ignored by Git
 docs/          execution contract and detailed stage plans
 ```
 
-Start with [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). The exact next action
-and acceptance checklist are in [`docs/imm_next.md`](docs/imm_next.md).
+Start with [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). The proposal feedback
+and response are in [`docs/01_proposal_feedback_response.md`](docs/01_proposal_feedback_response.md).
+The exact next action and Donut acceptance checklist are in
+[`docs/imm_next.md`](docs/imm_next.md).
+
+## Accepted validation baseline
+
+The authoritative CARC run is `baseline_validation_v1`, produced from Git
+commit `5e387062d29b2a9b2b79de03c305c52d7b97f01f`. Its merged predictions have
+SHA-256 `483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0`.
+The analysis verified 527 records on 301 documents from all five workers.
+Qwen was correct on 96/100 CORD receipts, 123/126 SROIE receipts, and 74/75
+resumes; Donut was correct on 75/100 CORD and 46/126 SROIE receipts. Later
+attacks consume these saved predictions by hash and never silently rerun or
+replace the baseline.
 
 ## CARC setup
 
@@ -46,83 +62,50 @@ export PYTHONPATH="$PWD/src"
 python -m unittest discover -s tests -v
 ```
 
-The baseline is designed for one L40S 48 GB GPU, 8 CPU cores, 32 GB system RAM,
-and up to 4 hours per production worker. An A40 48 GB is a reasonable fallback,
-but do not mix model settings or configs between workers.
+The accepted baseline should not be rerun. Donut attacks use one L40S 48 GB GPU,
+8 CPU cores, and 48 GB RAM per worker.
 
-## Baseline smoke test
+## Donut attack: next CARC action
 
-Only `user1` runs the first smoke test. Request an interactive L40S from a CARC
-login node:
-
-For an unattended run that survives closing the laptop, submit the smoke test
-as a Slurm batch job (A100, A40, and L40S are supported):
+Khalid (`user4`) owns the isolated Donut smoke. From the repository root, run
+the CPU preflight and then submit the 20-receipt smoke job:
 
 ```bash
-bash scripts/submit_smoke_baseline.sh a100 02:00:00
-```
-
-The command prints a job ID and log paths, then it is safe to disconnect. Check
-the result later with `squeue`, `sacct`, and the saved logs. Do not keep an
-interactive `salloc` request queued at the same time.
-
-For an attended interactive run instead:
-
-```bash
-salloc --account=yzhao010_1531 --partition=gpu \
-  --nodes=1 --ntasks=1 --cpus-per-task=8 \
-  --mem=32G --time=02:00:00 --gpus-per-task=l40s:1
-srun --pty bash -l
-cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
 source scripts/activate_paperwork.sh
 export PYTHONPATH="$PWD/src"
-nvidia-smi
-python scripts/smoke_baseline.py --config configs/baseline/smoke.json
+python scripts/smoke_donut_attack.py \
+  --config configs/donut_attack/smoke_validation.json --preflight
+sbatch scripts/slurm/donut_smoke.sbatch \
+  configs/donut_attack/smoke_validation.json
 ```
 
-The smoke test runs two documents from each dataset: 6 Qwen predictions and 4
-Donut predictions. Every prediction is repeated for determinism. Inspect:
-
-```text
-outputs/baseline/baseline_smoke_v1/merged/predictions.csv
-outputs/baseline/baseline_smoke_v1/merged/failures.csv
-outputs/baseline/baseline_smoke_v1/merged/summary.json
-```
-
-Do not start production if there is an inference failure, a nondeterministic
-response, repeated empty output, an unexpected page count, or a GPU memory
-error. Exit twice when finished to release the interactive allocation.
-
-## Five-person production baseline
-
-After the smoke output is reviewed, each teammate submits exactly one worker
-from the normal CARC login node. Do **not** request an interactive GPU first;
-the launcher submits the resource request itself.
+After the smoke completes, inspect processor parity, optimization traces,
+gradient norms, bounds, saved/reloaded predictions, perceptibility metrics, and
+checkpoint resume. Only then change `ready_for_production` in
+`configs/donut_attack/active.json` from `false` to `true`, commit that reviewed
+change, and ask all five teammates to submit:
 
 ```bash
-bash scripts/submit_stage.sh baseline user1
-bash scripts/submit_stage.sh baseline user2
-bash scripts/submit_stage.sh baseline user3
-bash scripts/submit_stage.sh baseline user4
-bash scripts/submit_stage.sh baseline user5
+bash scripts/submit_stage.sh donut_attack user1
+bash scripts/submit_stage.sh donut_attack user2
+bash scripts/submit_stage.sh donut_attack user3
+bash scripts/submit_stage.sh donut_attack user4
+bash scripts/submit_stage.sh donut_attack user5
 ```
 
-The commands may run concurrently. Each worker receives a disjoint document
-shard, writes an atomic record after each inference, and safely resumes after a
-timeout. The fifth completed worker triggers the strict merge automatically.
-The merge can also be checked from a CPU login node:
+The same command safely resumes a timed-out worker. Check the strict CPU merge
+manually with:
 
 ```bash
-python scripts/merge_baseline.py --config configs/baseline/active.json
+python scripts/merge_donut_attack.py --config configs/donut_attack/active.json
 ```
-
-Production is accepted only when the merged summary reports exactly 527 rows
-and all five workers used the same config hash and Git commit.
 
 ## Rules that protect the experiment
 
-- Do not edit `configs/baseline/active.json` while jobs are queued or running.
+- Do not edit an active config while jobs are queued or running.
 - Use a new `run_id` whenever code-independent experiment settings change.
 - Do not inspect the test split until the validation prompt and settings are frozen.
 - Do not commit `data/`, `.cache/`, `outputs/`, logs, or model weights.
+- Store collected raw receipts on CARC rather than public Git; they may contain
+  names, transaction identifiers, and other personal information.
 - Analysis notebooks read saved outputs; they do not rerun GPU inference.

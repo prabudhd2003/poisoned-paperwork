@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Submit from the repository root with: sbatch scripts/slurm/donut_smoke.sbatch
+# From the repository root:
+#   sbatch scripts/slurm/donut_smoke.sbatch configs/donut_attack/smoke_validation.json
 #SBATCH --account=yzhao010_1531
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
@@ -14,20 +15,16 @@
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:?Submit from the project root}"
-if [[ "$(id -un)" != kbali ]]; then
-    echo "This smoke launcher is configured for Khalid's environment." >&2
-    exit 1
-fi
+CONFIG_PATH="${1:-configs/donut_attack/smoke_validation.json}"
 if [[ -n "$(git status --porcelain)" ]]; then
     echo "Commit reviewed files before starting the smoke run." >&2
     exit 1
 fi
+source scripts/activate_paperwork.sh
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1 ARROW_NUM_THREADS=1 PYTHONNOUSERSITE=1
-export HF_HOME="$PWD/.cache/hf" TORCH_HOME="$PWD/.cache/torch"
-export PYTHONPATH="$PWD/src" HF_HUB_DISABLE_TELEMETRY=1
-PYTHON_BIN=/home1/kbali/.conda/envs/paperwork/bin/python
-echo "Job: ${SLURM_JOB_ID}; commit: $(git rev-parse HEAD)"
-"$PYTHON_BIN" -c 'import sys, torch; print(sys.executable, torch.__version__); assert torch.cuda.is_available()'
+export NUMEXPR_NUM_THREADS=1 ARROW_NUM_THREADS=1
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+echo "Job: ${SLURM_JOB_ID}; commit: $(git rev-parse HEAD); config: $CONFIG_PATH"
+python -c 'import sys, torch; print(sys.executable, torch.__version__); assert torch.cuda.is_available()'
 nvidia-smi
-"$PYTHON_BIN" -u scripts/smoke_donut_attack.py
+python -u scripts/smoke_donut_attack.py --config "$CONFIG_PATH"

@@ -16,6 +16,10 @@ logs/
 # Notebook-generated files
 .ipynb_checkpoints/
 
+# Prospectively collected receipts may contain private information. Keep the
+# local folder available to the annotation notebook, but never commit images.
+collected receipts/*
+
 # Secrets and local environment files
 .env
 .env.*

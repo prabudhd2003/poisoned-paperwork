@@ -1,11 +1,14 @@
 # 07 - Transfer and digital robustness
 
+> **Status:** planned only; no stage module, InternVL adapter, config, or tests
+> are implemented yet. Start only after the frozen Qwen receipt attack exists.
+
 ## GPU stage and analysis notebook
 
 - Stage command: `transfer_robustness`
 - Implementation: `src/stages/transfer_robustness.py`
 - Active config: `configs/transfer_robustness/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+- CPU analysis: `notebooks/06_attack_analysis.ipynb`
 
 ## Purpose
 
@@ -203,7 +206,7 @@ prediction_normalized, clean_target_correct, adversarial_target_success,
 target_log_probability, runtime_seconds, input_sha256, output_sha256
 ```
 
-## Results shown in `05_attack_analysis.ipynb`
+## Results shown in `06_attack_analysis.ipynb`
 
 1. InternVL clean exact-match accuracy by dataset and task.
 2. Direct transfer rate by epsilon, dataset, and source-attack success.

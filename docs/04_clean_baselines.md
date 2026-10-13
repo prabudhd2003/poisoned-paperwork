@@ -1,5 +1,19 @@
 # 04 - Clean model baselines
 
+## Status
+
+Validation is complete and accepted. Run `baseline_validation_v1` contains 527
+predictions on 301 documents from all five workers with zero inference
+failures. The authoritative prediction SHA-256 is
+`483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0`.
+`notebooks/04_baseline_analysis.ipynb` verifies the merge, accuracy, failures,
+runtime, and attack-candidate lists. Do not rerun or rewrite this validation
+baseline for later stages.
+
+The held-out official test baseline remains unopened until validation attack
+and defense choices are frozen. The prospective 100-receipt set is a separate
+`external_test` evaluation and must never be pooled with SROIE/CORD counts.
+
 ## GPU stage and analysis notebook
 
 - Stage command: `baseline`

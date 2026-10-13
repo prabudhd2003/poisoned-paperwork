@@ -1,15 +1,23 @@
 {
+  "stage": "donut_attack",
+  "mode": "smoke",
   "run_id": "donut_smoke_khalid_v1",
+  "owner_user_id": "user4",
   "frozen_for_test": false,
   "require_clean_git": true,
   "seed": 566,
   "split": "validation",
+  "output_root": "outputs/donut_attack",
   "datasets": [
     "sroie",
     "cord_v2"
   ],
   "smoke_per_dataset": 1,
   "baseline_predictions": "outputs/baseline/baseline_validation_v1/merged/predictions.parquet",
+  "baseline_merge_manifest": "outputs/baseline/baseline_validation_v1/merged/merge_manifest.json",
+  "baseline_predictions_sha256": "483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0",
+  "baseline_config_sha256": "a371655bf97c99e6c08ac5da2b288ca48bf301ad0c2bdb21e4260c588266d05a",
+  "baseline_git_commit": "5e387062d29b2a9b2b79de03c305c52d7b97f01f",
   "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
   "model_revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
   "max_length": 64,

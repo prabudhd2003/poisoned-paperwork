@@ -228,6 +228,9 @@ def targeted_image_attack(
         loss.backward()
         if adversarial.grad is None or not torch.isfinite(adversarial.grad).all():
             raise RuntimeError(f"missing or non-finite image gradient at step {step}")
+        metadata = dict(metadata)
+        metadata["gradient_l2"] = float(adversarial.grad.detach().norm().item())
+        metadata["gradient_linf"] = float(adversarial.grad.detach().abs().max().item())
 
         with torch.no_grad():
             if optimizer is None:

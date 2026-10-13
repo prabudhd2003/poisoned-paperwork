@@ -1,5 +1,13 @@
 # 06 - Main Qwen full-page attacks
 
+## Status and ownership boundary
+
+The shared router and CARC smoke launcher exist. The shared attack core,
+receipt track, resume track, tests, and configs are still being implemented by
+the assigned Qwen owners. Donut/external-receipt work must not edit or duplicate
+those files. Merge the owners' reviewed work through the shared core contract
+below before any Qwen smoke is submitted.
+
 ## Two tracks, one stage
 
 The Qwen attack is split into two **tracks** that are developed and run
@@ -27,7 +35,7 @@ Each track has its own config, run ID, smoke test, validation run, frozen test
 run, and merge. Receipt results are complete and reportable without the resume
 track; resume work never blocks receipts.
 
-- CPU analysis: `notebooks/05_attack_analysis.ipynb` reads both tracks' merged
+- CPU analysis: `notebooks/06_attack_analysis.ipynb` reads both tracks' merged
   outputs.
 
 ## Purpose
@@ -80,6 +88,13 @@ Attack only records satisfying:
 Use validation for implementation and hyperparameter decisions. Test attacks
 start only after that track's attack config is frozen and marked
 `frozen_for_test=true`.
+
+The prospectively collected 100 receipts are a separate external evaluation.
+First run the frozen clean Qwen baseline on all 100; then attack only Qwen
+clean-correct receipts using settings already frozen on SROIE/CORD validation.
+Never use external outcomes to change prompts, step sizes, steps, early stopping,
+or defenses. Use a separate run ID and report the results separately from the
+public datasets.
 
 ## Model and prompt
 
@@ -349,7 +364,7 @@ Downstream stages (07-10) that read `outputs/qwen_attack/<run>/merged/` list
 the receipt run ID and, where resumes are in scope, the resume run ID in the
 results registry.
 
-## Results shown in `05_attack_analysis.ipynb`
+## Results shown in `06_attack_analysis.ipynb`
 
 1. Conditional ASR versus epsilon, with separate SROIE, CORD, receipt-overall,
    and resume curves.

@@ -1,8 +1,12 @@
 # 10 - Final results, tables, and figures
 
+> **Status:** planned. The baseline section has accepted inputs; attack,
+> prospective external-receipt, transfer, and defense sections wait for their
+> frozen merged artifacts.
+
 ## Analysis notebook
 
-`notebooks/06_defense_and_final_analysis.ipynb`
+`notebooks/07_defense_and_final_analysis.ipynb`
 
 ## Purpose
 
@@ -35,6 +39,9 @@ outputs/qwen_attack/<frozen_resume_run>/merged/
 outputs/transfer_robustness/<frozen_run>/merged/
 outputs/eot_patch/<frozen_run>/merged/
 outputs/defenses/<frozen_run>/merged/
+data/processed/collected_receipts/manifest.parquet
+outputs/external_receipts/<frozen_clean_run>/merged/
+outputs/external_receipts/<frozen_attack_run>/merged/
 ```
 
 Create one tracked registry before analysis:
@@ -83,6 +90,7 @@ Create normalized analysis dataframes with one row per valid statistical unit:
 - `physical_trials` - one row per printed document;
 - `defense_trials` - one row per document/attack/defense;
 - `adaptive_attacks` - one row per document/defense/epsilon.
+- `external_receipts` - one row per prospective receipt/model/condition.
 
 Join using `record_id` and explicit experiment keys. Assert that no join changes
 row counts unexpectedly.
@@ -114,6 +122,8 @@ row counts unexpectedly.
 8. **Defenses:** clean accuracy, non-adaptive ASR, adaptive ASR, latency,
    routing fraction, and additional passes.
 9. **Failures and exclusions:** every excluded, failed, or incomplete category.
+10. **Prospective external receipts:** clean accuracy and frozen attack success
+    on the 100 newly collected receipts, reported separately from SROIE/CORD.
 
 ### 5. Required final figures
 
@@ -128,6 +138,8 @@ row counts unexpectedly.
 9. Defense cost: latency and additional VLM passes.
 10. A small qualitative panel of deterministically selected successes and
     failures; never cherry-pick without stating the selection rule.
+11. Public-benchmark versus prospective-external clean accuracy and attack
+    success, with exact counts and contributor-aware sensitivity analysis.
 
 Every figure must have readable labels, units, denominator information in the
 caption, a colorblind-safe palette, and both PNG and PDF exports.
@@ -142,6 +154,7 @@ End the notebook with a table mapping each research question to its evidence:
 | Predict transfer/survival | AUROC, Brier | assigned output | ... |
 | Lightweight detector/defense | adaptive ASR, clean accuracy, latency | assigned output | ... |
 | Resume vulnerability | resume ASR | assigned output | ... |
+| Benchmark memorization concern | prospective external clean accuracy and frozen ASR | assigned output | ... |
 
 Conclusions must be generated only after metrics are computed. Do not place an
 expected direction into analysis code.
