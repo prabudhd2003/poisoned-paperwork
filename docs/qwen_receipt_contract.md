@@ -2,17 +2,70 @@
 
 ## Status and ownership
 
-- Contract status: **Phase 0 complete; Phase 1 not started**.
+- Contract status: **Phase 0 complete; Phase 1 tasks 1-6 implemented; CARC
+  real-artifact CPU preflight pending**.
 - Development branch: `qwen-receipt`.
 - Branch base commit: `f269fa759e8cfd0f8736fbb27d96bc0c0791d30a`.
 - Verification commit: `94a1725e0ae518351064e7cc95ddcbb189def7b7`.
 - Track owner: Saaketh (`user3`, production worker `2`).
 - Shared attack core owner/reviewer: Shail (`user5`).
 
-This file freezes the receipt track's scientific and provenance contract before
-the receipt attack stage is implemented. Completing this phase does not run a
-model or an adversarial attack. A completed run ID is immutable: any later
-change to code, inputs, or selected settings requires a new run ID.
+This file freezes the receipt track's scientific and provenance contract and
+records the implementation boundary. Tasks 1-6 add the code and CPU-verifiable
+contracts; they do not run Qwen or an adversarial attack. A completed run ID is
+immutable: any later change to code, inputs, or selected settings requires a
+new run ID.
+
+## Phase 1 tasks 1-6 implementation
+
+1. **Personal/shared CARC layout.** Receipt configs name
+   `PP_SHARED_ARTIFACT_ROOT`; frozen baseline outputs and processed datasets are
+   resolved below that separate, read-only checkout. Configs and all new outputs
+   remain below the personal `qwen-receipt` checkout. Absolute or escaping
+   receipt input paths, an unset variable, and using the personal checkout as
+   the shared root are rejected.
+2. **Frozen configs.** `receipt_smoke_saaketh.json` fixes the owner smoke at five
+   deterministic candidates per dataset, epsilon 8, step size 2, and 25 steps.
+   It remains fail-closed with `ready_for_gpu_smoke: false` until the complete
+   source-pixel evidence digest is reviewed and pinned.
+   `receipt_active.json` fixes the intended 219-document validation grid but
+   remains deliberately blocked with `ready_for_production: false` until the
+   smoke, saved-image review, and checkpoint-resume proof are accepted.
+3. **Candidate/data contract.** The receipt stage re-verifies all seven frozen
+   artifact hashes, the 527-record baseline provenance, the 226 usable receipt
+   rows, the 219 clean-correct target-valid candidates, canonical exact-decimal
+   targets, and one-page metadata. CPU preflight additionally loads the ten
+   selected smoke images and proves each is one nonempty RGB page.
+4. **Shared attack integration.** The receipt adapter uses the existing
+   `attacks.qwen.attack` and `models.qwen.QwenVL` implementations unchanged. It
+   supplies the frozen receipt prompt and dataset-aware SROIE/CORD output
+   normalization; no second optimizer or model wrapper is introduced.
+5. **Immutable output and merge contract.** Experiment keys use the full record
+   ID SHA-256. Resume validation binds source pixels, target, model/prompt,
+   processor settings and parity, epsilon/step size, success recomputation,
+   metrics, Git/config/input hashes, package versions, and Python/CUDA/GPU/VRAM.
+   The strict merge requires the complete worker/epsilon Cartesian product,
+   identical worker runtime contracts, immutable assignments, valid saved RGB
+   PNGs, and exact deterministic manifest/output hashes. It publishes via an
+   atomic directory rename and reports conditional ASR over 123/96 candidates
+   plus harmful-output rate over 126/100 usable documents.
+6. **CPU verification surface.** `tests/test_qwen_receipt.py` covers config,
+   target, selection, routing, path containment, real-image preflight, sharding,
+   record validation, runtime provenance, merge tamper detection, and both
+   denominators. `smoke_qwen_attack.py --preflight` loads no Qwen model and
+   performs no attack. `freeze_qwen_receipt_sources.py` hashes the decoded RGB
+   pixels and dimensions for exactly all 219 candidates into a CPU evidence
+   report. Its canonical source-record digest must be pinned in a subsequent
+   closure commit before GPU work. `merge_qwen_receipt.py` exposes the same
+   strict merge for a CPU login node after workers finish; that merge
+   independently recomputes pixel-space L-infinity from the processed clean RGB
+   bytes and saved PNG. Processor-parity execution still belongs to the later
+   full model-runtime/GPU readiness work.
+
+The five-worker validation config is code-complete but not operationally
+unlocked. Before that later run, every worker must write to one common writable
+run root; separate personal checkout output directories cannot be merged. This
+does not affect the single-owner smoke or the current CPU preflight handoff.
 
 ## Frozen task scope
 
@@ -184,5 +237,7 @@ CARC account. This result validates the Phase 0 data contract and evidence; it
 does not configure or validate the complete baseline/GPU runtime needed by
 later phases.
 
-No receipt stage, attack config, GPU job, or attack output is part of this
-phase.
+At Phase 0 closure, no receipt stage, attack config, GPU job, or attack output
+was part of the evidence. Phase 1 tasks 1-6 subsequently added the receipt code
+and configs described above; no GPU job or attack output has yet been run or
+accepted.
