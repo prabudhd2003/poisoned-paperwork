@@ -2,7 +2,7 @@
 
 ## Status and ownership
 
-- Contract status: **CARC verification passed; target-policy approval pending**.
+- Contract status: **Phase 0 complete; Phase 1 not started**.
 - Development branch: `qwen-receipt`.
 - Branch base commit: `f269fa759e8cfd0f8736fbb27d96bc0c0791d30a`.
 - Verification commit: `94a1725e0ae518351064e7cc95ddcbb189def7b7`.
@@ -41,7 +41,7 @@ The baseline candidate pool contains only rows that are usable,
 attack-eligible, complete, parseable, and clean-correct for the frozen Qwen
 configuration on the declared split.
 
-The proposed receipt target policy, pending explicit team acceptance, is:
+The approved receipt target policy is:
 
 1. The clean total is canonical for its dataset and strictly positive.
 2. The attack target is canonical for its dataset.
@@ -171,8 +171,11 @@ The passing verification record is:
 - Verified pre-policy counts: SROIE 123, CORD v2 96, total 219.
 - Verified target-valid counts: SROIE 123, CORD v2 96, total 219.
 - Excluded record IDs and reasons: none.
-- Target policy approval: **pending explicit team acceptance**.
-- Final Phase 0 closure commit: pending target-policy approval.
+- Target policy approval: explicitly approved by the track owner on
+  `2026-10-14`.
+- Phase 0 closure: the documentation commit that changes this contract status
+  to complete; its authoritative SHA is recorded in Git history and the Phase
+  0 handoff.
 
 The verification ran in a separate CPU-only `qwen-receipt-phase0`
 environment with NumPy 2.4.6, Pandas 3.0.6, and PyArrow 25.0.1 because the
