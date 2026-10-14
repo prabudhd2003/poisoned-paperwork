@@ -29,6 +29,16 @@
   "processed_data_root": "data/processed",
   "expected_usable_counts": {"sroie": 126, "cord_v2": 100},
   "expected_validation_candidates": {"sroie": 123, "cord_v2": 96},
+  "source_evidence": {
+    "schema_version": 1,
+    "verification": "qwen_receipt_source_pixels_v1",
+    "scope": "all_validation_candidates",
+    "records": 219,
+    "candidate_counts": {"sroie": 123, "cord_v2": 96},
+    "source_records_sha256": "77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277",
+    "accepted_report_sha256": "7682d9fc5f5601fa1cc9d4dd368b75d9df44950772185d8a9a9a85cb61cf609d",
+    "verified_git_commit": "fa5934fd6d3a1345da1fd0130998c297ace2e61a"
+  },
   "require_clean_git": true,
   "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
   "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",

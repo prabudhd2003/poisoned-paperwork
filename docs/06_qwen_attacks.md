@@ -190,6 +190,17 @@ Optimize the one receipt image. The target is the exact normalized value in
 Smoke subset: five SROIE and five CORD clean-correct validation receipts at
 epsilon 8.
 
+The receipt tasks 1-6 CPU handoff passed on CARC at implementation commit
+`fa5934fd6d3a1345da1fd0130998c297ace2e61a`: 24 focused tests passed and all
+219 sources (123 SROIE and 96 CORD v2) produced canonical source-record digest
+`77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277`.
+The Task 7 closure pins that evidence and unlocks only the owner smoke. It does
+not claim that Qwen, CUDA, gradients, or an attack have run;
+`receipt_active.json` remains blocked with `ready_for_production=false` until
+the later GPU gates are accepted. The complete evidence record and the
+distinction between the stable source digest and historical report hash are in
+`qwen_receipt_contract.md`.
+
 ## Resume track
 
 Provide all retained pages in original order. Optimize all pages jointly under

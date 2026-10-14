@@ -2,11 +2,15 @@
 
 ## Status and ownership
 
-- Contract status: **Phase 0 complete; Phase 1 tasks 1-6 implemented; CARC
-  real-artifact CPU preflight pending**.
+- Contract status: **Phase 0 complete; Phase 1 tasks 1-6 implemented and the
+  CARC real-artifact CPU handoff accepted; the Task 7 closure unlocks only the
+  owner GPU smoke. No receipt GPU attack has run, and production remains
+  locked**.
 - Development branch: `qwen-receipt`.
 - Branch base commit: `f269fa759e8cfd0f8736fbb27d96bc0c0791d30a`.
 - Verification commit: `94a1725e0ae518351064e7cc95ddcbb189def7b7`.
+- Phase 1 tasks 1-6 implementation commit:
+  `fa5934fd6d3a1345da1fd0130998c297ace2e61a`.
 - Track owner: Saaketh (`user3`, production worker `2`).
 - Shared attack core owner/reviewer: Shail (`user5`).
 
@@ -26,8 +30,10 @@ new run ID.
    the shared root are rejected.
 2. **Frozen configs.** `receipt_smoke_saaketh.json` fixes the owner smoke at five
    deterministic candidates per dataset, epsilon 8, step size 2, and 25 steps.
-   It remains fail-closed with `ready_for_gpu_smoke: false` until the complete
-   source-pixel evidence digest is reviewed and pinned.
+   The Task 7 closure pins the accepted complete source-pixel evidence digest
+   and changes only its `ready_for_gpu_smoke` gate to true. That authorizes the
+   later owner-only smoke; it does not claim that a GPU job has run or authorize
+   five-worker validation.
    `receipt_active.json` fixes the intended 219-document validation grid but
    remains deliberately blocked with `ready_for_production: false` until the
    smoke, saved-image review, and checkpoint-resume proof are accepted.
@@ -65,7 +71,70 @@ new run ID.
 The five-worker validation config is code-complete but not operationally
 unlocked. Before that later run, every worker must write to one common writable
 run root; separate personal checkout output directories cannot be merged. This
-does not affect the single-owner smoke or the current CPU preflight handoff.
+does not affect the single-owner smoke or the accepted CPU preflight handoff.
+
+## Phase 1 CPU handoff and source-evidence closure
+
+The CARC Phase 1 CPU handoff passed against the tasks 1-6 implementation at
+commit `fa5934fd6d3a1345da1fd0130998c297ace2e61a`. The personal worktree was
+clean before and after execution. The accepted evidence establishes the exact
+receipt source population and confirms that the real processed images can be
+loaded without invoking Qwen or an attack:
+
+- Focused receipt CPU tests: 24 of 24 passed. This CARC execution did **not**
+  rerun the previously reported 70-test local suite, so this record makes no
+  claim that 70 tests ran on CARC.
+- Source-evidence verifier status: `pass`.
+- Source records: 219 total, comprising 123 SROIE and 96 CORD v2 records.
+- Real-image smoke preflight: 10 receipts, comprising 5 SROIE and 5 CORD v2
+  records. It printed all ten IDs, clean targets, attack targets, and decoded
+  RGB dimensions.
+- Canonical source-record SHA-256:
+  `77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277`.
+- Accepted CPU evidence report SHA-256:
+  `7682d9fc5f5601fa1cc9d4dd368b75d9df44950772185d8a9a9a85cb61cf609d`.
+- Evidence directory:
+  `/project2/yzhao010_1531/kanduri/poisoned-paperwork-qwen-receipt/outputs/phase1_cpu/fa5934f-20261014T220123Z`.
+- Source-evidence report: `qwen_receipt_source_evidence.json`.
+
+The canonical source-record digest is the semantic identity of the ordered
+219-record source set. It is computed from the record identity, dataset/source
+selection, targets, decoded RGB dimensions, and source-pixel hashes, and must
+remain stable when the same frozen sources and policy are reverified. The full
+report hash instead identifies this historical CARC report byte for byte. A
+later report may legitimately have a different report SHA-256 because it can
+contain new Git or execution metadata; that does not permit its canonical
+source-record digest to change.
+
+The accepted CARC run used Python 3.11.17 through the explicit interpreter
+
+```text
+/project2/yzhao010_1531/kanduri/envs/qwen-receipt-phase1-cpu/bin/python
+```
+
+with `-E -s`. Commands must continue to name that interpreter for this CPU
+verification environment instead of relying on the shell prompt or an
+unqualified `python`, because Conda activation previously selected the shared
+base interpreter incorrectly. The run read frozen inputs from the shared
+artifact root
+
+```text
+/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+```
+
+and kept code, generated reports, and other personal outputs below
+
+```text
+/project2/yzhao010_1531/kanduri/poisoned-paperwork-qwen-receipt
+```
+
+The Task 7 closure binds the stable source-record digest and records the
+historical report hash. It unlocks only `receipt_smoke_saaketh.json` for the
+future owner GPU smoke. `receipt_active.json` remains fail-closed with
+`ready_for_production: false`. This CPU evidence does not validate the full
+Qwen/CUDA environment, processor parity, gradients, attack success, saved
+adversarial PNGs, GPU memory, or checkpoint resume, and none of those actions
+was performed by this handoff.
 
 ## Frozen task scope
 

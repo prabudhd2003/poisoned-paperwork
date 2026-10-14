@@ -57,6 +57,20 @@ TARGET_POLICY = {
     "target_must_be_distinct": True,
     "decimal_arithmetic": True,
 }
+EXPECTED_SOURCE_EVIDENCE = {
+    "schema_version": 1,
+    "verification": "qwen_receipt_source_pixels_v1",
+    "scope": "all_validation_candidates",
+    "records": 219,
+    "candidate_counts": dict(EXPECTED_VALIDATION_CANDIDATES),
+    "source_records_sha256": (
+        "77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277"
+    ),
+    "accepted_report_sha256": (
+        "7682d9fc5f5601fa1cc9d4dd368b75d9df44950772185d8a9a9a85cb61cf609d"
+    ),
+    "verified_git_commit": "fa5934fd6d3a1345da1fd0130998c297ace2e61a",
+}
 RUN_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}\Z")
 
 
@@ -108,7 +122,7 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
         "processed_data_root", "shared_artifact_root_env", "model_id",
         "model_revision", "prompt_id", "question", "processor_tolerance",
         "target_policy", "expected_usable_counts",
-        "expected_validation_candidates", "attack",
+        "expected_validation_candidates", "source_evidence", "attack",
     }
     missing = sorted(required - config.keys())
     if missing:
@@ -154,6 +168,10 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
         raise ValueError("receipt attack question must match the frozen receipt prompt text")
     if config.get("target_policy") != TARGET_POLICY:
         raise ValueError("target_policy differs from the approved receipt_exact_10x_v1 policy")
+    if config.get("source_evidence") != EXPECTED_SOURCE_EVIDENCE:
+        raise ValueError(
+            "source_evidence differs from the accepted all-219 CARC CPU evidence contract"
+        )
     env_name = config.get("shared_artifact_root_env")
     if not isinstance(env_name, str) or not env_name.strip():
         raise ValueError("shared_artifact_root_env must name a nonempty environment variable")
@@ -452,7 +470,8 @@ def _resolve_baseline_config(
 
 
 def _load_plan(
-    config: dict[str, Any], repo_root: Path, *, apply_smoke_selection: bool = True
+    config: dict[str, Any], repo_root: Path, *, apply_smoke_selection: bool = True,
+    verify_source_evidence: bool = True,
 ):
     import pandas as pd
 
@@ -589,6 +608,12 @@ def _load_plan(
                 "clean-correct target-valid counts differ from the frozen contract: "
                 f"{candidate_counts}"
             )
+    # This verification deliberately runs against the complete candidate pool
+    # before smoke selection.  It binds execution to the decoded RGB bytes
+    # accepted by the CARC CPU handoff, rather than merely checking the ten
+    # records selected for the owner smoke.
+    if verify_source_evidence:
+        _verify_source_evidence(config, candidates, paths)
     if config["mode"] == "smoke" and apply_smoke_selection:
         candidates = select_smoke_candidates(candidates, int(config["smoke_per_dataset"]))
     paths["shared_artifact_root"] = shared_root
@@ -600,6 +625,13 @@ def preflight(config, repo_root):
     _validate_attack_config(config)
     root = Path(repo_root).resolve()
     _, candidates, paths = _load_plan(config, root)
+    source_evidence = config["source_evidence"]
+    print(
+        "Accepted source evidence verified before smoke selection: "
+        f"records={source_evidence['records']} "
+        f"counts={source_evidence['candidate_counts']} "
+        f"source_records_sha256={source_evidence['source_records_sha256']}"
+    )
     rows = _load_processed_rows(
         paths["processed_data_root"], config["split"], set(candidates.index)
     )
@@ -627,29 +659,26 @@ def preflight(config, repo_root):
     return candidates
 
 
-def build_source_evidence(
-    config: dict[str, Any], config_path: str | Path
-) -> dict[str, Any]:
-    """Hash decoded RGB pixels for the complete 219-document candidate pool.
+def _build_source_records(
+    config: dict[str, Any], candidates, processed_rows: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Return deterministic decoded-RGB identities for ``candidates``.
 
-    The CARC CPU handoff records this report first. A later closure commit pins
-    its canonical source-record digest before any GPU smoke is authorized.
+    Metadata and pixels are checked together so a digest cannot remain valid
+    after a target, source index, dimension, or decoded RGB byte changes.
     """
-    _validate_attack_config(config)
-    config_path = Path(config_path).resolve()
-    root = config_path.parents[2]
-    _require_clean_git(config, root)
-    _, candidates, paths = _load_plan(
-        config, root, apply_smoke_selection=False
-    )
-    if _dataset_counts(candidates) != EXPECTED_VALIDATION_CANDIDATES:
-        raise RuntimeError("source evidence must cover all 219 validation candidates")
-    rows = _load_processed_rows(
-        paths["processed_data_root"], config["split"], set(candidates.index)
-    )
+    candidate_ids = {str(value) for value in candidates.index}
+    if set(processed_rows) != candidate_ids:
+        missing = sorted(candidate_ids - set(processed_rows))
+        extra = sorted(set(processed_rows) - candidate_ids)
+        raise RuntimeError(
+            "source evidence processed-row IDs are incomplete or unexpected: "
+            f"missing={missing[:10]} extra={extra[:10]}"
+        )
     records: list[dict[str, Any]] = []
     for record_id, candidate in candidates.sort_index().iterrows():
-        processed = rows[record_id]
+        record_id = str(record_id)
+        processed = processed_rows[record_id]
         expected_fields = {
             "clean_target": candidate["clean_target"],
             "attack_target": candidate["attack_target"],
@@ -671,7 +700,7 @@ def build_source_evidence(
         if image.width < 1 or image.height < 1:
             raise RuntimeError(f"source evidence loaded an invalid RGB page: {record_id}")
         records.append({
-            "record_id": str(record_id),
+            "record_id": record_id,
             "dataset_name": str(candidate["dataset_name"]),
             "experiment_split": config["split"],
             "source_split": str(candidate["source_split"]),
@@ -684,11 +713,75 @@ def build_source_evidence(
             "rgb_sha256": sha256_bytes(image.tobytes()),
         })
     ids = [record["record_id"] for record in records]
-    if len(ids) != len(set(ids)) or set(ids) != set(candidates.index):
+    if len(ids) != len(set(ids)) or set(ids) != candidate_ids:
         raise RuntimeError("source evidence IDs are duplicated or incomplete")
+    return records
+
+
+def _source_records_sha256(records: list[dict[str, Any]]) -> str:
+    """Hash source records using the frozen canonical JSON representation."""
+    ordered = sorted(records, key=lambda record: str(record["record_id"]))
     canonical_records = json.dumps(
-        records, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ordered, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
+    return sha256_text(canonical_records)
+
+
+def _verify_source_evidence(
+    config: dict[str, Any], candidates, paths: dict[str, Path]
+) -> dict[str, Any]:
+    """Recompute and enforce the accepted all-candidate source identity.
+
+    ``accepted_report_sha256`` identifies the historical CARC report and is
+    provenance, not a runtime file dependency.  Runtime trust is established
+    by recomputing ``source_records_sha256`` from the frozen metadata and all
+    219 decoded RGB inputs on every preflight, run, and merge entrypoint.
+    """
+    contract = config["source_evidence"]
+    counts = _dataset_counts(candidates)
+    if counts != contract["candidate_counts"] or len(candidates) != contract["records"]:
+        raise RuntimeError(
+            "source evidence candidate coverage differs from the accepted contract: "
+            f"counts={counts} records={len(candidates)}"
+        )
+    rows = _load_processed_rows(
+        paths["processed_data_root"], config["split"], set(candidates.index)
+    )
+    records = _build_source_records(config, candidates, rows)
+    observed = _source_records_sha256(records)
+    if observed != contract["source_records_sha256"]:
+        raise RuntimeError(
+            "source evidence digest mismatch: "
+            f"observed={observed} accepted={contract['source_records_sha256']}"
+        )
+    return {
+        "candidate_counts": counts,
+        "records": len(records),
+        "source_records_sha256": observed,
+        "source_records": records,
+    }
+
+
+def build_source_evidence(
+    config: dict[str, Any], config_path: str | Path
+) -> dict[str, Any]:
+    """Recreate a report for the pinned complete source-evidence contract.
+
+    The report generated by this function is a new verification artifact and
+    therefore need not have ``accepted_report_sha256``.  That accepted hash
+    names the historical CARC handoff report; the stable runtime identity is
+    the recomputed canonical source-record digest.
+    """
+    _validate_attack_config(config)
+    config_path = Path(config_path).resolve()
+    root = config_path.parents[2]
+    _require_clean_git(config, root)
+    _, candidates, paths = _load_plan(
+        config, root, apply_smoke_selection=False, verify_source_evidence=False
+    )
+    verified = _verify_source_evidence(config, candidates, paths)
+    records = verified["source_records"]
+    ids = [record["record_id"] for record in records]
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
@@ -720,7 +813,15 @@ def build_source_evidence(
         "record_ids_sha256": sha256_text(
             "".join(f"{record_id}\n" for record_id in sorted(ids))
         ),
-        "source_records_sha256": sha256_text(canonical_records),
+        "source_records_sha256": verified["source_records_sha256"],
+        "accepted_source_records_sha256": config["source_evidence"][
+            "source_records_sha256"
+        ],
+        "matches_accepted": (
+            verified["source_records_sha256"]
+            == config["source_evidence"]["source_records_sha256"]
+        ),
+        "accepted_source_evidence": dict(config["source_evidence"]),
         "source_records": records,
         "created_at": _now(),
     }
@@ -810,6 +911,7 @@ def _build_provenance(
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
+    source_evidence = config["source_evidence"]
     return {
         "run_id": config["run_id"],
         "stage": "qwen_attack",
@@ -828,6 +930,10 @@ def _build_provenance(
         "baseline_correct_ids_sha256": sha256_file(paths["baseline_correct_ids"]),
         "baseline_environment_sha256": sha256_file(paths["baseline_environment"]),
         "master_manifest_sha256": sha256_file(paths["master_manifest"]),
+        "source_evidence": dict(source_evidence),
+        "source_records_sha256": source_evidence["source_records_sha256"],
+        "source_evidence_report_sha256": source_evidence["accepted_report_sha256"],
+        "source_evidence_verified_git_commit": source_evidence["verified_git_commit"],
         "environment_hash": sha256_text(json.dumps(versions, sort_keys=True)),
         "target_policy_id": TARGET_POLICY["policy_id"],
     }
