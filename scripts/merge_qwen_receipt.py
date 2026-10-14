@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -32,12 +33,16 @@ def main() -> None:
     config_path = config_path.resolve()
     config = json.loads(config_path.read_text(encoding="utf-8"))
 
-    from stages.qwen_attack_receipt import merge_if_complete
+    from stages.qwen_attack_receipt import merge_if_complete, resolve_output_root
 
-    if not merge_if_complete(config, config_path, num_workers=args.num_workers):
-        raise SystemExit("Not all Qwen-receipt worker markers exist; nothing was merged.")
+    previous_umask = os.umask(0o002)
+    try:
+        if not merge_if_complete(config, config_path, num_workers=args.num_workers):
+            raise SystemExit("Not all Qwen-receipt worker markers exist; nothing was merged.")
+    finally:
+        os.umask(previous_umask)
     repo_root = config_path.parents[2]
-    print(repo_root / "outputs/qwen_attack" / config["run_id"] / "merged/summary.json")
+    print(resolve_output_root(config, repo_root) / "merged/summary.json")
 
 
 if __name__ == "__main__":

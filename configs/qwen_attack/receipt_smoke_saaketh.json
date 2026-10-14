@@ -10,6 +10,7 @@
   "frozen_for_test": false,
   "seed": 566,
   "shared_artifact_root_env": "PP_SHARED_ARTIFACT_ROOT",
+  "output_root_env": "PP_RECEIPT_OUTPUT_ROOT",
   "baseline_run_id": "baseline_validation_v1",
   "baseline_config": "configs/baseline/active.json",
   "baseline_frozen_config": "outputs/baseline/baseline_validation_v1/config.json",

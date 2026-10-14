@@ -3,7 +3,8 @@
 
 Usage (from the repository root):
     python scripts/smoke_qwen_attack.py --config configs/qwen_attack/<smoke>.json --preflight
-    sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/<smoke>.json
+    # Receipt GPU smoke: bash scripts/submit_qwen_smoke.sh <receipt-smoke-config>
+    # Resume GPU smoke: sbatch scripts/slurm/qwen_smoke.sbatch <resume-smoke-config>
 
 Validation and test runs never use this script; they use
 ``bash scripts/submit_stage.sh qwen_attack userN <config>`` on five shards.
@@ -71,7 +72,12 @@ def main():
             "reviewed and pinned in a closure commit. Run --preflight only."
         )
     run(config, config_path, user_id=user_id, worker_id=0, num_workers=1)
-    output = ROOT / "outputs/qwen_attack" / config["run_id"]
+    if track == "receipt":
+        from stages.qwen_attack_receipt import resolve_output_root
+
+        output = resolve_output_root(config, ROOT)
+    else:
+        output = ROOT / "outputs/qwen_attack" / config["run_id"]
     summary = json.loads((output / "merged/summary.json").read_text(encoding="utf-8"))
     expected_documents = _expected_smoke_documents(config)
     expected_records = expected_documents * len(config["attack"]["epsilons_255"])

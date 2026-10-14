@@ -20,7 +20,9 @@ change.
 
 Both tracks share:
 
-- **one stage name**, `qwen_attack`, and one output root, `outputs/qwen_attack/`;
+- **one stage name**, `qwen_attack`, and one run layout,
+  `qwen_attack/<run_id>/`; receipt and resume resolve that layout beneath
+  different output bases as documented below;
 - **one attack core**, `src/attacks/qwen.py` (objective, differentiable
   preprocessing, PGD loop, save/reload verification, checkpoint state);
 - the frozen `baseline` Qwen config, prompt, processor settings, and
@@ -201,6 +203,14 @@ the later GPU gates are accepted. The complete evidence record and the
 distinction between the stable source digest and historical report hash are in
 `qwen_receipt_contract.md`.
 
+Task 8 then verified the exact closure commit
+`0cc7c13fd640545966c98bafc4aa58fd919ec6c3` on CARC: 31 of 31 focused tests
+passed, all 219 sources matched the accepted digest before smoke selection, the
+same deterministic ten-image CPU preflight passed, and the worktree stayed
+clean. The additional Task 8 report SHA-256 is
+`ad27ba4b401a1f8b4d457f847ea9043c3d93d3414c107100a89795949e3a42ee`;
+it supplements rather than replaces the original accepted report hash.
+
 ## Resume track
 
 Provide all retained pages in original order. Optimize all pages jointly under
@@ -281,6 +291,58 @@ should submit next. Owners change them only between runs.
 
 ## How to run
 
+### Receipt CARC roots and interpreter
+
+Receipt commands require these values to be set explicitly in every submitting
+shell. Do not infer the interpreter from a Conda prompt and do not use a bare
+`python`:
+
+```bash
+export PP_PYTHON_BIN=/absolute/path/to/the/qualified/full-runtime/bin/python
+export PP_SHARED_ARTIFACT_ROOT=/absolute/path/to/read-only/poisoned-paperwork
+export PP_RECEIPT_OUTPUT_ROOT=/absolute/path/to/shared-writable/receipt-outputs
+```
+
+`PP_RECEIPT_OUTPUT_ROOT` is a base directory, not a run-specific directory.
+The code deterministically resolves a run to
+`$PP_RECEIPT_OUTPUT_ROOT/qwen_attack/<run_id>`. It must exist before submission,
+must be group-writable and group-searchable with setgid enabled, must support
+file creation, locking, and atomic rename for every participating account, and
+must be a directory tree separate from both the personal checkout and
+`PP_SHARED_ARTIFACT_ROOT`. Both the launcher and the receipt core reject an
+output base that lacks those mode bits.
+
+Before a GPU submission, use the receipt smoke launcher's dry-run mode. It
+validates the explicit interpreter, roots, clean exact commit, committed
+config, run and worker contract, then prints the Slurm command without
+submitting it:
+
+```bash
+bash scripts/submit_qwen_smoke.sh \
+  configs/qwen_attack/receipt_smoke_saaketh.json --dry-run
+```
+
+Before that dry run, all five accounts must exercise the common storage
+contract with the same Task 9 Git commit and a single filesystem-safe session
+ID. Each account runs its own user ID:
+
+```bash
+"$PP_PYTHON_BIN" -E -s scripts/preflight_qwen_receipt_storage.py \
+  --config configs/qwen_attack/receipt_smoke_saaketh.json \
+  --user-id user3 \
+  --session-id task9-<UTC-timestamp> \
+  --expected-git-commit <exact-Task-9-commit>
+```
+
+After user1 through user5 have all completed the command, Saaketh repeats it
+with the identical session and commit plus `--require-all`. That final pass must
+observe five distinct account markers and verify cross-account reads, advisory
+locking, and atomic rename in the shared tree. It is storage evidence only and
+does not run Qwen or request a GPU.
+
+Production remains blocked while `receipt_active.json` contains
+`ready_for_production=false`; Task 9 does not change that gate.
+
 ### Smoke (track owner only, one worker)
 
 Smoke tests follow the isolated one-worker pattern of
@@ -341,7 +403,9 @@ unfinished ones resume from their last checkpoint. Nobody edits
 The final worker merges automatically. A strict CPU-only retry is available:
 
 ```bash
-python scripts/merge_qwen_resume.py \
+"$PP_PYTHON_BIN" -E -s scripts/merge_qwen_receipt.py \
+  --config configs/qwen_attack/receipt_active.json
+"$PP_PYTHON_BIN" -E -s scripts/merge_qwen_resume.py \
   --config configs/qwen_attack/resume_active.json
 ```
 
@@ -356,7 +420,7 @@ helper; they do not invent their own assignment.
 Checkpoint each document/epsilon every 10 iterations:
 
 ```text
-outputs/qwen_attack/<run_id>/
+<track-output-base>/qwen_attack/<run_id>/
 ├── assignments/worker_00.txt ... worker_04.txt
 ├── shards/worker_00/
 │   ├── checkpoints/<experiment_key>/state.pt
@@ -367,6 +431,13 @@ outputs/qwen_attack/<run_id>/
 └── merged/
 ```
 
+For receipts, `<track-output-base>` is exactly
+`$PP_RECEIPT_OUTPUT_ROOT`; it is not the personal checkout. The receipt stage,
+smoke summary, manual merge, and all five production workers resolve that same
+base. The resume track retains its existing repository-relative `outputs/`
+layout until its owner adopts an equivalent independently reviewed storage
+contract.
+
 The state contains all fields required in the shared execution contract plus
 the exact processed image grid, chat template hash, target token IDs, and best
 known attack tensor. A restarted job must verify all hashes before resuming.
@@ -376,7 +447,7 @@ known attack tensor. A restarted job must verify all hashes before resuming.
 Each track run produces, after its own merge:
 
 ```text
-outputs/qwen_attack/<run_id>/merged/
+<track-output-base>/qwen_attack/<run_id>/merged/
 ├── attacks.parquet
 ├── attacks.csv
 ├── page_metrics.parquet
@@ -395,9 +466,11 @@ processor_max_abs_difference, mean_target_log_probability,
 gradient_norm_final, peak_gpu_memory_mb
 ```
 
-Downstream stages (07-10) that read `outputs/qwen_attack/<run>/merged/` list
-the receipt run ID and, where resumes are in scope, the resume run ID in the
-results registry.
+Before downstream stages (07-10) consume receipt results, their configs or
+launchers must be updated and reviewed to point explicitly at
+`$PP_RECEIPT_OUTPUT_ROOT/qwen_attack/<run>/merged/`; they must not silently
+fall back to a personal checkout. Task 9 changes receipt attack execution and
+merge paths only—it does not claim that those later stages are implemented.
 
 ## Results shown in `05_attack_analysis.ipynb`
 

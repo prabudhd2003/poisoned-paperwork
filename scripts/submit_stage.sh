@@ -17,6 +17,7 @@ fi
 STAGE="$1"
 USER_ID="$2"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$REPO_ROOT/scripts/lib/qwen_receipt_runtime.sh"
 CONFIG_PATH="$REPO_ROOT/configs/$STAGE/active.json"
 DRY_RUN=0
 
@@ -83,8 +84,38 @@ if [[ ! -f "$CONFIG_PATH" ]]; then
   exit 2
 fi
 
-if [[ "$STAGE" == "qwen_attack" ]]; then
-  python3 - "$CONFIG_PATH" <<'PY'
+IS_RECEIPT=0
+EXPECTED_GIT_SHA=""
+if pp_receipt_is_config "$CONFIG_PATH"; then
+  IS_RECEIPT=1
+  pp_receipt_validate_context "$REPO_ROOT" "$CONFIG_PATH" "" "submission"
+  CONFIG_PATH="$PP_VALIDATED_CONFIG"
+  EXPECTED_GIT_SHA="$PP_VALIDATED_GIT_SHA"
+  RUN_ID="$PP_CONFIG_RUN_ID"
+  TRACK="$PP_CONFIG_TRACK"
+  if [[ "$PP_CONFIG_STAGE" != "$STAGE" ]]; then
+    echo "Config stage '$PP_CONFIG_STAGE' does not match requested stage '$STAGE'." >&2
+    exit 2
+  fi
+  if [[ "$PP_CONFIG_MODE" == "smoke" ]]; then
+    echo "Receipt smoke must use scripts/submit_qwen_smoke.sh (one owner, one worker)." >&2
+    exit 2
+  fi
+  if [[ "$PP_CONFIG_READY_PRODUCTION" != "true" ]]; then
+    echo "Qwen-receipt production is gated. Freeze the accepted smoke settings" >&2
+    echo "and set ready_for_production=true in a committed config first." >&2
+    exit 1
+  fi
+else
+  CONFIG_CLASSIFICATION_STATUS=$?
+  if [[ "$CONFIG_CLASSIFICATION_STATUS" -ne 1 ]]; then
+    echo "Could not safely classify config: $CONFIG_PATH" >&2
+    exit "$CONFIG_CLASSIFICATION_STATUS"
+  fi
+fi
+
+if [[ "$IS_RECEIPT" -eq 0 && "$STAGE" == "qwen_attack" ]]; then
+  python3 -E -s - "$CONFIG_PATH" <<'PY'
 import json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
 config = json.loads(path.read_text())
@@ -96,7 +127,8 @@ if config.get("mode") != "smoke" and config.get("ready_for_production") is not T
 PY
 fi
 
-RUN_ID="$(python3 - "$CONFIG_PATH" <<'PY'
+if [[ "$IS_RECEIPT" -eq 0 ]]; then
+  RUN_ID="$(python3 -E -s - "$CONFIG_PATH" <<'PY'
 import json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
 value = json.loads(path.read_text()).get("run_id")
@@ -104,15 +136,34 @@ if not isinstance(value, str) or not value.strip():
     raise SystemExit("Config must contain a non-empty string field named 'run_id'.")
 print(value)
 PY
-)"
+  )"
 
-TRACK="$(python3 - "$CONFIG_PATH" <<'PY'
+  TRACK="$(python3 -E -s - "$CONFIG_PATH" <<'PY'
 import json, pathlib, sys
 print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("track") or "")
 PY
-)"
+  )"
+fi
 
-mkdir -p "$REPO_ROOT/logs"
+if [[ "$IS_RECEIPT" -eq 1 ]]; then
+  umask 0002
+  LOG_DIR="$PP_RECEIPT_OUTPUT_ROOT/logs/$RUN_ID"
+else
+  LOG_DIR="$REPO_ROOT/logs"
+fi
+
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  mkdir -p "$LOG_DIR"
+  [[ -d "$LOG_DIR" && -w "$LOG_DIR" ]] || {
+    echo "Log directory is not writable: $LOG_DIR" >&2
+    exit 1
+  }
+fi
+
+SBATCH_EXPORT="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5,PP_TRACK=$TRACK"
+if [[ "$IS_RECEIPT" -eq 1 ]]; then
+  SBATCH_EXPORT+=",PP_EXPECTED_GIT_SHA=$EXPECTED_GIT_SHA,PP_PYTHON_BIN=$PP_PYTHON_BIN,PP_SHARED_ARTIFACT_ROOT=$PP_SHARED_ARTIFACT_ROOT,PP_RECEIPT_OUTPUT_ROOT=$PP_RECEIPT_OUTPUT_ROOT"
+fi
 
 SBATCH_ARGS=(
   --parsable
@@ -126,9 +177,9 @@ SBATCH_ARGS=(
   --gpus-per-task="$GPU_TYPE:1"
   --job-name="pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}"
   --chdir="$REPO_ROOT"
-  --output="$REPO_ROOT/logs/%x_%j.out"
-  --error="$REPO_ROOT/logs/%x_%j.err"
-  --export="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5"
+  --output="$LOG_DIR/%x_%j.out"
+  --error="$LOG_DIR/%x_%j.err"
+  --export="$SBATCH_EXPORT"
 )
 
 if [[ -n "$CONSTRAINT" ]]; then
@@ -141,8 +192,15 @@ echo "Team member: $USER_ID ($NAME)"
 echo "Worker shard: $WORKER_ID of 5"
 echo "GPU request: $GPU_TYPE ${CONSTRAINT:+($CONSTRAINT)}"
 echo "CPU/RAM/time: $CPUS CPUs, $MEMORY, $TIME_LIMIT"
+if [[ "$IS_RECEIPT" -eq 1 ]]; then
+  echo "Pinned commit: $EXPECTED_GIT_SHA"
+  echo "Python: $PP_PYTHON_BIN"
+  echo "Read-only artifacts: $PP_SHARED_ARTIFACT_ROOT"
+  echo "Shared receipt outputs: $PP_RECEIPT_OUTPUT_ROOT"
+fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  printf 'mkdir -p %q\n' "$LOG_DIR"
   printf 'sbatch'
   printf ' %q' "${SBATCH_ARGS[@]}" "$REPO_ROOT/scripts/slurm/gpu_stage.sbatch"
   printf '\n'
@@ -157,4 +215,4 @@ command -v sbatch >/dev/null 2>&1 || {
 JOB_ID="$(sbatch "${SBATCH_ARGS[@]}" "$REPO_ROOT/scripts/slurm/gpu_stage.sbatch")"
 echo "Submitted Slurm job $JOB_ID"
 echo "Monitor: squeue -j $JOB_ID"
-echo "Logs:    tail -f $REPO_ROOT/logs/pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}_${JOB_ID}.out"
+echo "Logs:    tail -f $LOG_DIR/pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}_${JOB_ID}.out"
