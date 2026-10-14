@@ -19,6 +19,26 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 
+def _expected_smoke_documents(config):
+    """Return the track-specific smoke document count without changing either contract."""
+    track = config.get("track")
+    if track == "receipt":
+        count = config.get("smoke_per_dataset")
+        groups = len(config.get("datasets") or [])
+        field = "smoke_per_dataset"
+    elif track == "resume":
+        count = config.get("smoke_per_page_group")
+        groups = 2  # one single-page group and one multi-page group
+        field = "smoke_per_page_group"
+    else:
+        raise ValueError(f"unsupported Qwen smoke track: {track!r}")
+    if type(count) is not int or count < 1:
+        raise ValueError(f"{field} must be a positive integer")
+    if groups < 1:
+        raise ValueError("smoke config must declare at least one dataset")
+    return count * groups
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
@@ -45,10 +65,15 @@ def main():
         preflight(config, ROOT)
         print("CPU PREFLIGHT PASSED", flush=True)
         return
+    if track == "receipt" and config.get("ready_for_gpu_smoke") is not True:
+        raise SystemExit(
+            "Receipt GPU smoke is gated until CARC source-pixel evidence is "
+            "reviewed and pinned in a closure commit. Run --preflight only."
+        )
     run(config, config_path, user_id=user_id, worker_id=0, num_workers=1)
     output = ROOT / "outputs/qwen_attack" / config["run_id"]
     summary = json.loads((output / "merged/summary.json").read_text(encoding="utf-8"))
-    expected_documents = int(config.get("smoke_per_page_group", 0)) * 2
+    expected_documents = _expected_smoke_documents(config)
     expected_records = expected_documents * len(config["attack"]["epsilons_255"])
     if (
         summary.get("records") != expected_records
