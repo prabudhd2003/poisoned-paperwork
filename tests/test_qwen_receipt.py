@@ -5,6 +5,7 @@ import copy
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import types
@@ -206,6 +207,7 @@ class ReceiptConfigTests(unittest.TestCase):
         self.assertEqual(smoke["attack"]["max_steps"], 25)
         self.assertEqual(smoke["attack"]["checkpoint_interval"], 10)
         self.assertEqual(smoke["shared_artifact_root_env"], "PP_SHARED_ARTIFACT_ROOT")
+        self.assertEqual(smoke["output_root_env"], "PP_RECEIPT_OUTPUT_ROOT")
 
         active = _tracked_config("receipt_active.json")
         self.assertEqual(active["source_evidence"], TEST_SOURCE_EVIDENCE)
@@ -250,6 +252,18 @@ class ReceiptConfigTests(unittest.TestCase):
                 del changed["source_evidence"][field]
                 with self.assertRaisesRegex(ValueError, "source_evidence"):
                     qwen_attack_receipt._validate_attack_config(changed)
+
+    def test_config_requires_the_frozen_receipt_output_environment_name(self):
+        base = _tracked_config("receipt_smoke_saaketh.json")
+        missing = copy.deepcopy(base)
+        del missing["output_root_env"]
+        with self.assertRaisesRegex(ValueError, "output_root_env"):
+            qwen_attack_receipt._validate_attack_config(missing)
+
+        changed = copy.deepcopy(base)
+        changed["output_root_env"] = "A_DIFFERENT_OUTPUT_ROOT"
+        with self.assertRaisesRegex(ValueError, "PP_RECEIPT_OUTPUT_ROOT"):
+            qwen_attack_receipt._validate_attack_config(changed)
 
     def test_config_rejects_dataset_model_prompt_policy_and_attack_drift(self):
         base = _tracked_config("receipt_smoke_saaketh.json")
@@ -386,6 +400,162 @@ class ReceiptCandidateTests(unittest.TestCase):
 
 
 class ReceiptPathRouterAndShardingTests(unittest.TestCase):
+    def test_shared_output_root_resolves_one_run_path(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            repo = temporary / "personal"
+            shared = temporary / "shared"
+            output = temporary / "receipt-output"
+            for path in (repo, shared, output):
+                path.mkdir()
+            with (
+                patch.dict(
+                    os.environ,
+                    {"PP_RECEIPT_OUTPUT_ROOT": str(output)},
+                    clear=False,
+                ),
+                patch.object(qwen_attack_receipt, "_require_shared_output_mode"),
+            ):
+                run_root = qwen_attack_receipt.resolve_output_root(
+                    config, repo, shared_root=shared
+                )
+            self.assertEqual(
+                run_root,
+                (output / "qwen_attack" / config["run_id"]).resolve(),
+            )
+            self.assertTrue(run_root.is_relative_to(output.resolve()))
+
+    def test_shared_output_root_rejects_missing_relative_and_nonexistent_values(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            repo = temporary / "personal"
+            shared = temporary / "shared"
+            repo.mkdir()
+            shared.mkdir()
+
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(RuntimeError, "PP_RECEIPT_OUTPUT_ROOT"):
+                    qwen_attack_receipt.resolve_output_root(
+                        config, repo, shared_root=shared
+                    )
+
+            invalid_values = (
+                ("relative/output", "absolute"),
+                (str(temporary / "missing"), "does not exist"),
+            )
+            for value, message in invalid_values:
+                with self.subTest(value=value), patch.dict(
+                    os.environ,
+                    {"PP_RECEIPT_OUTPUT_ROOT": value},
+                    clear=False,
+                ):
+                    with self.assertRaisesRegex(
+                        (RuntimeError, ValueError, FileNotFoundError), message
+                    ):
+                        qwen_attack_receipt.resolve_output_root(
+                            config, repo, shared_root=shared
+                        )
+
+    def test_shared_output_root_rejects_code_input_and_symlink_overlap(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            repo = temporary / "personal"
+            shared = temporary / "shared"
+            repo.mkdir()
+            shared.mkdir()
+            repo_child = repo / "output"
+            shared_child = shared / "output"
+            repo_child.mkdir()
+            shared_child.mkdir()
+            candidates = (repo, repo_child, shared, shared_child, temporary)
+            for candidate in candidates:
+                with self.subTest(candidate=candidate), patch.dict(
+                    os.environ,
+                    {"PP_RECEIPT_OUTPUT_ROOT": str(candidate)},
+                    clear=False,
+                ):
+                    with self.assertRaisesRegex(ValueError, "separate"):
+                        qwen_attack_receipt.resolve_output_root(
+                            config, repo, shared_root=shared
+                        )
+
+            alias = temporary / "output-alias"
+            alias.symlink_to(repo, target_is_directory=True)
+            with patch.dict(
+                os.environ,
+                {"PP_RECEIPT_OUTPUT_ROOT": str(alias)},
+                clear=False,
+            ):
+                with self.assertRaisesRegex(ValueError, "separate"):
+                    qwen_attack_receipt.resolve_output_root(
+                        config, repo, shared_root=shared
+                    )
+
+    def test_shared_output_run_path_rejects_symlink_escape(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            repo = temporary / "personal"
+            shared = temporary / "shared"
+            output = temporary / "receipt-output"
+            escape = temporary / "escape"
+            for path in (repo, shared, output, escape):
+                path.mkdir()
+            (output / "qwen_attack").symlink_to(escape, target_is_directory=True)
+            with patch.dict(
+                os.environ,
+                {"PP_RECEIPT_OUTPUT_ROOT": str(output)},
+                clear=False,
+            ), patch.object(qwen_attack_receipt, "_require_shared_output_mode"):
+                with self.assertRaisesRegex(ValueError, "escapes"):
+                    qwen_attack_receipt.resolve_output_root(
+                        config, repo, shared_root=shared
+                    )
+
+    def test_shared_output_root_requires_group_write_search_and_setgid(self):
+        path = Path("/shared/receipt-output")
+        qwen_attack_receipt._require_shared_output_mode(0o2770, path)
+        for mode, message in (
+            (0o2750, "group-writable"),
+            (0o2760, "group-writable/searchable"),
+            (0o0770, "setgid"),
+        ):
+            with self.subTest(mode=oct(mode)), self.assertRaisesRegex(
+                PermissionError, message
+            ):
+                qwen_attack_receipt._require_shared_output_mode(mode, path)
+
+    def test_shared_output_root_rejects_nonwritable_directory(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            repo = temporary / "personal"
+            shared = temporary / "shared"
+            output = temporary / "receipt-output"
+            for path in (repo, shared, output):
+                path.mkdir()
+            with (
+                patch.dict(
+                    os.environ,
+                    {"PP_RECEIPT_OUTPUT_ROOT": str(output)},
+                    clear=False,
+                ),
+                patch.object(
+                    qwen_attack_receipt.os,
+                    "access",
+                    side_effect=lambda path, mode: False
+                    if Path(path).resolve() == output.resolve()
+                    else True,
+                ),
+                self.assertRaisesRegex((RuntimeError, PermissionError), "writable"),
+            ):
+                qwen_attack_receipt.resolve_output_root(
+                    config, repo, shared_root=shared
+                )
+
     def test_shared_input_root_and_local_config_resolution_are_split(self):
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
@@ -419,6 +589,13 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
         candidates = qwen_attack_receipt.select_candidates(
             predictions, manifest, _baseline()
         )
+        temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        temporary = Path(temporary_directory.name)
+        shared = temporary / "shared"
+        output = temporary / "output"
+        shared.mkdir()
+        output.mkdir()
         rows = {}
         for record_id, row in candidates.iterrows():
             rows[record_id] = {
@@ -428,14 +605,23 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
                 "attack_eligible": True,
                 "image": Image.new("RGB", (12, 8), color=(1, 2, 3)),
             }
-        paths = {"processed_data_root": Path("/read-only/processed")}
+        paths = {
+            "processed_data_root": shared / "processed",
+            "shared_artifact_root": shared,
+        }
         config = _tracked_config("receipt_smoke_saaketh.json")
         with (
+            patch.dict(
+                os.environ,
+                {"PP_RECEIPT_OUTPUT_ROOT": str(output)},
+                clear=False,
+            ),
             patch.object(
                 qwen_attack_receipt,
                 "_load_plan",
                 return_value=(_baseline(), candidates, paths),
             ),
+            patch.object(qwen_attack_receipt, "_require_shared_output_mode"),
             patch.object(
                 qwen_attack_receipt, "_load_processed_rows", return_value=rows
             ) as load_rows,
@@ -454,11 +640,17 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
             Image.new("RGB", (2, 2)),
         ]
         with (
+            patch.dict(
+                os.environ,
+                {"PP_RECEIPT_OUTPUT_ROOT": str(output)},
+                clear=False,
+            ),
             patch.object(
                 qwen_attack_receipt,
                 "_load_plan",
                 return_value=(_baseline(), candidates, paths),
             ),
+            patch.object(qwen_attack_receipt, "_require_shared_output_mode"),
             patch.object(
                 qwen_attack_receipt, "_load_processed_rows", return_value=bad_rows
             ),
@@ -820,8 +1012,9 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
                 "check_output",
                 return_value="b" * 40 + "\n",
             ):
+                output = root / "shared-output/qwen_attack/qwen_receipt_smoke_saaketh_v1"
                 provenance = qwen_attack_receipt._build_provenance(
-                    config, config_path, root, TEST_RUNTIME_VERSIONS, paths
+                    config, config_path, root, TEST_RUNTIME_VERSIONS, paths, output
                 )
 
         self.assertEqual(provenance["source_evidence"], TEST_SOURCE_EVIDENCE)
@@ -837,6 +1030,213 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
             provenance["source_evidence_verified_git_commit"],
             TEST_SOURCE_EVIDENCE["verified_git_commit"],
         )
+        self.assertEqual(provenance["output_root_env"], "PP_RECEIPT_OUTPUT_ROOT")
+        self.assertEqual(provenance["output_base"], str(output.parents[1]))
+        self.assertEqual(provenance["output_run_root"], str(output))
+
+
+class ReceiptStorageAndLauncherTests(unittest.TestCase):
+    @staticmethod
+    def _load_storage_preflight_module():
+        spec = importlib.util.spec_from_file_location(
+            "preflight_qwen_receipt_storage_for_test",
+            ROOT / "scripts/preflight_qwen_receipt_storage.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        return module
+
+    def test_storage_preflight_contract_and_five_synthetic_markers(self):
+        module = self._load_storage_preflight_module()
+        args = module._parser().parse_args(
+            [
+                "--config",
+                "configs/qwen_attack/receipt_smoke_saaketh.json",
+                "--user-id",
+                "user3",
+                "--session-id",
+                "task9-20261014t230000z",
+                "--expected-git-commit",
+                "a" * 40,
+                "--require-all",
+            ]
+        )
+        self.assertEqual(args.user_id, "user3")
+        self.assertTrue(args.require_all)
+        self.assertIsNotNone(module.SESSION_PATTERN.fullmatch(args.session_id))
+        self.assertIsNone(module.SESSION_PATTERN.fullmatch("Unsafe Session"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            session = root / "session"
+            markers = session / "markers"
+            probes = session / "probes"
+            for path, parent in (
+                (session, root),
+                (markers, session),
+                (probes, session),
+            ):
+                path.mkdir()
+                path.chmod(0o2770)
+                # Some local filesystems clear setgid on directories even when
+                # chmod requests it. CARC verifies the real mode; this unit test
+                # exercises the resolver and I/O path with the accepted mode.
+                with patch.object(module.stat, "S_IMODE", return_value=0o2770):
+                    module._shared_directory(path, parent=parent)
+
+            lock_path = session / ".storage.lock"
+            with lock_path.open("a+", encoding="utf-8") as lock:
+                module.fcntl.flock(
+                    lock, module.fcntl.LOCK_EX | module.fcntl.LOCK_NB
+                )
+                for worker_id in range(5):
+                    marker = {
+                        "schema_version": 1,
+                        "verification": "qwen_receipt_shared_storage_v1",
+                        "session_id": args.session_id,
+                        "user_id": f"user{worker_id + 1}",
+                        "worker_id": worker_id,
+                        "git_commit": args.expected_git_commit,
+                        "unix_uid": 1000 + worker_id,
+                    }
+                    marker_path = markers / f"worker_{worker_id:02d}.json"
+                    module._atomic_json(marker_path, marker)
+                    self.assertEqual(
+                        module._verify_marker(
+                            marker_path,
+                            {
+                                "session_id": args.session_id,
+                                "worker_id": worker_id,
+                                "git_commit": args.expected_git_commit,
+                            },
+                        )["unix_uid"],
+                        1000 + worker_id,
+                    )
+
+                temporary = probes / ".rename.tmp"
+                published = probes / "atomic-directory-rename-complete"
+                temporary.mkdir()
+                (temporary / "payload.txt").write_text("ok\n", encoding="utf-8")
+                os.replace(temporary, published)
+                self.assertEqual(
+                    (published / "payload.txt").read_text(encoding="utf-8"),
+                    "ok\n",
+                )
+
+            saved = [
+                json.loads(path.read_text(encoding="utf-8"))
+                for path in sorted(markers.glob("worker_*.json"))
+            ]
+            self.assertEqual(len(saved), 5)
+            self.assertEqual({value["worker_id"] for value in saved}, set(range(5)))
+            self.assertEqual(len({value["unix_uid"] for value in saved}), 5)
+
+            first = markers / "worker_00.json"
+            with self.assertRaisesRegex(RuntimeError, "differs in worker_id"):
+                module._verify_marker(first, {"worker_id": 4})
+
+    def test_run_metadata_publication_is_globally_locked_and_immutable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "run"
+            record_ids = ["sroie/validation/a", "cord_v2/validation/b"]
+            qwen_attack_receipt._initialize_run_metadata(
+                output,
+                config_text='{"run_id":"test"}\n',
+                worker_id=0,
+                record_ids=record_ids,
+            )
+            qwen_attack_receipt._initialize_run_metadata(
+                output,
+                config_text='{"run_id":"test"}\n',
+                worker_id=0,
+                record_ids=record_ids,
+            )
+
+            self.assertTrue((output / ".metadata.lock").is_file())
+            self.assertEqual(
+                (output / "assignments/worker_00.txt").read_text(encoding="utf-8"),
+                "".join(f"{record_id}\n" for record_id in record_ids),
+            )
+            with self.assertRaisesRegex(RuntimeError, "metadata differs"):
+                qwen_attack_receipt._initialize_run_metadata(
+                    output,
+                    config_text='{"run_id":"changed"}\n',
+                    worker_id=1,
+                    record_ids=["sroie/validation/c"],
+                )
+
+    def test_receipt_launchers_are_syntax_valid_and_use_explicit_runtime(self):
+        paths = (
+            ROOT / "scripts/lib/qwen_receipt_runtime.sh",
+            ROOT / "scripts/submit_qwen_smoke.sh",
+            ROOT / "scripts/submit_stage.sh",
+            ROOT / "scripts/slurm/qwen_receipt_smoke.sbatch",
+            ROOT / "scripts/slurm/gpu_stage.sbatch",
+            ROOT / "scripts/slurm/qwen_smoke.sbatch",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                subprocess.run(["bash", "-n", str(path)], check=True)
+
+        runtime = paths[0].read_text(encoding="utf-8")
+        smoke_submit = paths[1].read_text(encoding="utf-8")
+        smoke_batch = paths[3].read_text(encoding="utf-8")
+        production_batch = paths[4].read_text(encoding="utf-8")
+        for variable in (
+            "PP_PYTHON_BIN",
+            "PP_SHARED_ARTIFACT_ROOT",
+            "PP_RECEIPT_OUTPUT_ROOT",
+        ):
+            self.assertIn(variable, runtime)
+            self.assertIn(variable, smoke_submit)
+        self.assertIn("git -C \"$repo_real\" status --porcelain", runtime)
+        self.assertIn("PP_EXPECTED_GIT_SHA", smoke_submit)
+        self.assertIn('if [[ "$DRY_RUN" -eq 1 ]]', smoke_submit)
+        self.assertIn('"$PP_PYTHON_BIN" -E -s -u', smoke_batch)
+        self.assertIn('PYTHON_COMMAND=("$PP_PYTHON_BIN" -E -s -u)', production_batch)
+        self.assertIn("receipt production remains gated", production_batch)
+
+        legacy_smoke = paths[5].read_text(encoding="utf-8")
+        self.assertIn("Receipt smoke must use scripts/submit_qwen_smoke.sh", legacy_smoke)
+
+    def test_receipt_launcher_classification_parses_json_and_fails_closed(self):
+        runtime = ROOT / "scripts/lib/qwen_receipt_runtime.sh"
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            receipt = temporary / "receipt.json"
+            resume = temporary / "resume.json"
+            malformed = temporary / "malformed.json"
+            receipt.write_text('{"track":"receipt"}\n', encoding="utf-8")
+            resume.write_text('{"track":"resume"}\n', encoding="utf-8")
+            malformed.write_text('{"track":', encoding="utf-8")
+
+            command = 'source "$1"; pp_receipt_is_config "$2"'
+            receipt_result = subprocess.run(
+                ["bash", "-c", command, "bash", str(runtime), str(receipt)],
+                check=False,
+            )
+            resume_result = subprocess.run(
+                ["bash", "-c", command, "bash", str(runtime), str(resume)],
+                check=False,
+            )
+            malformed_result = subprocess.run(
+                ["bash", "-c", command, "bash", str(runtime), str(malformed)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(receipt_result.returncode, 0)
+        self.assertEqual(resume_result.returncode, 1)
+        self.assertEqual(malformed_result.returncode, 2)
+        self.assertIn("Cannot classify config", malformed_result.stderr)
+
+    def test_manual_receipt_merge_enforces_group_friendly_umask(self):
+        merge_script = (ROOT / "scripts/merge_qwen_receipt.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("os.umask(0o002)", merge_script)
 
 
 class ReceiptSavedRecordAndMergeTests(unittest.TestCase):

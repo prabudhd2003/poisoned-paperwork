@@ -2,9 +2,10 @@
 
 Frozen inputs are read from a shared, read-only artifact checkout selected by
 the environment variable named in ``config["shared_artifact_root_env"]``.
-Run outputs always remain below the personal Git checkout containing the
-config.  This keeps the accepted baseline immutable while preserving the
-normal checkpoint/resume lifecycle for the receipt owner and five workers.
+Run outputs are written to a separate, shared writable directory selected by
+``config["output_root_env"]``.  Keeping code, frozen inputs, and mutable run
+state in three disjoint directory trees lets five personal checkouts safely
+participate in one checkpointed receipt run.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ import os
 import platform
 import re
 import socket
+import stat
 import subprocess
 from collections import Counter
 from datetime import datetime, timezone
@@ -119,7 +121,7 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
         "baseline_correct_ids", "baseline_correct_ids_sha256",
         "baseline_environment", "baseline_environment_sha256", "master_manifest",
         "master_manifest_sha256",
-        "processed_data_root", "shared_artifact_root_env", "model_id",
+        "processed_data_root", "shared_artifact_root_env", "output_root_env", "model_id",
         "model_revision", "prompt_id", "question", "processor_tolerance",
         "target_policy", "expected_usable_counts",
         "expected_validation_candidates", "source_evidence", "attack",
@@ -175,6 +177,8 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
     env_name = config.get("shared_artifact_root_env")
     if not isinstance(env_name, str) or not env_name.strip():
         raise ValueError("shared_artifact_root_env must name a nonempty environment variable")
+    if config.get("output_root_env") != "PP_RECEIPT_OUTPUT_ROOT":
+        raise ValueError("receipt output_root_env must equal 'PP_RECEIPT_OUTPUT_ROOT'")
     artifact_path_fields = (
         "baseline_config", "baseline_frozen_config", "baseline_predictions",
         "baseline_manifest", "baseline_summary", "baseline_correct_ids",
@@ -443,6 +447,79 @@ def _shared_artifact_root(config: dict[str, Any]) -> Path:
     return root
 
 
+def resolve_output_root(
+    config: dict[str, Any], repo_root: str | Path, *, shared_root: Path | None = None
+) -> Path:
+    """Resolve the run-specific shared receipt output directory.
+
+    The configured environment variable points at a pre-provisioned shared
+    base directory.  This helper deliberately does not create that base: CARC
+    operators must first establish its group ownership and permissions.  All
+    receipt entry points use the returned ``qwen_attack/<run_id>`` directory so
+    the smoke exercises the same storage, locking, and merge path as the
+    five-worker validation run.
+    """
+    env_name = config.get("output_root_env")
+    if env_name != "PP_RECEIPT_OUTPUT_ROOT":
+        raise ValueError("receipt output_root_env must equal 'PP_RECEIPT_OUTPUT_ROOT'")
+    run_id = config.get("run_id")
+    if not isinstance(run_id, str) or RUN_ID_PATTERN.fullmatch(run_id) is None:
+        raise ValueError(
+            "run_id must be a lowercase filesystem-safe slug of at most 128 characters"
+        )
+    raw_value = os.environ.get(env_name)
+    if not raw_value:
+        raise RuntimeError(
+            f"set {env_name} to the pre-provisioned shared writable receipt output root"
+        )
+    configured = Path(raw_value).expanduser()
+    if not configured.is_absolute():
+        raise ValueError(f"{env_name} must contain an absolute path")
+    base = configured.resolve()
+    if not base.is_dir():
+        raise FileNotFoundError(f"shared receipt output root does not exist: {base}")
+    if not os.access(base, os.W_OK | os.X_OK):
+        raise PermissionError(f"shared receipt output root is not writable/searchable: {base}")
+
+    repo = Path(repo_root).resolve()
+    frozen = _shared_artifact_root(config) if shared_root is None else Path(shared_root).resolve()
+
+    def overlaps(left: Path, right: Path) -> bool:
+        return left == right or left.is_relative_to(right) or right.is_relative_to(left)
+
+    if overlaps(base, repo):
+        raise ValueError(
+            "shared receipt output root and personal checkout must be separate directory trees"
+        )
+    if overlaps(base, frozen):
+        raise ValueError(
+            "shared receipt output root and frozen artifact root must be separate directory trees"
+        )
+
+    _require_shared_output_mode(stat.S_IMODE(base.stat().st_mode), base)
+
+    run_root = (base / "qwen_attack" / run_id).resolve()
+    if not run_root.is_relative_to(base):
+        raise ValueError(
+            "receipt run output escapes the shared output root through a symlink"
+        )
+    return run_root
+
+
+def _require_shared_output_mode(mode: int, path: Path) -> None:
+    """Require the directory inheritance contract used by CARC teammates."""
+    if not mode & stat.S_IWGRP or not mode & stat.S_IXGRP:
+        raise PermissionError(
+            "shared receipt output root must be group-writable/searchable: "
+            f"{path} (mode={mode:o})"
+        )
+    if not mode & stat.S_ISGID:
+        raise PermissionError(
+            f"shared receipt output root must have setgid enabled: {path} "
+            f"(mode={mode:o})"
+        )
+
+
 def _resolve_baseline_config(
     config: dict[str, Any], repo_root: Path, shared_root: Path
 ) -> Path:
@@ -625,6 +702,9 @@ def preflight(config, repo_root):
     _validate_attack_config(config)
     root = Path(repo_root).resolve()
     _, candidates, paths = _load_plan(config, root)
+    output = resolve_output_root(
+        config, root, shared_root=paths["shared_artifact_root"]
+    )
     source_evidence = config["source_evidence"]
     print(
         "Accepted source evidence verified before smoke selection: "
@@ -632,6 +712,7 @@ def preflight(config, repo_root):
         f"counts={source_evidence['candidate_counts']} "
         f"source_records_sha256={source_evidence['source_records_sha256']}"
     )
+    print(f"Shared receipt run output verified: {output}")
     rows = _load_processed_rows(
         paths["processed_data_root"], config["split"], set(candidates.index)
     )
@@ -843,6 +924,22 @@ def _immutable(path: Path, value: str) -> None:
         atomic_text(path, value)
 
 
+def _initialize_run_metadata(
+    output: Path, *, config_text: str, worker_id: int, record_ids: list[str]
+) -> None:
+    """Serialize immutable metadata publication across all worker accounts."""
+    import fcntl
+
+    output.mkdir(parents=True, exist_ok=True)
+    with (output / ".metadata.lock").open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        _immutable(output / "config.json", config_text)
+        _immutable(
+            output / "assignments" / f"worker_{worker_id:02d}.txt",
+            "".join(record_id + "\n" for record_id in record_ids),
+        )
+
+
 def _runtime_versions() -> dict[str, str]:
     import datasets
     import numpy
@@ -906,7 +1003,7 @@ def _require_clean_git(config: dict[str, Any], root: Path) -> None:
 
 def _build_provenance(
     config: dict[str, Any], config_path: Path, root: Path,
-    versions: dict[str, str], paths: dict[str, Path],
+    versions: dict[str, str], paths: dict[str, Path], output: Path,
 ) -> dict[str, Any]:
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
@@ -934,6 +1031,9 @@ def _build_provenance(
         "source_records_sha256": source_evidence["source_records_sha256"],
         "source_evidence_report_sha256": source_evidence["accepted_report_sha256"],
         "source_evidence_verified_git_commit": source_evidence["verified_git_commit"],
+        "output_root_env": config["output_root_env"],
+        "output_base": str(output.parents[1]),
+        "output_run_root": str(output),
         "environment_hash": sha256_text(json.dumps(versions, sort_keys=True)),
         "target_policy_id": TARGET_POLICY["policy_id"],
     }
@@ -1583,14 +1683,16 @@ def merge_if_complete(
     _, selected, paths = _load_plan(config, root)
     versions = _runtime_versions()
     _validate_environment(versions, paths["baseline_environment"])
-    provenance = _build_provenance(config, config_path, root, versions, paths)
+    output = resolve_output_root(
+        config, root, shared_root=paths["shared_artifact_root"]
+    )
+    provenance = _build_provenance(config, config_path, root, versions, paths, output)
     if num_workers is None:
         num_workers = 1 if config["mode"] == "smoke" else 5
     expected_workers = 1 if config["mode"] == "smoke" else 5
     if num_workers != expected_workers:
         raise ValueError(f"mode={config['mode']!r} requires num_workers={expected_workers}")
     candidate_counts = _dataset_counts(selected)
-    output = root / "outputs" / "qwen_attack" / config["run_id"]
     return _merge_if_complete(
         output,
         expected_ids=set(selected.index),
@@ -1673,7 +1775,10 @@ def run(config, config_path, user_id, worker_id, num_workers):
 
     versions = _runtime_versions()
     _validate_environment(versions, paths["baseline_environment"])
-    provenance = _build_provenance(config, config_path, root, versions, paths)
+    output = resolve_output_root(
+        config, root, shared_root=paths["shared_artifact_root"]
+    )
+    provenance = _build_provenance(config, config_path, root, versions, paths, output)
     runtime_contract = _validate_gpu_runtime_contract(
         _gpu_runtime_contract(torch), source="current CUDA runtime"
     )
@@ -1682,16 +1787,18 @@ def run(config, config_path, user_id, worker_id, num_workers):
         if num_workers == 1
         else assigned_record_ids(selected.index, worker_id, num_workers)
     )
-    output = root / "outputs" / "qwen_attack" / config["run_id"]
     shard = output / "shards" / f"worker_{worker_id:02d}"
     shard.mkdir(parents=True, exist_ok=True)
     import fcntl
 
     with (shard / ".worker.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        _immutable(output / "config.json", config_path.read_text(encoding="utf-8"))
-        assignment_path = output / "assignments" / f"worker_{worker_id:02d}.txt"
-        _immutable(assignment_path, "".join(record_id + "\n" for record_id in ids))
+        _initialize_run_metadata(
+            output,
+            config_text=config_path.read_text(encoding="utf-8"),
+            worker_id=worker_id,
+            record_ids=ids,
+        )
         environment = {
             **versions,
             **runtime_contract,

@@ -2,15 +2,18 @@
 
 ## Status and ownership
 
-- Contract status: **Phase 0 complete; Phase 1 tasks 1-6 implemented and the
-  CARC real-artifact CPU handoff accepted; the Task 7 closure unlocks only the
-  owner GPU smoke. No receipt GPU attack has run, and production remains
+- Contract status: **Phase 0 complete; Phase 1 tasks 1-9 implemented; the
+  Task 7 closure and Task 8 CARC CPU verification unlock only the owner GPU
+  smoke, and Task 9 separates immutable inputs, tracked code, and shared
+  writable outputs. No receipt GPU attack has run, and production remains
   locked**.
 - Development branch: `qwen-receipt`.
 - Branch base commit: `f269fa759e8cfd0f8736fbb27d96bc0c0791d30a`.
 - Verification commit: `94a1725e0ae518351064e7cc95ddcbb189def7b7`.
 - Phase 1 tasks 1-6 implementation commit:
   `fa5934fd6d3a1345da1fd0130998c297ace2e61a`.
+- Task 7 source-evidence closure commit:
+  `0cc7c13fd640545966c98bafc4aa58fd919ec6c3`.
 - Track owner: Saaketh (`user3`, production worker `2`).
 - Shared attack core owner/reviewer: Shail (`user5`).
 
@@ -24,10 +27,12 @@ new run ID.
 
 1. **Personal/shared CARC layout.** Receipt configs name
    `PP_SHARED_ARTIFACT_ROOT`; frozen baseline outputs and processed datasets are
-   resolved below that separate, read-only checkout. Configs and all new outputs
-   remain below the personal `qwen-receipt` checkout. Absolute or escaping
-   receipt input paths, an unset variable, and using the personal checkout as
-   the shared root are rejected.
+   resolved below that separate, read-only checkout. Configs remain below each
+   personal `qwen-receipt` checkout. Task 9 moves receipt run products beneath
+   the separately configured, shared writable `PP_RECEIPT_OUTPUT_ROOT` so all
+   five workers and the strict merger address one run tree. Absolute or escaping
+   input paths, an unset variable, and overlapping the code, input, and output
+   directory trees are rejected.
 2. **Frozen configs.** `receipt_smoke_saaketh.json` fixes the owner smoke at five
    deterministic candidates per dataset, epsilon 8, step size 2, and 25 steps.
    The Task 7 closure pins the accepted complete source-pixel evidence digest
@@ -68,10 +73,10 @@ new run ID.
    bytes and saved PNG. Processor-parity execution still belongs to the later
    full model-runtime/GPU readiness work.
 
-The five-worker validation config is code-complete but not operationally
-unlocked. Before that later run, every worker must write to one common writable
-run root; separate personal checkout output directories cannot be merged. This
-does not affect the single-owner smoke or the accepted CPU preflight handoff.
+The five-worker validation config remains deliberately locked. Task 9 provides
+the common writable run-root contract needed by a later validation run, but it
+does not establish CARC cross-account permissions, qualify the full GPU runtime,
+or authorize production. Those are separate CARC gates.
 
 ## Phase 1 CPU handoff and source-evidence closure
 
@@ -135,6 +140,89 @@ future owner GPU smoke. `receipt_active.json` remains fail-closed with
 Qwen/CUDA environment, processor parity, gradients, attack success, saved
 adversarial PNGs, GPU memory, or checkpoint resume, and none of those actions
 was performed by this handoff.
+
+### Task 8 CARC CPU closure verification
+
+CARC independently verified the Task 7 closure at exact commit
+`0cc7c13fd640545966c98bafc4aa58fd919ec6c3`. The worktree was clean before and
+after execution and the focused receipt suite passed 31 of 31 tests. Before
+selecting the deterministic five-SROIE/five-CORD smoke subset, preflight
+reloaded and verified all 219 source records (123 SROIE and 96 CORD v2) and
+reported `matches_accepted=true`.
+
+Both the recomputed and accepted canonical source-record SHA-256 values were
+
+```text
+77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277
+```
+
+The additional Task 8 full-report SHA-256 was
+`ad27ba4b401a1f8b4d457f847ea9043c3d93d3414c107100a89795949e3a42ee`.
+Its evidence directory was
+
+```text
+/project2/yzhao010_1531/kanduri/poisoned-paperwork-qwen-receipt/outputs/phase1_closure/0cc7c13-20261014T222412Z
+```
+
+and it used Python 3.11.17 from
+
+```text
+/project2/yzhao010_1531/kanduri/envs/qwen-receipt-phase1-cpu/bin/python
+```
+
+The Task 8 report is additive closure evidence. It does **not** replace the
+historical accepted tasks 1-6 report SHA-256
+`7682d9fc5f5601fa1cc9d4dd368b75d9df44950772185d8a9a9a85cb61cf609d`
+stored as `accepted_report_sha256`; that field continues to identify the
+original accepted `fa5934f` report. The canonical source-record digest is the
+stable identity shared by both verifications.
+
+Task 8 remained CPU-only. It did not load Qwen, initialize CUDA, run a GPU job,
+create an attacked image, or prove processor parity, gradients, optimization,
+GPU memory, or checkpoint resume.
+
+## Task 9 execution and shared-output contract
+
+Receipt execution now requires three disjoint directory trees and an explicit
+Python executable:
+
+- The personal Git checkout contains tracked code and configs.
+- `PP_SHARED_ARTIFACT_ROOT` names the existing read-only baseline and processed
+  data checkout.
+- `PP_RECEIPT_OUTPUT_ROOT` names an existing shared writable directory. Receipt
+  runs use
+  `$PP_RECEIPT_OUTPUT_ROOT/qwen_attack/<run_id>` for assignments, shards,
+  checkpoints, images, markers, locks, and merged outputs.
+- `PP_PYTHON_BIN` names the absolute Python executable used for JSON gate checks,
+  processor parity, smoke/production execution, and manual merge commands.
+
+The resolved receipt output root must be absolute, existing, writable and
+searchable by the current account, group-writable, group-searchable, and setgid
+so new directories inherit the common CARC group. It may not equal, contain,
+or be contained by either the personal repository or shared artifact root.
+Symlinks are resolved before these checks, and a symlinked `qwen_attack` or run
+directory may not escape the configured output root. The stage, smoke summary,
+and manual merger all use the same path resolver; a separate per-checkout
+receipt output path is not permitted. A run-global metadata lock serializes
+publication of the immutable config and worker assignment files before workers
+write their independent shards.
+
+The launchers capture the exact Git commit, require a clean worktree and a
+committed config, and recheck those facts inside the Slurm job. They invoke the
+explicit interpreter with `-E -s` rather than trusting a Conda prompt or an
+unqualified `python`. A launcher dry run validates and prints the resolved
+interpreter, code/input/output roots, commit, run, worker, and Slurm request
+without submitting work.
+
+Task 9 is an execution-safety implementation, not GPU evidence. Before Tasks
+10-13, CARC must still demonstrate that every intended account can create,
+atomically rename, lock, and read files in the shared output tree. The receipt
+validation config remains `ready_for_production: false` throughout Tasks 9-13.
+Each account records that evidence with
+`scripts/preflight_qwen_receipt_storage.py` using one common session ID and
+exact Task 9 commit; the owner then repeats the check with `--require-all` to
+require all five account markers. The preflight is CPU-only and must not be run
+concurrently by the same account and session.
 
 ## Frozen task scope
 
