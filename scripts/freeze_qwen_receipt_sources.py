@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Freeze decoded RGB identities for all 219 Qwen receipt candidates on CPU.
+"""Reverify decoded RGB identities for all 219 Qwen receipt candidates on CPU.
 
 This creates evidence only. It does not load Qwen, initialize CUDA, submit a
-job, or authorize the gated validation config. The resulting report digest
-must be reviewed and pinned in a later closure commit before GPU smoke.
+job, or authorize the gated validation config. The regenerated report must
+match the source-record digest pinned by the accepted CPU handoff.
 """
 
 from __future__ import annotations
@@ -48,6 +48,8 @@ def main() -> None:
         "records": report["records"],
         "candidate_counts": report["candidate_counts"],
         "source_records_sha256": report["source_records_sha256"],
+        "accepted_source_records_sha256": report["accepted_source_records_sha256"],
+        "matches_accepted": report["matches_accepted"],
         "report_sha256": sha256_file(output),
         "output": str(output),
     }, indent=2, sort_keys=True))

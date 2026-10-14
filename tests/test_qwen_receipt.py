@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import tempfile
+import types
 import unittest
 from decimal import Decimal
 from pathlib import Path
@@ -51,6 +52,20 @@ TEST_GPU_RUNTIME_CONTRACT = {
     "cuda": "12.4",
     "gpu": "NVIDIA A100-SXM4-40GB",
     "gpu_memory_bytes": 42949672960,
+}
+TEST_SOURCE_EVIDENCE = {
+    "schema_version": 1,
+    "verification": "qwen_receipt_source_pixels_v1",
+    "scope": "all_validation_candidates",
+    "records": 219,
+    "candidate_counts": {"sroie": 123, "cord_v2": 96},
+    "source_records_sha256": (
+        "77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277"
+    ),
+    "accepted_report_sha256": (
+        "7682d9fc5f5601fa1cc9d4dd368b75d9df44950772185d8a9a9a85cb61cf609d"
+    ),
+    "verified_git_commit": "fa5934fd6d3a1345da1fd0130998c297ace2e61a",
 }
 
 
@@ -143,11 +158,47 @@ def _candidate_frames(per_dataset: int = 6):
     return pd.DataFrame(records), pd.DataFrame([_manifest_row(record) for record in records])
 
 
+def _processed_rows(candidates: pd.DataFrame) -> dict[str, dict]:
+    rows = {}
+    for index, (record_id, row) in enumerate(candidates.sort_index().iterrows()):
+        rows[record_id] = {
+            "clean_target": row.clean_target,
+            "attack_target": row.attack_target,
+            "usable": True,
+            "attack_eligible": True,
+            "source_split": row.source_split,
+            "source_index": int(row.source_index),
+            "image": Image.new(
+                "RGB", (12 + index, 8 + (index % 2)), color=(index, 2, 3)
+            ),
+        }
+    return rows
+
+
+def _synthetic_source_evidence(
+    config: dict, candidates: pd.DataFrame, rows: dict[str, dict]
+) -> dict:
+    records = qwen_attack_receipt._build_source_records(config, candidates, rows)
+    return {
+        **TEST_SOURCE_EVIDENCE,
+        "records": len(records),
+        "candidate_counts": {
+            dataset: int(candidates.dataset_name.eq(dataset).sum())
+            for dataset in qwen_attack_receipt.RECEIPT_DATASETS
+        },
+        "source_records_sha256": qwen_attack_receipt._source_records_sha256(records),
+        "accepted_report_sha256": "f" * 64,
+        "verified_git_commit": "a" * 40,
+    }
+
+
 class ReceiptConfigTests(unittest.TestCase):
     def test_tracked_smoke_and_gated_validation_configs(self):
         smoke = _tracked_config("receipt_smoke_saaketh.json")
         qwen_attack_receipt._validate_attack_config(smoke)
-        self.assertIs(smoke["ready_for_gpu_smoke"], False)
+        self.assertIs(smoke["ready_for_gpu_smoke"], True)
+        self.assertEqual(smoke["source_evidence"], TEST_SOURCE_EVIDENCE)
+        self.assertEqual(qwen_attack_receipt.EXPECTED_SOURCE_EVIDENCE, TEST_SOURCE_EVIDENCE)
         self.assertEqual(smoke["datasets"], ["sroie", "cord_v2"])
         self.assertEqual(smoke["smoke_per_dataset"], 5)
         self.assertEqual(smoke["attack"]["epsilons_255"], [8])
@@ -157,6 +208,7 @@ class ReceiptConfigTests(unittest.TestCase):
         self.assertEqual(smoke["shared_artifact_root_env"], "PP_SHARED_ARTIFACT_ROOT")
 
         active = _tracked_config("receipt_active.json")
+        self.assertEqual(active["source_evidence"], TEST_SOURCE_EVIDENCE)
         with self.assertRaisesRegex(ValueError, "production is gated"):
             qwen_attack_receipt._validate_attack_config(active)
         active["ready_for_production"] = True
@@ -167,6 +219,37 @@ class ReceiptConfigTests(unittest.TestCase):
             active["attack"]["step_size_255"],
             {"2": 0.5, "4": 1.0, "8": 2.0, "16": 4.0},
         )
+
+    def test_config_rejects_missing_or_mutated_source_evidence_contract(self):
+        base = _tracked_config("receipt_smoke_saaketh.json")
+        missing = copy.deepcopy(base)
+        del missing["source_evidence"]
+        with self.assertRaisesRegex(ValueError, "source_evidence"):
+            qwen_attack_receipt._validate_attack_config(missing)
+
+        mutations = {
+            "schema_version": 2,
+            "verification": "different_verifier",
+            "scope": "smoke_subset_only",
+            "records": 10,
+            "candidate_counts": {"sroie": 5, "cord_v2": 5},
+            "source_records_sha256": "0" * 64,
+            "accepted_report_sha256": "1" * 64,
+            "verified_git_commit": "2" * 40,
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field):
+                changed = copy.deepcopy(base)
+                changed["source_evidence"][field] = value
+                with self.assertRaisesRegex(ValueError, "source_evidence"):
+                    qwen_attack_receipt._validate_attack_config(changed)
+
+        for field in TEST_SOURCE_EVIDENCE:
+            with self.subTest(missing_nested_field=field):
+                changed = copy.deepcopy(base)
+                del changed["source_evidence"][field]
+                with self.assertRaisesRegex(ValueError, "source_evidence"):
+                    qwen_attack_receipt._validate_attack_config(changed)
 
     def test_config_rejects_dataset_model_prompt_policy_and_attack_drift(self):
         base = _tracked_config("receipt_smoke_saaketh.json")
@@ -388,19 +471,11 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
         candidates = qwen_attack_receipt.select_candidates(
             predictions, manifest, _baseline()
         )
-        rows = {}
-        for index, (record_id, row) in enumerate(candidates.iterrows()):
-            rows[record_id] = {
-                "clean_target": row.clean_target,
-                "attack_target": row.attack_target,
-                "usable": True,
-                "attack_eligible": True,
-                "source_split": row.source_split,
-                "source_index": int(row.source_index),
-                "image": Image.new("RGB", (12 + index, 8), color=(index, 2, 3)),
-            }
+        rows = _processed_rows(candidates)
         config = _tracked_config("receipt_smoke_saaketh.json")
         config["expected_validation_candidates"] = {"sroie": 1, "cord_v2": 1}
+        source_evidence = _synthetic_source_evidence(config, candidates, rows)
+        config["source_evidence"] = source_evidence
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             config_path = root / "configs/qwen_attack/receipt_smoke_saaketh.json"
@@ -420,6 +495,11 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
                     {"sroie": 1, "cord_v2": 1},
                 ),
                 patch.object(
+                    qwen_attack_receipt,
+                    "EXPECTED_SOURCE_EVIDENCE",
+                    source_evidence,
+                ),
+                patch.object(
                     qwen_attack_receipt.subprocess,
                     "check_output",
                     side_effect=lambda command, **_: (
@@ -428,7 +508,12 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
                 ),
             ):
                 report = qwen_attack_receipt.build_source_evidence(config, config_path)
-        load_plan.assert_called_once_with(config, root.resolve(), apply_smoke_selection=False)
+        load_plan.assert_called_once_with(
+            config,
+            root.resolve(),
+            apply_smoke_selection=False,
+            verify_source_evidence=False,
+        )
         self.assertEqual(report["records"], 2)
         self.assertEqual(report["candidate_counts"], {"sroie": 1, "cord_v2": 1})
         self.assertEqual(
@@ -438,7 +523,203 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
         for record in report["source_records"]:
             self.assertEqual(record["mode"], "RGB")
             self.assertEqual(len(record["rgb_sha256"]), 64)
-        self.assertEqual(len(report["source_records_sha256"]), 64)
+        self.assertEqual(
+            report["source_records_sha256"],
+            source_evidence["source_records_sha256"],
+        )
+
+    def test_bound_source_evidence_uses_full_pool_not_smoke_subset(self):
+        predictions, manifest = _candidate_frames(6)
+        candidates = qwen_attack_receipt.select_candidates(
+            predictions, manifest, _baseline()
+        )
+        rows = _processed_rows(candidates)
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        expected_counts = {"sroie": 6, "cord_v2": 6}
+        config["expected_validation_candidates"] = expected_counts
+        source_evidence = _synthetic_source_evidence(config, candidates, rows)
+        config["source_evidence"] = source_evidence
+        paths = {"processed_data_root": Path("/read-only/processed")}
+
+        with (
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_VALIDATION_CANDIDATES",
+                expected_counts,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_SOURCE_EVIDENCE",
+                source_evidence,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "_load_processed_rows",
+                return_value=rows,
+            ) as load_rows,
+        ):
+            verified = qwen_attack_receipt._verify_source_evidence(
+                config, candidates, paths
+            )
+
+        smoke = qwen_attack_receipt.select_smoke_candidates(candidates, 5)
+        self.assertEqual(len(smoke), 10)
+        self.assertEqual(verified["records"], 12)
+        self.assertEqual(verified["candidate_counts"], expected_counts)
+        self.assertEqual(
+            verified["source_records_sha256"],
+            source_evidence["source_records_sha256"],
+        )
+        self.assertEqual(
+            qwen_attack_receipt._source_records_sha256(
+                list(reversed(verified["source_records"]))
+            ),
+            source_evidence["source_records_sha256"],
+        )
+        load_rows.assert_called_once_with(
+            paths["processed_data_root"], "validation", set(candidates.index)
+        )
+
+    def test_bound_source_evidence_rejects_truncation_pixel_and_dimension_drift(self):
+        predictions, manifest = _candidate_frames(6)
+        candidates = qwen_attack_receipt.select_candidates(
+            predictions, manifest, _baseline()
+        )
+        rows = _processed_rows(candidates)
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        expected_counts = {"sroie": 6, "cord_v2": 6}
+        config["expected_validation_candidates"] = expected_counts
+        source_evidence = _synthetic_source_evidence(config, candidates, rows)
+        config["source_evidence"] = source_evidence
+        paths = {"processed_data_root": Path("/read-only/processed")}
+
+        truncated = qwen_attack_receipt.select_smoke_candidates(candidates, 5)
+        drifted_rows = copy.deepcopy(rows)
+        changed_id = sorted(drifted_rows)[0]
+        original = drifted_rows[changed_id]["image"]
+        changed = original.copy()
+        changed.putpixel((0, 0), (255, 255, 255))
+        drifted_rows[changed_id]["image"] = changed
+
+        with (
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_VALIDATION_CANDIDATES",
+                expected_counts,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_SOURCE_EVIDENCE",
+                source_evidence,
+            ),
+            patch.object(qwen_attack_receipt, "_load_processed_rows", return_value=rows),
+            self.assertRaisesRegex(RuntimeError, "source evidence"),
+        ):
+            qwen_attack_receipt._verify_source_evidence(config, truncated, paths)
+
+        with (
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_VALIDATION_CANDIDATES",
+                expected_counts,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_SOURCE_EVIDENCE",
+                source_evidence,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "_load_processed_rows",
+                return_value=drifted_rows,
+            ),
+            self.assertRaisesRegex(RuntimeError, "source evidence"),
+        ):
+            qwen_attack_receipt._verify_source_evidence(config, candidates, paths)
+
+        resized_rows = copy.deepcopy(rows)
+        resized_rows[changed_id]["image"] = Image.new(
+            "RGB",
+            (original.width + 1, original.height),
+            color=(0, 2, 3),
+        )
+        with (
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_VALIDATION_CANDIDATES",
+                expected_counts,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "EXPECTED_SOURCE_EVIDENCE",
+                source_evidence,
+            ),
+            patch.object(
+                qwen_attack_receipt,
+                "_load_processed_rows",
+                return_value=resized_rows,
+            ),
+            self.assertRaisesRegex(RuntimeError, "source evidence"),
+        ):
+            qwen_attack_receipt._verify_source_evidence(config, candidates, paths)
+
+    def test_source_record_builder_rejects_missing_or_mutated_source_rows(self):
+        predictions, manifest = _candidate_frames(1)
+        candidates = qwen_attack_receipt.select_candidates(
+            predictions, manifest, _baseline()
+        )
+        rows = _processed_rows(candidates)
+        config = _tracked_config("receipt_smoke_saaketh.json")
+
+        missing_rows = copy.deepcopy(rows)
+        del missing_rows[sorted(missing_rows)[0]]
+        with self.assertRaisesRegex(RuntimeError, "source evidence"):
+            qwen_attack_receipt._build_source_records(
+                config, candidates, missing_rows
+            )
+
+        record_id = sorted(rows)[0]
+        mutations = {
+            "clean_target": "999.99",
+            "attack_target": "9999.90",
+            "usable": False,
+            "attack_eligible": False,
+            "source_split": "test",
+            "source_index": 999,
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field):
+                changed = copy.deepcopy(rows)
+                changed[record_id][field] = value
+                with self.assertRaisesRegex(RuntimeError, "source evidence"):
+                    qwen_attack_receipt._build_source_records(
+                        config, candidates, changed
+                    )
+
+    def test_source_evidence_mismatch_stops_before_qwen_creation(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: True)
+        )
+        with (
+            patch.dict(os.environ, {"SLURM_JOB_ID": "test-job"}, clear=False),
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch.object(
+                qwen_attack_receipt,
+                "_load_plan",
+                side_effect=RuntimeError("source evidence digest mismatch"),
+            ),
+            patch.object(qwen_attack_receipt, "QwenVL") as qwen,
+            self.assertRaisesRegex(RuntimeError, "source evidence"),
+        ):
+            qwen_attack_receipt.run(
+                config,
+                ROOT / "configs/qwen_attack/receipt_smoke_saaketh.json",
+                user_id="user3",
+                worker_id=0,
+                num_workers=1,
+            )
+        qwen.assert_not_called()
 
     def test_router_smoke_counts_and_five_way_shards(self):
         track, module = qwen_attack._validate({
@@ -516,6 +797,47 @@ class ReceiptPathRouterAndShardingTests(unittest.TestCase):
             qwen_attack_receipt._require_clean_git(config, ROOT)
         status.assert_not_called()
 
+    def test_source_evidence_is_part_of_every_run_provenance(self):
+        config = _tracked_config("receipt_smoke_saaketh.json")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "configs/qwen_attack/receipt_smoke_saaketh.json"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            paths = {}
+            for name in (
+                "baseline_manifest",
+                "baseline_summary",
+                "baseline_correct_ids",
+                "baseline_environment",
+                "master_manifest",
+            ):
+                path = root / f"{name}.artifact"
+                path.write_text(name, encoding="utf-8")
+                paths[name] = path
+            with patch.object(
+                qwen_attack_receipt.subprocess,
+                "check_output",
+                return_value="b" * 40 + "\n",
+            ):
+                provenance = qwen_attack_receipt._build_provenance(
+                    config, config_path, root, TEST_RUNTIME_VERSIONS, paths
+                )
+
+        self.assertEqual(provenance["source_evidence"], TEST_SOURCE_EVIDENCE)
+        self.assertEqual(
+            provenance["source_records_sha256"],
+            TEST_SOURCE_EVIDENCE["source_records_sha256"],
+        )
+        self.assertEqual(
+            provenance["source_evidence_report_sha256"],
+            TEST_SOURCE_EVIDENCE["accepted_report_sha256"],
+        )
+        self.assertEqual(
+            provenance["source_evidence_verified_git_commit"],
+            TEST_SOURCE_EVIDENCE["verified_git_commit"],
+        )
+
 
 class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
     provenance = {
@@ -525,6 +847,10 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
         "config_sha256": "c" * 64,
         "git_commit": "d" * 40,
         "environment_hash": sha256_text(json.dumps(TEST_RUNTIME_VERSIONS, sort_keys=True)),
+        "source_evidence": copy.deepcopy(TEST_SOURCE_EVIDENCE),
+        "source_records_sha256": TEST_SOURCE_EVIDENCE["source_records_sha256"],
+        "source_evidence_report_sha256": TEST_SOURCE_EVIDENCE["accepted_report_sha256"],
+        "source_evidence_verified_git_commit": TEST_SOURCE_EVIDENCE["verified_git_commit"],
     }
 
     @staticmethod
@@ -845,6 +1171,13 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
             "records": 0,
             "unique_documents": 0,
             "expected_ids_sha256": "0" * 64,
+            "source_records_sha256": "0" * 64,
+            "source_evidence_report_sha256": "1" * 64,
+            "source_evidence_verified_git_commit": "2" * 40,
+            "source_evidence": {
+                **TEST_SOURCE_EVIDENCE,
+                "scope": "smoke_subset_only",
+            },
             "runtime_contract": {
                 **TEST_GPU_RUNTIME_CONTRACT,
                 "gpu_memory_bytes": TEST_GPU_RUNTIME_CONTRACT["gpu_memory_bytes"] + 1,
@@ -873,6 +1206,12 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
     def test_merge_rejects_worker_environment_and_gpu_drift(self):
         mutations = (
             ("runtime_versions", {**TEST_RUNTIME_VERSIONS, "numpy": "different"}),
+            ("source_records_sha256", "0" * 64),
+            ("source_evidence_report_sha256", "1" * 64),
+            (
+                "source_evidence",
+                {**TEST_SOURCE_EVIDENCE, "records": 10},
+            ),
             (
                 "runtime_contract",
                 {
@@ -899,6 +1238,48 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
                         usable_counts={"sroie": 2, "cord_v2": 4},
                         record_contracts=self._contracts(ids),
                     )
+
+    def test_merge_rejects_source_evidence_drift_in_marker_and_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, ids = self._complete_output(Path(directory))
+            marker_path = output / "shards/worker_00/WORKER_COMPLETE.json"
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+            marker["source_records_sha256"] = "0" * 64
+            marker_path.write_text(json.dumps(marker), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "completion provenance"):
+                qwen_attack_receipt._merge_if_complete(
+                    output,
+                    expected_ids=ids,
+                    epsilons=[8],
+                    num_workers=1,
+                    provenance=dict(self.provenance),
+                    candidate_counts={"sroie": 1, "cord_v2": 1},
+                    usable_counts={"sroie": 2, "cord_v2": 4},
+                    record_contracts=self._contracts(ids),
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            output, ids = self._complete_output(Path(directory))
+            record_id = "sroie/validation/sroie-000"
+            key = qwen_attack_receipt._record_key(record_id, 8, 566)
+            record_path = output / "shards/worker_00/records" / f"{key}.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record["source_evidence"] = {
+                **TEST_SOURCE_EVIDENCE,
+                "source_records_sha256": "0" * 64,
+            }
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "record provenance"):
+                qwen_attack_receipt._merge_if_complete(
+                    output,
+                    expected_ids=ids,
+                    epsilons=[8],
+                    num_workers=1,
+                    provenance=dict(self.provenance),
+                    candidate_counts={"sroie": 1, "cord_v2": 1},
+                    usable_counts={"sroie": 2, "cord_v2": 4},
+                    record_contracts=self._contracts(ids),
+                )
 
     def test_merge_rejects_scientific_provenance_drift(self):
         with tempfile.TemporaryDirectory() as directory:
