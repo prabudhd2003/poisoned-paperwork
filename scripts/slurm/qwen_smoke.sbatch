@@ -21,6 +21,14 @@ if [[ -n "$(git status --porcelain)" ]]; then
     echo "Commit reviewed files before starting the smoke run." >&2
     exit 1
 fi
+python3 - "$CONFIG_PATH" <<'PY'
+import json, pathlib, sys
+config = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if config.get("track") == "receipt" and config.get("ready_for_gpu_smoke") is not True:
+    raise SystemExit(
+        "Receipt GPU smoke is gated until source-pixel evidence is reviewed and pinned."
+    )
+PY
 source scripts/activate_paperwork.sh
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 echo "Job: ${SLURM_JOB_ID}; commit: $(git rev-parse HEAD); config: $CONFIG_PATH"

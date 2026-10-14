@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -29,23 +30,30 @@ def _tensor_pixels(image, processor, grid):
     return x.permute(0, 3, 6, 4, 7, 2, 1, 5, 8).reshape(gt * gh * gw, 3 * temporal * p * p)
 
 
-def _sample_pages(root: Path, split: str):
+def _sample_pages(processed_data_root: Path, split: str):
     from datasets import load_from_disk
     from data import row_images
     pages = []
     targets = (("sroie", 5), ("cord_v2", 5), ("resume_parsing_vision", 10))
     for dataset_name, limit in targets:
-        data = load_from_disk(str(root / "data" / "processed" / dataset_name))[split]
-        accepted = 0
+        data = load_from_disk(str(processed_data_root / dataset_name))[split]
+        distinct = []
+        repeated = []
+        seen_sizes = set()
         for row in data:
             for page in row_images(row):
                 page = page.convert("RGB")
-                pages.append((dataset_name, page))
-                accepted += 1
-                if accepted >= limit:
+                item = (dataset_name, page)
+                if page.size not in seen_sizes:
+                    seen_sizes.add(page.size)
+                    distinct.append(item)
+                elif len(repeated) < limit:
+                    repeated.append(item)
+                if len(distinct) >= limit:
                     break
-            if accepted >= limit:
+            if len(distinct) >= limit:
                 break
+        pages.extend((distinct + repeated)[:limit])
     observed = {
         dataset_name: sum(name == dataset_name for name, _ in pages)
         for dataset_name, _ in targets
@@ -55,7 +63,50 @@ def _sample_pages(root: Path, split: str):
         raise RuntimeError(
             f"processor parity requires page counts {expected}; found {observed}"
         )
+    distinct_source_sizes = {page.size for _, page in pages}
+    if len(distinct_source_sizes) < 3:
+        raise RuntimeError(
+            "processor parity requires at least three distinct source dimensions; "
+            f"found {sorted(distinct_source_sizes)}"
+        )
     return pages
+
+
+def _processed_data_root(config: dict) -> Path:
+    """Resolve read-only processed inputs while preserving legacy local configs."""
+    shared_root = ROOT
+    environment_name = config.get("shared_artifact_root_env")
+    if environment_name is not None:
+        if not isinstance(environment_name, str) or not environment_name.strip():
+            raise SystemExit("shared_artifact_root_env must name a nonempty environment variable")
+        configured_root = os.environ.get(environment_name)
+        if not configured_root:
+            raise SystemExit(
+                f"Set {environment_name} to the shared read-only artifact checkout before parity"
+            )
+        shared_root = Path(configured_root).expanduser().resolve()
+        personal_root = ROOT.resolve()
+        if (
+            shared_root == personal_root
+            or shared_root.is_relative_to(personal_root)
+            or personal_root.is_relative_to(shared_root)
+        ):
+            raise SystemExit(
+                "Shared receipt artifacts and the personal checkout must be separate trees"
+            )
+    configured_data_root = Path(config.get("processed_data_root", "data/processed"))
+    if environment_name is not None and (
+        configured_data_root.is_absolute() or ".." in configured_data_root.parts
+    ):
+        raise SystemExit(
+            "Receipt processed_data_root must stay relative to the shared artifact root"
+        )
+    if not configured_data_root.is_absolute():
+        configured_data_root = shared_root / configured_data_root
+    configured_data_root = configured_data_root.resolve()
+    if environment_name is not None and not configured_data_root.is_relative_to(shared_root):
+        raise SystemExit("Receipt processed_data_root escapes the shared artifact root")
+    return configured_data_root
 
 
 def main():
@@ -80,7 +131,7 @@ def main():
         )
     processor = AutoProcessor.from_pretrained(config["model_id"], revision=config["model_revision"],
         min_pixels=DEFAULT_MIN_PIXELS, max_pixels=DEFAULT_MAX_PIXELS)
-    pages = _sample_pages(ROOT, args.split)
+    pages = _sample_pages(_processed_data_root(config), args.split)
     shapes = set()
     maximum = surrogate_maximum = 0.0
     absolute_sum = surrogate_absolute_sum = 0.0
@@ -115,6 +166,11 @@ def main():
               f"mean_error_255={float(error_255.mean()):.6f}")
     observed_mean = absolute_sum / element_count
     surrogate_observed_mean = surrogate_absolute_sum / element_count
+    if len(shapes) < 2:
+        raise SystemExit(
+            "PROCESSOR PARITY FAILED: the 20-page sample produced fewer than two "
+            "processor tensor shapes"
+        )
     print(
         f"Checked {len(pages)} pages across {len(shapes)} processor tensor shapes on CPU; "
         f"exact-forward normalized max={maximum:.8f}, mean={observed_mean:.8f}; "
