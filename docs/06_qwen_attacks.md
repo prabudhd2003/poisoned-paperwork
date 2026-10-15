@@ -262,6 +262,7 @@ reject a gated config before production work begins.
 | Purpose | Receipt run ID | Resume run ID |
 |---|---|---|
 | Smoke (owner only) | `qwen_receipt_smoke_saaketh_v1` | `qwen_resume_smoke_shail_v2` |
+| Resume proof (owner only) | n/a | `qwen_resume_smoke_shail_v3_resumeproof` |
 | Validation (5 shards) | `qwen_receipt_validation_v1` | `qwen_resume_validation_v1` |
 | Test (5 shards) | `qwen_receipt_test_v1` | `qwen_resume_test_v1` |
 
@@ -295,6 +296,8 @@ runner then requires exactly ten documents, no logged failure, finite metrics
 and traces, valid PNG hashes, and no epsilon violation. To prove resume, cancel
 one smoke attempt only after a `state.pt` exists, resubmit the exact command,
 and confirm at least one final record reports `checkpoint_resumed=true`.
+Visually inspect every smoke page with
+`notebooks/06_qwen_smoke_review.ipynb` before unlocking production.
 
 After review, change only `ready_for_production` in
 `configs/qwen_attack/resume_active.json` to `true`, commit and push it, then
@@ -321,8 +324,10 @@ bash scripts/submit_stage.sh qwen_attack user5 configs/qwen_attack/resume_active
 ```
 
 The two tracks have different run IDs, so their jobs can run at the same time
-without touching each other's checkpoints. The launcher requests one A100
-80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve hours for each worker. After a
+without touching each other's checkpoints. The launcher requests one L40S
+48 GB GPU, 8 CPUs, 64 GB system RAM, and twelve hours for each worker. The
+resume smoke peaked at about 30.9 GiB on an L40S, leaving about 14 GiB free.
+After a
 timeout, resubmit the identical command; completed experiments are skipped and
 unfinished ones resume from their last checkpoint. Nobody edits
 `src/attacks/qwen.py`, a track module, or an active config during a run.
