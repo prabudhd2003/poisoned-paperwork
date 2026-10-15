@@ -298,6 +298,10 @@ one smoke attempt only after a `state.pt` exists, resubmit the exact command,
 and confirm at least one final record reports `checkpoint_resumed=true`.
 Visually inspect every smoke page with
 `notebooks/06_qwen_smoke_review.ipynb` before unlocking production.
+The separate resume-proof smoke uses 100 steps at epsilon 16, matching the
+strongest frozen production setting. It also serves as an efficacy pilot: zero
+decoded successes remain a valid result if gradients are finite and the best
+target loss improves, but should be reviewed before spending the full run.
 
 After review, change only `ready_for_production` in
 `configs/qwen_attack/resume_active.json` to `true`, commit and push it, then
