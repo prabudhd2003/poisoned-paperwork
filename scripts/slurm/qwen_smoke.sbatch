@@ -21,10 +21,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
     exit 1
 fi
 source scripts/activate_paperwork.sh
-export OPENBLAS_NUM_THREADS=1
-export OMP_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 echo "Job: ${SLURM_JOB_ID}; commit: $(git rev-parse HEAD); config: $CONFIG_PATH"
 nvidia-smi
