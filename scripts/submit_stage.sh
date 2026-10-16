@@ -154,6 +154,58 @@ command -v sbatch >/dev/null 2>&1 || {
   exit 1
 }
 
+if [[ "$STAGE" == "qwen_attack" ]]; then
+  if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
+    echo "Qwen submission requires a clean committed worktree." >&2
+    exit 1
+  fi
+  (
+    cd "$REPO_ROOT"
+    source scripts/activate_paperwork.sh
+    export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+    python - <<'PY'
+import sys
+import numpy
+import pandas
+import torch
+import transformers
+
+if sys.version_info[:2] != (3, 11):
+    raise SystemExit(f"Qwen production requires Python 3.11; found {sys.version}")
+if not sys.executable.endswith("/.conda/envs/paperwork/bin/python"):
+    raise SystemExit(f"Qwen production is using the wrong interpreter: {sys.executable}")
+print(
+    "Qwen environment passed:",
+    f"python={sys.executable}",
+    f"torch={torch.__version__}",
+    f"transformers={transformers.__version__}",
+    f"pandas={pandas.__version__}",
+    f"numpy={numpy.__version__}",
+)
+PY
+    python scripts/check_qwen_processor_parity.py --config "$CONFIG_PATH"
+    python - "$CONFIG_PATH" "$REPO_ROOT" <<'PY'
+import importlib
+import json
+from pathlib import Path
+import sys
+
+from stages.qwen_attack import _validate
+
+config_path = Path(sys.argv[1])
+repo_root = Path(sys.argv[2])
+config = json.loads(config_path.read_text(encoding="utf-8"))
+_, module_name = _validate(config)
+module = importlib.import_module(module_name)
+preflight = getattr(module, "preflight", None)
+if preflight is None:
+    raise SystemExit(f"{module_name} does not provide the required CPU preflight")
+preflight(config, repo_root)
+print("QWEN PRODUCTION PREFLIGHT PASSED")
+PY
+  )
+fi
+
 JOB_ID="$(sbatch "${SBATCH_ARGS[@]}" "$REPO_ROOT/scripts/slurm/gpu_stage.sbatch")"
 echo "Submitted Slurm job $JOB_ID"
 echo "Monitor: squeue -j $JOB_ID"
