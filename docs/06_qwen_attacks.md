@@ -285,11 +285,15 @@ python scripts/check_qwen_processor_parity.py \
 python scripts/smoke_qwen_attack.py \
   --config configs/qwen_attack/resume_smoke_shail.json --preflight
 mkdir -p logs
-sbatch scripts/slurm/qwen_smoke.sbatch \
+bash scripts/submit_qwen_smoke.sh \
   configs/qwen_attack/resume_smoke_shail.json
 ```
 
-The batch job repeats processor parity before allocating the model. A passing
+The submit wrapper verifies the interpreter and core package imports, processor
+parity, frozen artifacts, and candidate selection before requesting a GPU. It
+also strips inherited Conda activation markers before calling Slurm. The batch
+job activates the environment afresh and repeats processor parity before
+allocating the model. A passing
 result confirms a pixel-exact official forward, a bounded-mean differentiable
 surrogate, and the BPDA construction used by the attack. The smoke
 runner then requires exactly ten documents, no logged failure, finite metrics
