@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sharding import assigned_record_ids
-from attacks.qwen import exact_forward_bpda, save_reload
+from attacks.qwen import _select_final_candidate, exact_forward_bpda, save_reload
 from stages import qwen_attack, qwen_attack_resume
 
 
@@ -134,6 +134,28 @@ class ResumeCandidateTests(unittest.TestCase):
         torch.testing.assert_close(result, official)
         result.sum().backward()
         torch.testing.assert_close(surrogate.grad, torch.ones_like(surrogate))
+
+    def test_failed_attack_selects_lowest_loss_iterate(self):
+        current = [torch.tensor([3.0])]
+        best = [torch.tensor([1.0])]
+        logs = [{"step": 100, "saved_image_success": False}]
+        selected, selected_step, used_best = _select_final_candidate(
+            current, best, logs, best_step=70, device=torch.device("cpu")
+        )
+        torch.testing.assert_close(selected[0], best[0])
+        self.assertEqual(selected_step, 70)
+        self.assertTrue(used_best)
+
+    def test_successful_attack_keeps_verified_checkpoint(self):
+        current = [torch.tensor([3.0])]
+        best = [torch.tensor([1.0])]
+        logs = [{"step": 50, "saved_image_success": True}]
+        selected, selected_step, used_best = _select_final_candidate(
+            current, best, logs, best_step=40, device=torch.device("cpu")
+        )
+        torch.testing.assert_close(selected[0], current[0])
+        self.assertEqual(selected_step, 50)
+        self.assertFalse(used_best)
 
     def test_router_rejects_receipt_dataset_for_resume(self):
         with self.assertRaisesRegex(ValueError, "accepts datasets"):

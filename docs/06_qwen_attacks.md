@@ -263,6 +263,7 @@ reject a gated config before production work begins.
 |---|---|---|
 | Smoke (owner only) | `qwen_receipt_smoke_saaketh_v1` | `qwen_resume_smoke_shail_v2` |
 | Resume proof (owner only) | n/a | `qwen_resume_smoke_shail_v3_resumeproof` |
+| Best-iterate acceptance (owner only) | n/a | `qwen_resume_smoke_shail_v4_bestiterate` |
 | Validation (5 shards) | `qwen_receipt_validation_v1` | `qwen_resume_validation_v1` |
 | Test (5 shards) | `qwen_receipt_test_v1` | `qwen_resume_test_v1` |
 
@@ -286,7 +287,7 @@ python scripts/smoke_qwen_attack.py \
   --config configs/qwen_attack/resume_smoke_shail.json --preflight
 mkdir -p logs
 bash scripts/submit_qwen_smoke.sh \
-  configs/qwen_attack/resume_smoke_shail.json
+  configs/qwen_attack/resume_bestiterate_shail.json
 ```
 
 The submit wrapper verifies the interpreter and core package imports, processor
@@ -302,6 +303,8 @@ one smoke attempt only after a `state.pt` exists, resubmit the exact command,
 and confirm at least one final record reports `checkpoint_resumed=true`.
 Visually inspect every smoke page with
 `notebooks/06_qwen_smoke_review.ipynb` before unlocking production.
+The smoke launcher requests one hour; the 100-step ten-document L40S pilot
+completed in about 25 minutes, leaving more than a twofold wall-time margin.
 The separate resume-proof smoke uses 100 steps at epsilon 16, matching the
 strongest frozen production setting. It also serves as an efficacy pilot: zero
 decoded successes remain a valid result if gradients are finite and the best
