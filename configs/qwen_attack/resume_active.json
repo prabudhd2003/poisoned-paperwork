@@ -3,10 +3,12 @@
   "track": "resume",
   "mode": "validation",
   "run_id": "qwen_resume_validation_v1",
-  "ready_for_production": false,
+  "ready_for_production": true,
   "owner_user_id": "user5",
   "split": "validation",
-  "datasets": ["resume_parsing_vision"],
+  "datasets": [
+    "resume_parsing_vision"
+  ],
   "frozen_for_test": false,
   "seed": 566,
   "baseline_run_id": "baseline_validation_v1",
@@ -25,12 +27,26 @@
   "prompt_id": "resume_degree_v1",
   "question": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
   "expected_validation_candidates": 74,
-  "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
-  "notes": "Candidate settings. Set ready_for_production=true in a reviewed commit only after the resume smoke passes.",
+  "processor_tolerance": {
+    "max": 1e-06,
+    "mean": 1e-08,
+    "surrogate_mean": 0.005
+  },
+  "notes": "Production settings approved after the v4 best-iterate smoke passed: 10 records, 0 failures, 5/10 targeted successes.",
   "attack": {
-    "epsilons_255": [2, 4, 8, 16],
+    "epsilons_255": [
+      2,
+      4,
+      8,
+      16
+    ],
     "max_steps": 100,
-    "step_size_255": {"2": 0.5, "4": 1.0, "8": 2.0, "16": 4.0},
+    "step_size_255": {
+      "2": 0.5,
+      "4": 1.0,
+      "8": 2.0,
+      "16": 4.0
+    },
     "checkpoint_interval": 10,
     "loss_type": "cross_entropy",
     "multi_page_fallback": "gradient_accumulation_across_pages"
