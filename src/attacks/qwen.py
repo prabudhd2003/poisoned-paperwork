@@ -173,6 +173,22 @@ def save_reload(xs, clean, folder: Path, epsilon: float):
     return pages, metadata
 
 
+def _select_final_candidate(current_pages, best_pages, logs, best_step: int, device):
+    """Keep an exact-target checkpoint; otherwise return the lowest-loss iterate."""
+    saved_success = bool(logs and logs[-1].get("saved_image_success"))
+    if saved_success:
+        selected = current_pages
+        selected_step = int(logs[-1]["step"])
+    else:
+        selected = best_pages
+        selected_step = int(best_step)
+    return (
+        [page.detach().to(device) for page in selected],
+        selected_step,
+        not saved_success,
+    )
+
+
 def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenance: dict,
            lpips_model, normalize_fn: Callable[[str | None], str | None]):
     """Joint sign-PGD with resumable full-contract checkpoints and official PNG verification."""
@@ -199,7 +215,7 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
     best_pages = [image.detach().cpu() for image in clean]
     with torch.no_grad():
         initial_loss = float(objective.loss(clean)[0])
-    best_loss, start_step, logs, prior_seconds = initial_loss, 0, [], 0.0
+    best_loss, best_step, start_step, logs, prior_seconds = initial_loss, 0, 0, [], 0.0
     checkpoint_resumed = checkpoint.is_file()
     if checkpoint.is_file():
         state = load_checkpoint_state(checkpoint, clean_sha256=contract_hash,
@@ -209,6 +225,7 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
             raise RuntimeError("checkpoint contract drift")
         xs = [image.to(device).requires_grad_(True) for image in extra["pages"]]
         best_pages, best_loss = extra["best_pages"], float(state["best_loss"])
+        best_step = int(extra["best_step"])
         start_step, logs = int(state["completed_steps"]), extra["logs"]
         prior_seconds = float(extra.get("runtime_seconds", 0.0))
         import random
@@ -252,6 +269,7 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
             current_loss = float(np.mean(losses))
             if current_loss < best_loss:
                 best_loss, best_pages = current_loss, [x.detach().cpu() for x in xs]
+                best_step = step - 1
             with torch.no_grad():
                 xs = [project_linf(x - alpha * grad.sign(), original, epsilon, quantize=True).detach().requires_grad_(True)
                       for x, original, grad in zip(xs, clean, gradients)]
@@ -263,6 +281,7 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
                     loss_now, mean_logp = float(loss_now), float(mean_logp)
                 if loss_now < best_loss:
                     best_loss, best_pages = loss_now, [x.detach().cpu() for x in xs]
+                    best_step = step
                 decoded_memory = objective.decode(xs)
                 reloaded, image_info = save_reload(xs, clean, shard / "images" / key, epsilon)
                 raw_saved = wrapper.predict(reloaded, prompt)
@@ -277,12 +296,16 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
                     completed_steps=step, best_loss=best_loss, optimizer=None,
                     config_sha256=provenance["config_sha256"], model_revision=wrapper.revision,
                     extra_state={"contract": contract, "pages": [x.detach().cpu() for x in xs],
-                        "best_pages": best_pages, "logs": logs, "cuda_rng_state": torch.cuda.get_rng_state_all(),
+                        "best_pages": best_pages, "best_step": best_step, "logs": logs,
+                        "cuda_rng_state": torch.cuda.get_rng_state_all(),
                         "runtime_seconds": prior_seconds + time.perf_counter() - started})
                 print(json.dumps({"record_id": row["record_id"], "epsilon": epsilon, **entry}), flush=True)
                 if entry["saved_image_success"]:
                     break
 
+    xs, selected_step, selected_best_iterate = _select_final_candidate(
+        xs, best_pages, logs, best_step, device
+    )
     reloaded, image_info = save_reload(xs, clean, shard / "images" / key, epsilon)
     raw_saved = wrapper.predict(reloaded, prompt)
     for item, original, page in zip(image_info, clean, reloaded):
@@ -290,12 +313,14 @@ def attack(wrapper, pages, row, config, epsilon, shard: Path, key: str, provenan
         item.update(lpips=lpips_value, ssim=ssim)
     with torch.no_grad():
         final_loss, final_logp = objective.loss(xs)
+        raw_memory = objective.decode(xs)
     if not logs:
         raise RuntimeError("no checkpoint was written; checkpoint_interval must be positive")
     return {**parity_stats, "raw_response": raw_saved, "prediction_normalized": normalize_fn(raw_saved),
         "saved_image_success": normalize_fn(raw_saved) == target,
-        "in_memory_success": logs[-1]["in_memory_success"], "initial_loss": initial_loss,
+        "in_memory_success": normalize_fn(raw_memory) == target, "initial_loss": initial_loss,
         "final_loss": float(final_loss), "best_loss": best_loss,
+        "selected_step": selected_step, "selected_best_iterate": selected_best_iterate,
         "mean_target_log_probability": float(final_logp), "completed_steps": final_step,
         "gradient_norm_final": logs[-1]["gradient_norm"], "optimization_trace": logs,
         "images": image_info, "linf_255": max(x["linf_255"] for x in image_info),

@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --time=01:00:00
 #SBATCH --gpus-per-task=l40s:1
 #SBATCH --job-name=pp_qwen_smoke
 #SBATCH --output=logs/%x_%j.out

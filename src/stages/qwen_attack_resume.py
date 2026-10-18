@@ -326,6 +326,17 @@ def _validate_saved_record(path: Path, expected: dict[str, Any]) -> bool:
         raise RuntimeError(f"out-of-range final metric: {path}")
     if record.get("targeted_success_reloaded") != record.get("saved_image_success"):
         raise RuntimeError(f"saved-image success fields disagree: {path}")
+    selected_step = record.get("selected_step")
+    if type(selected_step) is not int or not 0 <= selected_step <= int(record["completed_steps"]):
+        raise RuntimeError(f"invalid selected attack step: {path}")
+    if type(record.get("selected_best_iterate")) is not bool:
+        raise RuntimeError(f"missing best-iterate selection flag: {path}")
+    if not record["saved_image_success"] and not record["selected_best_iterate"]:
+        raise RuntimeError(f"unsuccessful attack did not save its best iterate: {path}")
+    if record["selected_best_iterate"] and not math.isclose(
+        float(record["final_loss"]), float(record["best_loss"]), rel_tol=1e-5, abs_tol=1e-5
+    ):
+        raise RuntimeError(f"saved best iterate does not match best loss: {path}")
     images = record.get("images")
     if not isinstance(images, list) or not images:
         raise RuntimeError(f"final record has no saved page images: {path}")
@@ -407,7 +418,8 @@ def _merge_if_complete(output: Path, *, expected_ids: set[str], epsilons: list[i
                     "processor_surrogate_max_abs_difference", "processor_surrogate_mean_abs_difference",
                     "processor_gradient_method",
                     "gradient_norm_final", "peak_gpu_memory_mb", "worker_id", "seed", "git_commit",
-                    "config_sha256", "document_page_count", "attacked_page_count", "status", "error"}
+                    "config_sha256", "document_page_count", "attacked_page_count", "selected_step",
+                    "selected_best_iterate", "status", "error"}
                 missing_fields = required_fields - record.keys()
                 if missing_fields:
                     raise RuntimeError(f"record {path} missing fields: {sorted(missing_fields)}")
