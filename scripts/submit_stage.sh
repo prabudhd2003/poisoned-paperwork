@@ -52,7 +52,7 @@ case "$STAGE" in
   donut_attack)
     GPU_TYPE="l40s"; MEMORY="48G"; TIME_LIMIT="08:00:00" ;;
   qwen_attack)
-    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="12:00:00" ;;
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="04:00:00" ;;
   transfer_robustness)
     GPU_TYPE="l40s"; MEMORY="48G"; TIME_LIMIT="08:00:00" ;;
   eot_patch)
