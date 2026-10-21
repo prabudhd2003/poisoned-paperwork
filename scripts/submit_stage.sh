@@ -102,8 +102,8 @@ if pp_receipt_is_config "$CONFIG_PATH"; then
     exit 2
   fi
   if [[ "$PP_CONFIG_READY_PRODUCTION" != "true" ]]; then
-    echo "Qwen-receipt production is gated. Freeze the accepted smoke settings" >&2
-    echo "and set ready_for_production=true in a committed config first." >&2
+    echo "Qwen-receipt production is gated." >&2
+    echo "Set ready_for_production=true only in a team-approved committed config." >&2
     exit 1
   fi
 else
@@ -143,6 +143,13 @@ import json, pathlib, sys
 print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("track") or "")
 PY
   )"
+fi
+
+if [[ "$IS_RECEIPT" -eq 1 ]]; then
+  GPU_TYPE="l40s"
+  CONSTRAINT=""
+  MEMORY="64G"
+  TIME_LIMIT="12:00:00"
 fi
 
 if [[ "$IS_RECEIPT" -eq 1 ]]; then

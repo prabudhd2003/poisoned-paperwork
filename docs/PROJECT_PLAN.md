@@ -80,7 +80,7 @@ passes the same frozen run ID to every worker.
 |---:|---|---|---|---|
 | 1 | `baseline` | [Clean baselines](04_clean_baselines.md) | L40S 48 GB | 04 |
 | 2 | `donut_attack` | [Donut targeted attack](05_donut_attack.md) | L40S 48 GB | 05 |
-| 3 | `qwen_attack` (receipt + resume tracks) | [Qwen full-page attacks](06_qwen_attacks.md) | A100 80 GB | 05 |
+| 3 | `qwen_attack` (receipt + resume tracks) | [Qwen full-page attacks](06_qwen_attacks.md) | Receipt: L40S 48 GB; resume: A100 80 GB | 05 |
 | 4 | `transfer_robustness` | [Transfer and digital robustness](07_transfer_and_digital_robustness.md) | L40S 48 GB | 05 |
 | 5 | `eot_patch` | [EOT patch and physical pilot](08_eot_patch_and_physical_pilot.md) | A100 80 GB | 05 |
 | 6 | `defenses` | [Defenses and adaptive attacks](09_defenses_and_adaptive_attacks.md) | A100 80 GB | 06 |

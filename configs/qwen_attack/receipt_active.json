@@ -3,7 +3,7 @@
   "track": "receipt",
   "mode": "validation",
   "run_id": "qwen_receipt_validation_v1",
-  "ready_for_production": false,
+  "ready_for_production": true,
   "owner_user_id": "user3",
   "split": "validation",
   "datasets": ["sroie", "cord_v2"],
@@ -54,7 +54,7 @@
     "decimal_arithmetic": true
   },
   "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
-  "notes": "Candidate validation settings. Keep ready_for_production=false until the receipt smoke, saved-image review, and checkpoint-resume proof are accepted.",
+  "notes": "Team-approved speed-first direct validation. A separate receipt GPU smoke, saved-image review, and checkpoint-resume demonstration were waived for this run; all built-in fail-fast attack checks remain required.",
   "attack": {
     "epsilons_255": [2, 4, 8, 16],
     "max_steps": 100,
