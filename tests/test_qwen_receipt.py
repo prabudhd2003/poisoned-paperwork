@@ -194,7 +194,7 @@ def _synthetic_source_evidence(
 
 
 class ReceiptConfigTests(unittest.TestCase):
-    def test_tracked_smoke_and_gated_validation_configs(self):
+    def test_tracked_smoke_and_enabled_validation_configs(self):
         smoke = _tracked_config("receipt_smoke_saaketh.json")
         qwen_attack_receipt._validate_attack_config(smoke)
         self.assertIs(smoke["ready_for_gpu_smoke"], True)
@@ -211,10 +211,13 @@ class ReceiptConfigTests(unittest.TestCase):
 
         active = _tracked_config("receipt_active.json")
         self.assertEqual(active["source_evidence"], TEST_SOURCE_EVIDENCE)
-        with self.assertRaisesRegex(ValueError, "production is gated"):
-            qwen_attack_receipt._validate_attack_config(active)
-        active["ready_for_production"] = True
+        self.assertIs(active["ready_for_production"], True)
         qwen_attack_receipt._validate_attack_config(active)
+
+        gated = copy.deepcopy(active)
+        gated["ready_for_production"] = False
+        with self.assertRaisesRegex(ValueError, "production is gated"):
+            qwen_attack_receipt._validate_attack_config(gated)
         self.assertEqual(active["expected_validation_candidates"], {"sroie": 123, "cord_v2": 96})
         self.assertEqual(active["attack"]["epsilons_255"], [2, 4, 8, 16])
         self.assertEqual(
@@ -1181,6 +1184,7 @@ class ReceiptStorageAndLauncherTests(unittest.TestCase):
 
         runtime = paths[0].read_text(encoding="utf-8")
         smoke_submit = paths[1].read_text(encoding="utf-8")
+        production_submit = paths[2].read_text(encoding="utf-8")
         smoke_batch = paths[3].read_text(encoding="utf-8")
         production_batch = paths[4].read_text(encoding="utf-8")
         for variable in (
@@ -1196,6 +1200,19 @@ class ReceiptStorageAndLauncherTests(unittest.TestCase):
         self.assertIn('"$PP_PYTHON_BIN" -E -s -u', smoke_batch)
         self.assertIn('PYTHON_COMMAND=("$PP_PYTHON_BIN" -E -s -u)', production_batch)
         self.assertIn("receipt production remains gated", production_batch)
+        self.assertIn(
+            'qwen_attack)\n    GPU_TYPE="a100"; CONSTRAINT="a100-80gb"',
+            production_submit,
+        )
+        self.assertIn(
+            'if [[ "$IS_RECEIPT" -eq 1 ]]; then\n'
+            '  GPU_TYPE="l40s"\n'
+            '  CONSTRAINT=""\n'
+            '  MEMORY="64G"\n'
+            '  TIME_LIMIT="12:00:00"\n'
+            "fi",
+            production_submit,
+        )
 
         legacy_smoke = paths[5].read_text(encoding="utf-8")
         self.assertIn("Receipt smoke must use scripts/submit_qwen_smoke.sh", legacy_smoke)

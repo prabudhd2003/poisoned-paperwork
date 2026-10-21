@@ -2,11 +2,10 @@
 
 ## Status and ownership
 
-- Contract status: **Phase 0 complete; Phase 1 tasks 1-9 implemented; the
-  Task 7 closure and Task 8 CARC CPU verification unlock only the owner GPU
-  smoke, and Task 9 separates immutable inputs, tracked code, and shared
-  writable outputs. No receipt GPU attack has run, and production remains
-  locked**.
+- Contract status: **Phase 0 and the Phase 1 implementation through Task 9 are
+  complete. The team approved speed-first direct five-worker receipt
+  validation on L40S and enabled the production gate. At the time of this
+  activation commit, no receipt GPU attack had run**.
 - Development branch: `qwen-receipt`.
 - Branch base commit: `f269fa759e8cfd0f8736fbb27d96bc0c0791d30a`.
 - Verification commit: `94a1725e0ae518351064e7cc95ddcbb189def7b7`.
@@ -36,12 +35,11 @@ new run ID.
 2. **Frozen configs.** `receipt_smoke_saaketh.json` fixes the owner smoke at five
    deterministic candidates per dataset, epsilon 8, step size 2, and 25 steps.
    The Task 7 closure pins the accepted complete source-pixel evidence digest
-   and changes only its `ready_for_gpu_smoke` gate to true. That authorizes the
-   later owner-only smoke; it does not claim that a GPU job has run or authorize
-   five-worker validation.
-   `receipt_active.json` fixes the intended 219-document validation grid but
-   remains deliberately blocked with `ready_for_production: false` until the
-   smoke, saved-image review, and checkpoint-resume proof are accepted.
+   and changes only its `ready_for_gpu_smoke` gate to true. At that point it
+   authorized only a later owner smoke and did not claim that a GPU job had run
+   or authorize five-worker validation. `receipt_active.json` fixes the intended
+   219-document validation grid. The later speed-first activation sets its
+   `ready_for_production` gate to true without changing that grid or evidence.
 3. **Candidate/data contract.** The receipt stage re-verifies all seven frozen
    artifact hashes, the 527-record baseline provenance, the 226 usable receipt
    rows, the 219 clean-correct target-valid candidates, canonical exact-decimal
@@ -73,10 +71,12 @@ new run ID.
    bytes and saved PNG. Processor-parity execution still belongs to the later
    full model-runtime/GPU readiness work.
 
-The five-worker validation config remains deliberately locked. Task 9 provides
-the common writable run-root contract needed by a later validation run, but it
-does not establish CARC cross-account permissions, qualify the full GPU runtime,
-or authorize production. Those are separate CARC gates.
+Task 9 provides the common writable run-root contract needed by validation. It
+did not itself establish CARC cross-account permissions, qualify the full GPU
+runtime, or authorize production. The team subsequently chose to waive those
+separate pre-run demonstrations and authorized direct receipt validation; the
+runtime still enforces all built-in identity, input, processor-parity,
+optimization, pixel-bound, save/reload, and checkpoint checks.
 
 ## Phase 1 CPU handoff and source-evidence closure
 
@@ -134,12 +134,13 @@ and kept code, generated reports, and other personal outputs below
 ```
 
 The Task 7 closure binds the stable source-record digest and records the
-historical report hash. It unlocks only `receipt_smoke_saaketh.json` for the
-future owner GPU smoke. `receipt_active.json` remains fail-closed with
-`ready_for_production: false`. This CPU evidence does not validate the full
-Qwen/CUDA environment, processor parity, gradients, attack success, saved
-adversarial PNGs, GPU memory, or checkpoint resume, and none of those actions
-was performed by this handoff.
+historical report hash. At that closure commit it unlocked only
+`receipt_smoke_saaketh.json`; `receipt_active.json` was still fail-closed. This
+CPU evidence did not validate the full Qwen/CUDA environment, processor parity,
+gradients, attack success, saved adversarial PNGs, GPU memory, or checkpoint
+resume, and none of those actions was performed by that handoff. The later
+production activation is an explicit team decision rather than new GPU
+evidence.
 
 ### Task 8 CARC CPU closure verification
 
@@ -214,15 +215,39 @@ unqualified `python`. A launcher dry run validates and prints the resolved
 interpreter, code/input/output roots, commit, run, worker, and Slurm request
 without submitting work.
 
-Task 9 is an execution-safety implementation, not GPU evidence. Before Tasks
-10-13, CARC must still demonstrate that every intended account can create,
-atomically rename, lock, and read files in the shared output tree. The receipt
-validation config remains `ready_for_production: false` throughout Tasks 9-13.
-Each account records that evidence with
-`scripts/preflight_qwen_receipt_storage.py` using one common session ID and
-exact Task 9 commit; the owner then repeats the check with `--require-all` to
-require all five account markers. The preflight is CPU-only and must not be run
+Task 9 is an execution-safety implementation, not GPU evidence. Its original
+conservative workflow required every intended account to demonstrate create,
+atomic-rename, lock, and read access in the shared output tree before
+production, while keeping `ready_for_production: false`. The team later waived
+that five-account preflight as a prerequisite for the speed-first validation.
+The diagnostic remains available through
+`scripts/preflight_qwen_receipt_storage.py`; it is CPU-only and must not be run
 concurrently by the same account and session.
+
+## Direct L40S validation activation
+
+The team approved starting `qwen_receipt_validation_v1` directly, with Saaketh
+(`user3`, worker 2) submitting first and the other four workers submitting only
+after his job produces a checkpoint or completed record. For this run:
+
+- `configs/qwen_attack/receipt_active.json` has
+  `ready_for_production: true`.
+- Receipt production jobs request one L40S, 8 CPUs, 64 GB system RAM, and a
+  twelve-hour limit. The resume track keeps its A100 80 GB request and remains
+  gated independently.
+- The separate receipt smoke, saved-image review, intentional
+  checkpoint-resume demonstration, and five-account storage preflight are not
+  prerequisites.
+- The 219-document population, four epsilon values, 100-step ceiling,
+  step-size schedule, checkpoint interval, target policy, pinned model and
+  prompt, accepted source evidence, and run ID are unchanged.
+- Production jobs still fail fast on an unclean or wrong Git checkout, an
+  uncommitted or mismatched config, invalid roots or assignments, artifact
+  drift, processor-parity violations, nonfinite or zero gradients, epsilon
+  violations, corrupt checkpoints, and failed saved-image reload checks.
+
+This activation is permission to run the experiment, not evidence that the
+experiment has succeeded. GPU evidence begins only when the CARC jobs execute.
 
 ## Frozen task scope
 
@@ -326,8 +351,9 @@ that every worker or the future GPU runtime has the same installed packages.
 
 ## Optimization-setting selection
 
-The owner smoke is a plumbing and feasibility check at epsilon `8`, step size
-`2`, and initially `25` steps. It does not select final scientific settings.
+The unused owner-smoke config remains a plumbing and feasibility diagnostic at
+epsilon `8`, step size `2`, and `25` steps. The team chose not to run it before
+`qwen_receipt_validation_v1`; it does not select final scientific settings.
 
 The intended production ceiling is `100` steps. If a comparison is required,
 the following candidate step-size schedules are evaluated on the same fixed

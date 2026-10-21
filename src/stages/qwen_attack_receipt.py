@@ -156,7 +156,7 @@ def _validate_attack_config(config: dict[str, Any]) -> None:
     if config["mode"] != "smoke" and config.get("ready_for_production") is not True:
         raise ValueError(
             "Qwen receipt production is gated; set ready_for_production=true only "
-            "after the CARC receipt smoke is reviewed"
+            "after team approval in a reviewed committed config"
         )
     if config["mode"] == "smoke" and config.get("owner_user_id") != "user3":
         raise ValueError("receipt smoke mode requires owner_user_id='user3'")

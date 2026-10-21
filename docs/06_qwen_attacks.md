@@ -18,6 +18,15 @@ are accepted. Saaketh should branch from this shared core and add only the
 receipt-specific stage, configs, and tests unless both owners approve a core
 change.
 
+Receipt execution now follows a team-approved speed-first exception: start the
+five-worker validation directly on L40S GPUs without first running a separate
+receipt smoke, saved-image review, or intentional checkpoint-resume
+demonstration. The tracked receipt production gate is enabled. This exception
+does not remove the stage's built-in checks for frozen inputs, exact Git/config
+identity, processor parity, finite losses and gradients, epsilon bounds,
+save/reload verification, or checkpoint integrity. The resume track remains
+gated and continues to request A100 80 GB.
+
 Both tracks share:
 
 - **one stage name**, `qwen_attack`, and one run layout,
@@ -196,11 +205,12 @@ The receipt tasks 1-6 CPU handoff passed on CARC at implementation commit
 `fa5934fd6d3a1345da1fd0130998c297ace2e61a`: 24 focused tests passed and all
 219 sources (123 SROIE and 96 CORD v2) produced canonical source-record digest
 `77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277`.
-The Task 7 closure pins that evidence and unlocks only the owner smoke. It does
-not claim that Qwen, CUDA, gradients, or an attack have run;
-`receipt_active.json` remains blocked with `ready_for_production=false` until
-the later GPU gates are accepted. The complete evidence record and the
-distinction between the stable source digest and historical report hash are in
+The Task 7 closure pinned that evidence and, at that time, unlocked only the
+owner smoke. It did not claim that Qwen, CUDA, gradients, or an attack had run,
+and `receipt_active.json` was still blocked then. The later speed-first
+activation described above supersedes that execution gate without changing
+the accepted source evidence. The complete evidence record and the distinction
+between the stable source digest and historical report hash are in
 `qwen_receipt_contract.md`.
 
 Task 8 then verified the exact closure commit
@@ -247,6 +257,11 @@ Each track moves through its own gates independently. Only gate 1 is shared.
    after inspecting test outputs requires a documented new run; never replace
    results silently.
 
+For `qwen_receipt_validation_v1`, the team explicitly waived gate 2 and moved
+the receipt track directly from the completed CPU/source checks to gate 3.
+This is a receipt-only execution decision; it does not change the resume-track
+gates or remove any checks executed inside a production receipt job.
+
 If GPU queue time is scarce, receipt validation and test jobs go first.
 
 ## Configs and run IDs
@@ -260,7 +275,7 @@ least:
   "track": "receipt",
   "run_id": "qwen_receipt_validation_v1",
   "mode": "validation",
-  "ready_for_production": false,
+  "ready_for_production": true,
   "split": "validation",
   "datasets": ["sroie", "cord_v2"],
   "frozen_for_test": false,
@@ -275,10 +290,13 @@ least:
 ```
 
 The resume config is the same with `"track": "resume"`,
-`"datasets": ["resume_parsing_vision"]`, and its own run ID. Step sizes above
-are candidate settings until the track smoke is accepted. Every non-smoke
-config must contain `ready_for_production=true`; both the launcher and stage
-reject a gated config before production work begins.
+`"datasets": ["resume_parsing_vision"]`, and its own run ID. Receipt step
+sizes are the team-approved candidate settings for the direct validation run;
+the validation results, not the held-out test, will determine any later frozen
+test settings. Resume settings remain candidates until its track smoke is
+accepted. Every non-smoke config must contain `ready_for_production=true`;
+both the launcher and stage reject a gated config before production work
+begins.
 
 | Purpose | Receipt run ID | Resume run ID |
 |---|---|---|
@@ -312,19 +330,20 @@ must be a directory tree separate from both the personal checkout and
 `PP_SHARED_ARTIFACT_ROOT`. Both the launcher and the receipt core reject an
 output base that lacks those mode bits.
 
-Before a GPU submission, use the receipt smoke launcher's dry-run mode. It
-validates the explicit interpreter, roots, clean exact commit, committed
-config, run and worker contract, then prints the Slurm command without
+For the current direct validation, use the production launcher's dry-run mode.
+It validates the explicit interpreter, roots, clean exact commit, committed
+config, run and worker contract, then prints the L40S Slurm command without
 submitting it:
 
 ```bash
-bash scripts/submit_qwen_smoke.sh \
-  configs/qwen_attack/receipt_smoke_saaketh.json --dry-run
+bash scripts/submit_stage.sh qwen_attack user3 \
+  configs/qwen_attack/receipt_active.json --dry-run
 ```
 
-Before that dry run, all five accounts must exercise the common storage
-contract with the same Task 9 Git commit and a single filesystem-safe session
-ID. Each account runs its own user ID:
+The conservative Task 9 cross-account storage preflight remains available as
+a diagnostic, but the team waived it as a prerequisite for this speed-first
+run. If the team elects to run it later, each account uses the same commit and
+filesystem-safe session ID with its own user ID:
 
 ```bash
 "$PP_PYTHON_BIN" -E -s scripts/preflight_qwen_receipt_storage.py \
@@ -334,18 +353,18 @@ ID. Each account runs its own user ID:
   --expected-git-commit <exact-Task-9-commit>
 ```
 
-After user1 through user5 have all completed the command, Saaketh repeats it
-with the identical session and commit plus `--require-all`. That final pass must
-observe five distinct account markers and verify cross-account reads, advisory
-locking, and atomic rename in the shared tree. It is storage evidence only and
-does not run Qwen or request a GPU.
+After user1 through user5 complete that optional diagnostic, Saaketh can repeat
+it with the identical session and commit plus `--require-all`. That final pass
+observes five distinct account markers and verifies cross-account reads,
+advisory locking, and atomic rename in the shared tree. It is storage evidence
+only and does not run Qwen or request a GPU.
 
-Production remains blocked while `receipt_active.json` contains
-`ready_for_production=false`; Task 9 does not change that gate.
+Receipt production is now enabled in `receipt_active.json` for the approved
+direct validation. The config still fails closed if that Boolean is false.
 
-### Smoke (track owner only, one worker)
+### Smoke (optional receipt diagnostic; required by the resume workflow)
 
-Smoke tests follow the isolated one-worker pattern of
+If used, smoke tests follow the isolated one-worker pattern of
 `scripts/smoke_donut_attack.py`: a dedicated runner calls the track's
 `run(..., worker_id=0, num_workers=1)` with a smoke config whose
 `mode` is `"smoke"`. Track modules accept `num_workers=1` **only** when
@@ -394,10 +413,11 @@ bash scripts/submit_stage.sh qwen_attack user5 configs/qwen_attack/resume_active
 ```
 
 The two tracks have different run IDs, so their jobs can run at the same time
-without touching each other's checkpoints. The launcher requests one A100
-80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve hours for each worker. After a
-timeout, resubmit the identical command; completed experiments are skipped and
-unfinished ones resume from their last checkpoint. Nobody edits
+without touching each other's checkpoints. The launcher requests one L40S for
+receipt workers and one A100 80 GB for resume workers; both request 8 CPUs,
+64 GB system RAM, and twelve hours. After a timeout, resubmit the identical
+command; completed experiments are skipped and unfinished ones resume from
+their last checkpoint. Nobody edits
 `src/attacks/qwen.py`, a track module, or an active config during a run.
 
 The final worker merges automatically. A strict CPU-only retry is available:
