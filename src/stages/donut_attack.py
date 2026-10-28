@@ -321,6 +321,10 @@ def _processor_parity(model: DonutDocVQA, image, device: torch.device) -> dict[s
 
 def run(config, config_path, user_id, worker_id, num_workers):
     """Run one deterministic worker shard."""
+    if config.get("track") == "collected_receipts":
+        from stages.collected_attacks import run_donut
+
+        return run_donut(config, config_path, user_id, worker_id, num_workers)
     _validate_config(config)
     if not torch.cuda.is_available():
         raise RuntimeError("The real Donut attack requires a CUDA GPU; submit it through CARC Slurm.")

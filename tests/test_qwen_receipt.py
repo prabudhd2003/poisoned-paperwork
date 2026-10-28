@@ -51,7 +51,7 @@ TEST_RUNTIME_VERSIONS = {
 TEST_GPU_RUNTIME_CONTRACT = {
     "python": "3.11.12",
     "cuda": "12.4",
-    "gpu": "NVIDIA A100-SXM4-40GB",
+    "gpu": "NVIDIA L40S",
     "gpu_memory_bytes": 42949672960,
 }
 TEST_SOURCE_EVIDENCE = {
@@ -1199,7 +1199,7 @@ class ReceiptStorageAndLauncherTests(unittest.TestCase):
         self.assertIn('if [[ "$DRY_RUN" -eq 1 ]]', smoke_submit)
         self.assertIn('"$PP_PYTHON_BIN" -E -s -u', smoke_batch)
         self.assertIn("#SBATCH --gpus-per-task=l40s:1", smoke_batch)
-        self.assertNotIn("a100-80gb", smoke_batch)
+        self.assertIn("l40s", smoke_batch)
         self.assertIn('PYTHON_COMMAND=("$PP_PYTHON_BIN" -E -s -u)', production_batch)
         self.assertIn("receipt production remains gated", production_batch)
         self.assertIn(

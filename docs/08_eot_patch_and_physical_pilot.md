@@ -5,7 +5,7 @@
 - Stage command: `eot_patch`
 - Implementation: `src/stages/eot_patch.py`
 - Active config: `configs/eot_patch/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+- CPU-only analysis: `notebooks/09_eot_patch_analysis.ipynb`
 
 ## Purpose
 
@@ -232,8 +232,8 @@ bash scripts/submit_stage.sh eot_patch user4  # Khalid
 bash scripts/submit_stage.sh eot_patch user5  # Shail
 ```
 
-The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM, and twelve
-hours for each worker. Physical capture cannot be automated; the merge command
+The launcher requests one L40S GPU, 8 CPUs, 64 GB system RAM, and eight hours
+for each worker. Physical capture cannot be automated; the merge command
 checks that every manifest row has a photo and metadata row before physical
 inference begins.
 

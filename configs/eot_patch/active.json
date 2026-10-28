@@ -1,0 +1,25 @@
+{
+  "stage": "eot_patch",
+  "track": "collected_receipts",
+  "run_id": "eot_patch_collected_v1",
+  "ready_for_production": false,
+  "seed": 566,
+  "require_clean_git": true,
+  "document_limit": 25,
+  "controls": ["no_eot", "eot"],
+  "collected_manifest_contract": {"manifest": "data/processed/collected_receipts/manifest.csv", "manifest_sha256": "REPLACE_AFTER_FREEZE", "expected_documents": 100},
+  "baseline_predictions": "outputs/baseline/baseline_collected_external_v1/merged/records.parquet",
+  "baseline_predictions_sha256": "REPLACE_AFTER_BASELINE",
+  "model": {"model_id": "Qwen/Qwen2.5-VL-3B-Instruct", "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3", "precision": "bfloat16", "max_new_tokens": 32, "min_pixels": 200704, "max_pixels": 1003520},
+  "patch_attack": {
+    "patch_fraction": 0.125,
+    "inset_fraction": 0.02,
+    "max_steps": 100,
+    "step_size_255": 4.0,
+    "checkpoint_interval": 10,
+    "eot_samples": 4,
+    "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
+    "eot_distribution": {"resize_scale": [0.70, 1.00], "blur_sigma": [0.0, 1.0], "brightness": [0.85, 1.15], "translation_fraction": 0.02}
+  },
+  "final_transform_ids": ["identity", "jpeg_q85", "resize_0.75", "blur_0.5", "brightness_0.90", "brightness_1.10"]
+}

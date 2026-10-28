@@ -5,7 +5,7 @@
 - Stage command: `transfer_robustness`
 - Implementation: `src/stages/transfer_robustness.py`
 - Active config: `configs/transfer_robustness/active.json`
-- CPU analysis: `notebooks/05_attack_analysis.ipynb`
+- CPU-only analysis: `notebooks/08_transfer_robustness_analysis.ipynb`
 
 ## Purpose
 
@@ -203,7 +203,7 @@ prediction_normalized, clean_target_correct, adversarial_target_success,
 target_log_probability, runtime_seconds, input_sha256, output_sha256
 ```
 
-## Results shown in `05_attack_analysis.ipynb`
+## Results shown in `08_transfer_robustness_analysis.ipynb`
 
 1. InternVL clean exact-match accuracy by dataset and task.
 2. Direct transfer rate by epsilon, dataset, and source-attack success.

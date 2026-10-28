@@ -32,7 +32,7 @@ def normalize_receipt_total(text: str | None, dataset_name: str) -> str | None:
             if value.startswith("-") or not compact.isdigit():
                 return None
             return str(int(compact))
-        if dataset_name == "sroie":
+        if dataset_name in {"sroie", "collected_receipts"}:
             # SROIE uses a decimal amount; commas are thousands separators.
             amount = Decimal(value.replace(",", ""))
             if amount < 0:

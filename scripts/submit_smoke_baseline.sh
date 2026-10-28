@@ -3,25 +3,17 @@
 # The job remains queued/running after the terminal or laptop disconnects.
 #
 # Usage:
-#   bash scripts/submit_smoke_baseline.sh [a100|a40|l40s] [TIME_LIMIT]
+#   bash scripts/submit_smoke_baseline.sh [TIME_LIMIT]
 #
 # Example:
-#   bash scripts/submit_smoke_baseline.sh a100 02:00:00
+#   bash scripts/submit_smoke_baseline.sh 02:00:00
 
 set -euo pipefail
 
-GPU_TYPE="${1:-a100}"
-TIME_LIMIT="${2:-02:00:00}"
+GPU_TYPE="l40s"
+TIME_LIMIT="${1:-02:00:00}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_PATH="$REPO_ROOT/configs/baseline/smoke.json"
-
-case "$GPU_TYPE" in
-  a100|a40|l40s) ;;
-  *)
-    echo "GPU must be a100, a40, or l40s (V100/P100 do not support this BF16 smoke config)." >&2
-    exit 2
-    ;;
-esac
 
 if [[ ! -f "$CONFIG_PATH" ]]; then
   echo "Smoke config not found: $CONFIG_PATH" >&2

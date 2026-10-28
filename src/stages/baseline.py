@@ -416,6 +416,10 @@ def _load_plan(config: dict[str, Any], repo_root: Path):
 
 def run(config, config_path, user_id, worker_id, num_workers):
     """Run one deterministic document shard; smoke may use one owner worker."""
+    if config.get("track") == "collected_receipts":
+        from stages.collected_baseline import run as run_collected
+
+        return run_collected(config, config_path, user_id, worker_id, num_workers)
     import datasets
     import PIL
     import torch

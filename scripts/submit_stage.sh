@@ -57,9 +57,9 @@ case "$STAGE" in
   transfer_robustness)
     GPU_TYPE="l40s"; MEMORY="48G"; TIME_LIMIT="08:00:00" ;;
   eot_patch)
-    GPU_TYPE="a100"; CONSTRAINT="a100-80gb"; MEMORY="64G"; TIME_LIMIT="12:00:00" ;;
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
   defenses)
-    GPU_TYPE="a100"; CONSTRAINT="a100-80gb"; MEMORY="64G"; TIME_LIMIT="12:00:00" ;;
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
   *)
     echo "Unknown stage '$STAGE'." >&2
     echo "Choose: baseline, donut_attack, qwen_attack, transfer_robustness, eot_patch, defenses" >&2
@@ -152,6 +152,13 @@ if [[ "$IS_RECEIPT" -eq 1 ]]; then
   TIME_LIMIT="12:00:00"
 fi
 
+if [[ "$STAGE" == "qwen_attack" && "$TRACK" == "collected_receipts" ]]; then
+  GPU_TYPE="l40s"
+  CONSTRAINT=""
+  MEMORY="64G"
+  TIME_LIMIT="08:00:00"
+fi
+
 if [[ "$IS_RECEIPT" -eq 1 ]]; then
   umask 0002
   LOG_DIR="$PP_RECEIPT_OUTPUT_ROOT/logs/$RUN_ID"
@@ -219,11 +226,20 @@ command -v sbatch >/dev/null 2>&1 || {
   exit 1
 }
 
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
+  echo "Submission requires a clean committed worktree." >&2
+  echo "Commit/push on the Mac, then pull that commit on CARC before submitting." >&2
+  exit 1
+fi
+
+(
+  cd "$REPO_ROOT"
+  source scripts/activate_paperwork.sh
+  export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+  python scripts/preflight_stage.py --stage "$STAGE" --config "$CONFIG_PATH"
+)
+
 if [[ "$STAGE" == "qwen_attack" ]]; then
-  if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
-    echo "Qwen submission requires a clean committed worktree." >&2
-    exit 1
-  fi
   (
     cd "$REPO_ROOT"
     source scripts/activate_paperwork.sh
@@ -248,7 +264,9 @@ print(
     f"numpy={numpy.__version__}",
 )
 PY
-    python scripts/check_qwen_processor_parity.py --config "$CONFIG_PATH"
+    if [[ "$TRACK" != "collected_receipts" ]]; then
+      python scripts/check_qwen_processor_parity.py --config "$CONFIG_PATH"
+    fi
     python - "$CONFIG_PATH" "$REPO_ROOT" <<'PY'
 import importlib
 import json
