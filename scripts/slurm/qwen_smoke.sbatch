@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Owner-only Qwen smoke run (either track). From the repository root:
-#   sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/<smoke>.json
+# Owner-only legacy Qwen smoke launcher for the resume track. Receipt smoke
+# must use scripts/submit_qwen_smoke.sh so its exact runtime and roots are bound.
 #SBATCH --account=yzhao010_1531
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
@@ -15,11 +15,20 @@
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:?Submit from the project root}"
-CONFIG_PATH="${1:?Usage: sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/<smoke>.json}"
+CONFIG_PATH="${1:?Usage: sbatch scripts/slurm/qwen_smoke.sbatch configs/qwen_attack/resume_smoke_shail.json}"
 if [[ -n "$(git status --porcelain)" ]]; then
     echo "Commit reviewed files before starting the smoke run." >&2
     exit 1
 fi
+python3 -E -s - "$CONFIG_PATH" <<'PY'
+import json, pathlib, sys
+config = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if config.get("track") == "receipt":
+    raise SystemExit(
+        "Receipt smoke must use scripts/submit_qwen_smoke.sh; this legacy "
+        "batch entry point is resume-only."
+    )
+PY
 source scripts/activate_paperwork.sh
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 echo "Job: ${SLURM_JOB_ID}; commit: $(git rev-parse HEAD); config: $CONFIG_PATH"
