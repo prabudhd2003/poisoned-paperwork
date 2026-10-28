@@ -5,7 +5,7 @@
 - Stage command: `defenses`
 - Implementation: `src/stages/defenses.py`
 - Active config: `configs/defenses/active.json`
-- CPU analysis: `notebooks/06_defense_and_final_analysis.ipynb`
+- CPU-only analysis: `notebooks/10_defense_analysis.ipynb`
 
 ## Purpose
 
@@ -204,8 +204,8 @@ bash scripts/submit_stage.sh defenses user5  # Shail
 ```
 
 The stage module runs non-adaptive evaluation before adaptive attacks for the
-same shard. The launcher requests one A100 80 GB GPU, 8 CPUs, 64 GB system RAM,
-and twelve hours. Five teammates may run concurrently.
+same shard. The launcher requests one L40S GPU, 8 CPUs, 64 GB system RAM,
+and eight hours. Five teammates may run concurrently.
 
 ## Exact outputs
 

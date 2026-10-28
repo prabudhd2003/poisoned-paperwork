@@ -233,7 +233,7 @@ after his job produces a checkpoint or completed record. For this run:
 - `configs/qwen_attack/receipt_active.json` has
   `ready_for_production: true`.
 - Receipt production jobs request one L40S, 8 CPUs, 64 GB system RAM, and a
-  twelve-hour limit. The resume track keeps its A100 80 GB request and remains
+  twelve-hour limit. The resume track also uses L40S and remains
   gated independently.
 - The separate receipt smoke, saved-image review, intentional
   checkpoint-resume demonstration, and five-account storage preflight are not

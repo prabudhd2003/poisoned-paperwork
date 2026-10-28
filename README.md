@@ -4,6 +4,11 @@ Targeted adversarial attacks and defenses for document vision-language models.
 Receipt-total extraction is the primary task; resume highest-degree extraction
 is the secondary case study.
 
+For the terminal-only CARC workflow from the 100 collected receipts through
+transfer, EOT patches, defenses, adaptive evaluation, and final analysis, see
+[`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md). All GPU stages use L40S;
+notebooks only read and visualize merged results.
+
 ## Status
 
 | Stage | Status |
@@ -49,8 +54,8 @@ python -m unittest discover -s tests -v
 ```
 
 The baseline is designed for one L40S 48 GB GPU, 8 CPU cores, 32 GB system RAM,
-and up to 4 hours per production worker. An A40 48 GB is a reasonable fallback,
-but do not mix model settings or configs between workers.
+and up to 4 hours per production worker. All project GPU jobs use L40S so model
+settings and hardware remain consistent between workers.
 
 ## Baseline smoke test
 
@@ -58,10 +63,10 @@ Only `user1` runs the first smoke test. Request an interactive L40S from a CARC
 login node:
 
 For an unattended run that survives closing the laptop, submit the smoke test
-as a Slurm batch job (A100, A40, and L40S are supported):
+as an L40S Slurm batch job:
 
 ```bash
-bash scripts/submit_smoke_baseline.sh a100 02:00:00
+bash scripts/submit_smoke_baseline.sh 02:00:00
 ```
 
 The command prints a job ID and log paths, then it is safe to disconnect. Check

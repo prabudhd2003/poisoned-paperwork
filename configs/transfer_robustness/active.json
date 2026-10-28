@@ -1,0 +1,24 @@
+{
+  "stage": "transfer_robustness",
+  "run_id": "transfer_robustness_validation_v1",
+  "ready_for_production": false,
+  "seed": 566,
+  "require_clean_git": true,
+  "study_documents_per_dataset": 20,
+  "model_keys": ["qwen", "internvl"],
+  "transform_ids": ["png_reload", "jpeg_q95", "jpeg_q85", "jpeg_q75", "resize_0.75", "resize_0.50", "blur_0.5", "blur_1.0", "brightness_0.90", "brightness_1.10", "common_pipeline"],
+  "prompts": {
+    "receipt": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+    "resume": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+  },
+  "attack_sources": [
+    {"name": "qwen_resume", "records": "outputs/qwen_attack/qwen_resume_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_receipt", "records": "outputs/qwen_attack/qwen_receipt_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_collected", "records": "outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"}
+  ],
+  "collected_manifest_contract": {"manifest": "data/processed/collected_receipts/manifest.csv", "manifest_sha256": "REPLACE_AFTER_FREEZE", "expected_documents": 100},
+  "models": {
+    "qwen": {"model_id": "Qwen/Qwen2.5-VL-3B-Instruct", "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3", "precision": "bfloat16", "max_new_tokens": 32, "min_pixels": 200704, "max_pixels": 1003520},
+    "internvl": {"model_id": "OpenGVLab/InternVL2_5-4B", "revision": "2cf4a8158bbc40d35015e7c63b527890de4d27b3", "precision": "bfloat16", "max_new_tokens": 32, "image_size": 448, "max_tiles": 12}
+  }
+}

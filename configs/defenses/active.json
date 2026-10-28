@@ -1,0 +1,35 @@
+{
+  "stage": "defenses",
+  "run_id": "defenses_validation_v1",
+  "ready_for_production": false,
+  "seed": 566,
+  "require_clean_git": true,
+  "study_documents_per_dataset": 20,
+  "defense_ids": ["none", "jpeg", "resize_vote", "selective_multiview"],
+  "prompts": {
+    "receipt": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+    "resume": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+  },
+  "attack_sources": [
+    {"name": "qwen_resume", "records": "outputs/qwen_attack/qwen_resume_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_receipt", "records": "outputs/qwen_attack/qwen_receipt_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_collected", "records": "outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"}
+  ],
+  "collected_manifest_contract": {"manifest": "data/processed/collected_receipts/manifest.csv", "manifest_sha256": "REPLACE_AFTER_FREEZE", "expected_documents": 100},
+  "model": {"model_id": "Qwen/Qwen2.5-VL-3B-Instruct", "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3", "precision": "bfloat16", "max_new_tokens": 32, "min_pixels": 200704, "max_pixels": 1003520},
+  "defense": {
+    "defense_seed": 566,
+    "jpeg_quality": 85,
+    "resize_votes": 5,
+    "multiview_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+    "multiview_minimum_votes": 3
+  },
+  "audit_documents_per_worker": 3,
+  "adaptive": {
+    "enabled": true,
+    "document_limit": 10,
+    "epsilons_255": [8, 16],
+    "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
+    "attack": {"max_steps": 50, "step_size_255": {"8": 2.0, "16": 4.0}, "checkpoint_interval": 10}
+  }
+}

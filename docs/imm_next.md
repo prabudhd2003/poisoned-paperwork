@@ -66,7 +66,7 @@ To queue the test and safely close the laptop, make sure no interactive
 `salloc` request is still pending, then run:
 
 ```bash
-bash scripts/submit_smoke_baseline.sh a100 02:00:00
+bash scripts/submit_smoke_baseline.sh 02:00:00
 ```
 
 This uses `sbatch`, so CARC retains the job after disconnect. The command prints

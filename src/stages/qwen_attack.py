@@ -17,6 +17,9 @@ import importlib
 TRACKS = {
     "receipt": ("stages.qwen_attack_receipt", {"sroie", "cord_v2"}),
     "resume": ("stages.qwen_attack_resume", {"resume_parsing_vision"}),
+    "collected_receipts": (
+        "stages.qwen_attack_collected", {"collected_receipts"}
+    ),
 }
 
 

@@ -1,0 +1,29 @@
+{
+  "stage": "donut_attack",
+  "track": "collected_receipts",
+  "model_key": "donut",
+  "run_id": "donut_collected_external_v1",
+  "ready_for_production": false,
+  "split": "external_test",
+  "seed": 566,
+  "require_clean_git": true,
+  "manifest": "data/processed/collected_receipts/manifest.csv",
+  "manifest_sha256": "REPLACE_AFTER_FREEZE",
+  "expected_documents": 100,
+  "baseline_predictions": "outputs/baseline/baseline_collected_external_v1/merged/records.parquet",
+  "baseline_predictions_sha256": "REPLACE_AFTER_BASELINE",
+  "model": {
+    "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+    "revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+    "precision": "float32",
+    "max_length": 64
+  },
+  "attack": {
+    "epsilons_255": [2, 4, 8, 16],
+    "max_steps": 100,
+    "step_size_255": {"2": 0.5, "4": 1.0, "8": 2.0, "16": 4.0},
+    "checkpoint_interval": 10,
+    "loss_type": "cross_entropy",
+    "optimizer": "adam"
+  }
+}
