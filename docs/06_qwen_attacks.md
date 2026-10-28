@@ -11,16 +11,25 @@ code:
 | Receipt (primary study) | SROIE, CORD | Saaketh | `src/stages/qwen_attack_receipt.py` | `configs/qwen_attack/receipt_active.json` |
 | Resume (secondary case study) | resume_parsing_vision | Shail | `src/stages/qwen_attack_resume.py` | `configs/qwen_attack/resume_active.json` |
 
-The resume implementation and shared core are merged. Resume production is
-deliberately blocked by `ready_for_production=false` until the CARC processor
-parity check, smoke run, saved-image inspection, and checkpoint-resume proof
-are accepted. Saaketh should branch from this shared core and add only the
-receipt-specific stage, configs, and tests unless both owners approve a core
-change.
+The resume implementation, receipt implementation, and shared attack core are
+merged. Each track keeps its own frozen inputs, run ID, output location, and
+acceptance evidence; changes to the shared core require review because they can
+affect both result sets.
+
+Receipt execution now follows a team-approved speed-first exception: start the
+five-worker validation directly on L40S GPUs without first running a separate
+receipt smoke, saved-image review, or intentional checkpoint-resume
+demonstration. The tracked receipt production gate is enabled. This exception
+does not remove the stage's built-in checks for frozen inputs, exact Git/config
+identity, processor parity, finite losses and gradients, epsilon bounds,
+save/reload verification, or checkpoint integrity. Both Qwen launchers use
+L40S GPUs in the current CARC configuration.
 
 Both tracks share:
 
-- **one stage name**, `qwen_attack`, and one output root, `outputs/qwen_attack/`;
+- **one stage name**, `qwen_attack`, and one run layout,
+  `qwen_attack/<run_id>/`; receipt and resume resolve that layout beneath
+  different output bases as documented below;
 - **one attack core**, `src/attacks/qwen.py` (objective, differentiable
   preprocessing, PGD loop, save/reload verification, checkpoint state);
 - the frozen `baseline` Qwen config, prompt, processor settings, and
@@ -190,6 +199,26 @@ Optimize the one receipt image. The target is the exact normalized value in
 Smoke subset: five SROIE and five CORD clean-correct validation receipts at
 epsilon 8.
 
+The receipt tasks 1-6 CPU handoff passed on CARC at implementation commit
+`fa5934fd6d3a1345da1fd0130998c297ace2e61a`: 24 focused tests passed and all
+219 sources (123 SROIE and 96 CORD v2) produced canonical source-record digest
+`77480634c85f37271c1927798bd975858877da6c1ebb06442c549730d58da277`.
+The Task 7 closure pinned that evidence and, at that time, unlocked only the
+owner smoke. It did not claim that Qwen, CUDA, gradients, or an attack had run,
+and `receipt_active.json` was still blocked then. The later speed-first
+activation described above supersedes that execution gate without changing
+the accepted source evidence. The complete evidence record and the distinction
+between the stable source digest and historical report hash are in
+`qwen_receipt_contract.md`.
+
+Task 8 then verified the exact closure commit
+`0cc7c13fd640545966c98bafc4aa58fd919ec6c3` on CARC: 31 of 31 focused tests
+passed, all 219 sources matched the accepted digest before smoke selection, the
+same deterministic ten-image CPU preflight passed, and the worktree stayed
+clean. The additional Task 8 report SHA-256 is
+`ad27ba4b401a1f8b4d457f847ea9043c3d93d3414c107100a89795949e3a42ee`;
+it supplements rather than replaces the original accepted report hash.
+
 ## Resume track
 
 Provide all retained pages in original order. Optimize all pages jointly under
@@ -226,6 +255,11 @@ Each track moves through its own gates independently. Only gate 1 is shared.
    after inspecting test outputs requires a documented new run; never replace
    results silently.
 
+For `qwen_receipt_validation_v1`, the team explicitly waived gate 2 and moved
+the receipt track directly from the completed CPU/source checks to gate 3.
+This is a receipt-only execution decision; it does not change the resume-track
+gates or remove any checks executed inside a production receipt job.
+
 If GPU queue time is scarce, receipt validation and test jobs go first.
 
 ## Configs and run IDs
@@ -239,7 +273,7 @@ least:
   "track": "receipt",
   "run_id": "qwen_receipt_validation_v1",
   "mode": "validation",
-  "ready_for_production": false,
+  "ready_for_production": true,
   "split": "validation",
   "datasets": ["sroie", "cord_v2"],
   "frozen_for_test": false,
@@ -254,10 +288,12 @@ least:
 ```
 
 The resume config is the same with `"track": "resume"`,
-`"datasets": ["resume_parsing_vision"]`, and its own run ID. Step sizes above
-are candidate settings until the track smoke is accepted. Every non-smoke
-config must contain `ready_for_production=true`; both the launcher and stage
-reject a gated config before production work begins.
+`"datasets": ["resume_parsing_vision"]`, and its own run ID. Receipt step
+sizes are the team-approved candidate settings for the direct validation run;
+the validation results, not the held-out test, determine any later frozen test
+settings. Every non-smoke config must contain `ready_for_production=true`;
+both the launcher and stage reject a gated config before production work
+begins.
 
 | Purpose | Receipt run ID | Resume run ID |
 |---|---|---|
@@ -272,9 +308,62 @@ should submit next. Owners change them only between runs.
 
 ## How to run
 
-### Smoke (track owner only, one worker)
+### Receipt CARC roots and interpreter
 
-Smoke tests follow the isolated one-worker pattern of
+Receipt commands require these values to be set explicitly in every submitting
+shell. Do not infer the interpreter from a Conda prompt and do not use a bare
+`python`:
+
+```bash
+export PP_PYTHON_BIN=/absolute/path/to/the/qualified/full-runtime/bin/python
+export PP_SHARED_ARTIFACT_ROOT=/absolute/path/to/read-only/poisoned-paperwork
+export PP_RECEIPT_OUTPUT_ROOT=/absolute/path/to/shared-writable/receipt-outputs
+```
+
+`PP_RECEIPT_OUTPUT_ROOT` is a base directory, not a run-specific directory.
+The code deterministically resolves a run to
+`$PP_RECEIPT_OUTPUT_ROOT/qwen_attack/<run_id>`. It must exist before submission,
+must be group-writable and group-searchable with setgid enabled, must support
+file creation, locking, and atomic rename for every participating account, and
+must be a directory tree separate from both the personal checkout and
+`PP_SHARED_ARTIFACT_ROOT`. Both the launcher and the receipt core reject an
+output base that lacks those mode bits.
+
+For the current direct validation, use the production launcher's dry-run mode.
+It validates the explicit interpreter, roots, clean exact commit, committed
+config, run and worker contract, then prints the L40S Slurm command without
+submitting it:
+
+```bash
+bash scripts/submit_stage.sh qwen_attack user3 \
+  configs/qwen_attack/receipt_active.json --dry-run
+```
+
+The conservative Task 9 cross-account storage preflight remains available as
+a diagnostic, but the team waived it as a prerequisite for this speed-first
+run. If the team elects to run it later, each account uses the same commit and
+filesystem-safe session ID with its own user ID:
+
+```bash
+"$PP_PYTHON_BIN" -E -s scripts/preflight_qwen_receipt_storage.py \
+  --config configs/qwen_attack/receipt_smoke_saaketh.json \
+  --user-id user3 \
+  --session-id task9-<UTC-timestamp> \
+  --expected-git-commit <exact-Task-9-commit>
+```
+
+After user1 through user5 complete that optional diagnostic, Saaketh can repeat
+it with the identical session and commit plus `--require-all`. That final pass
+observes five distinct account markers and verifies cross-account reads,
+advisory locking, and atomic rename in the shared tree. It is storage evidence
+only and does not run Qwen or request a GPU.
+
+Receipt production is now enabled in `receipt_active.json` for the approved
+direct validation. The config still fails closed if that Boolean is false.
+
+### Smoke (optional receipt diagnostic; required by the resume workflow)
+
+If used, smoke tests follow the isolated one-worker pattern of
 `scripts/smoke_donut_attack.py`: a dedicated runner calls the track's
 `run(..., worker_id=0, num_workers=1)` with a smoke config whose
 `mode` is `"smoke"`. Track modules accept `num_workers=1` **only** when
@@ -346,7 +435,9 @@ unfinished ones resume from their last checkpoint. Nobody edits
 The final worker merges automatically. A strict CPU-only retry is available:
 
 ```bash
-python scripts/merge_qwen_resume.py \
+"$PP_PYTHON_BIN" -E -s scripts/merge_qwen_receipt.py \
+  --config configs/qwen_attack/receipt_active.json
+"$PP_PYTHON_BIN" -E -s scripts/merge_qwen_resume.py \
   --config configs/qwen_attack/resume_active.json
 ```
 
@@ -361,7 +452,7 @@ helper; they do not invent their own assignment.
 Checkpoint each document/epsilon every 10 iterations:
 
 ```text
-outputs/qwen_attack/<run_id>/
+<track-output-base>/qwen_attack/<run_id>/
 ├── assignments/worker_00.txt ... worker_04.txt
 ├── shards/worker_00/
 │   ├── checkpoints/<experiment_key>/state.pt
@@ -372,6 +463,13 @@ outputs/qwen_attack/<run_id>/
 └── merged/
 ```
 
+For receipts, `<track-output-base>` is exactly
+`$PP_RECEIPT_OUTPUT_ROOT`; it is not the personal checkout. The receipt stage,
+smoke summary, manual merge, and all five production workers resolve that same
+base. The resume track retains its existing repository-relative `outputs/`
+layout until its owner adopts an equivalent independently reviewed storage
+contract.
+
 The state contains all fields required in the shared execution contract plus
 the exact processed image grid, chat template hash, target token IDs, and best
 known attack tensor. A restarted job must verify all hashes before resuming.
@@ -381,7 +479,7 @@ known attack tensor. A restarted job must verify all hashes before resuming.
 Each track run produces, after its own merge:
 
 ```text
-outputs/qwen_attack/<run_id>/merged/
+<track-output-base>/qwen_attack/<run_id>/merged/
 ├── attacks.parquet
 ├── attacks.csv
 ├── page_metrics.parquet
@@ -400,9 +498,11 @@ processor_max_abs_difference, mean_target_log_probability,
 gradient_norm_final, peak_gpu_memory_mb
 ```
 
-Downstream stages (07-10) that read `outputs/qwen_attack/<run>/merged/` list
-the receipt run ID and, where resumes are in scope, the resume run ID in the
-results registry.
+Before downstream stages (07-10) consume receipt results, their configs or
+launchers must be updated and reviewed to point explicitly at
+`$PP_RECEIPT_OUTPUT_ROOT/qwen_attack/<run>/merged/`; they must not silently
+fall back to a personal checkout. Task 9 changes receipt attack execution and
+merge paths only—it does not claim that those later stages are implemented.
 
 ## Results shown in `05_attack_analysis.ipynb`
 
