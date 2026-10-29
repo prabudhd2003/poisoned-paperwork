@@ -74,6 +74,30 @@ EXPECTED_SOURCE_EVIDENCE = {
     "verified_git_commit": "fa5934fd6d3a1345da1fd0130998c297ace2e61a",
 }
 RUN_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}\Z")
+GIT_COMMIT_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
+SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
+QWEN_PROCESSOR_REQUIRED_FIELDS = (
+    "precision",
+    "min_pixels",
+    "max_pixels",
+    "max_new_tokens",
+    "do_sample",
+    "batch_size",
+)
+QWEN_PROCESSOR_NUMERIC_FIELDS = (
+    "min_pixels",
+    "max_pixels",
+    "max_new_tokens",
+    "batch_size",
+)
+QWEN_PROCESSOR_NULL_PADDING_FIELDS = (
+    "align_long_axis",
+    "height",
+    "image_mean",
+    "image_std",
+    "max_length",
+    "width",
+)
 
 
 def _now() -> str:
@@ -297,6 +321,97 @@ def _processor_settings(value: Any, record_id: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{record_id}: processor_settings must be an object")
     return value
+
+
+def _canonical_qwen_processor_settings(
+    value: Any, record_id: str, *, source: str
+) -> dict[str, Any]:
+    """Validate and canonicalize only the frozen Qwen processor contract.
+
+    The baseline Parquet contains both Donut and Qwen records.  PyArrow therefore
+    materializes their heterogeneous ``processor_settings`` dictionaries as one
+    union struct and null-pads Qwen rows with six Donut-only fields.  Attack JSON
+    contains only Qwen's six real fields.  Missing and explicit null are
+    equivalent only for those six documented padding fields; no other key or
+    false/null value is discarded.
+    """
+    settings = _processor_settings(value, record_id)
+    required = set(QWEN_PROCESSOR_REQUIRED_FIELDS)
+    padding = set(QWEN_PROCESSOR_NULL_PADDING_FIELDS)
+    keys = set(settings)
+    unknown = sorted(keys - required - padding)
+    if unknown:
+        raise ValueError(
+            f"{record_id}: {source} processor_settings has unknown fields: {unknown}"
+        )
+    missing = sorted(required - keys)
+    if missing:
+        raise ValueError(
+            f"{record_id}: {source} processor_settings is missing required fields: "
+            f"{missing}"
+        )
+    non_null_padding = sorted(
+        field
+        for field in padding & keys
+        if _scalar(settings[field]) is not None
+    )
+    if non_null_padding:
+        raise ValueError(
+            f"{record_id}: {source} processor_settings has non-null padding fields: "
+            f"{non_null_padding}"
+        )
+
+    precision = _scalar(settings["precision"])
+    if not isinstance(precision, str) or not precision:
+        raise ValueError(
+            f"{record_id}: {source} processor_settings precision must be a "
+            "non-empty string"
+        )
+    do_sample = _scalar(settings["do_sample"])
+    if type(do_sample) is not bool:
+        raise ValueError(
+            f"{record_id}: {source} processor_settings do_sample must be boolean"
+        )
+
+    canonical: dict[str, Any] = {
+        "precision": precision,
+        "do_sample": do_sample,
+    }
+    for field in QWEN_PROCESSOR_NUMERIC_FIELDS:
+        number = _scalar(settings[field])
+        if (
+            isinstance(number, bool)
+            or not isinstance(number, (int, float))
+            or not math.isfinite(float(number))
+            or float(number) <= 0
+            or not float(number).is_integer()
+        ):
+            raise ValueError(
+                f"{record_id}: {source} processor_settings {field} must be a "
+                "positive integer-valued number"
+            )
+        canonical[field] = int(number)
+    return {field: canonical[field] for field in QWEN_PROCESSOR_REQUIRED_FIELDS}
+
+
+def _require_matching_qwen_processor_settings(
+    expected: Any, observed: Any, record_id: str
+) -> None:
+    expected_canonical = _canonical_qwen_processor_settings(
+        expected, record_id, source="baseline"
+    )
+    observed_canonical = _canonical_qwen_processor_settings(
+        observed, record_id, source="attack"
+    )
+    changed = [
+        field
+        for field in QWEN_PROCESSOR_REQUIRED_FIELDS
+        if observed_canonical[field] != expected_canonical[field]
+    ]
+    if changed:
+        raise ValueError(
+            f"{record_id}: Qwen processor setting drift in required fields: {changed}"
+        )
 
 
 def _dataset_counts(frame) -> dict[str, int]:
@@ -1001,13 +1116,22 @@ def _require_clean_git(config: dict[str, Any], root: Path) -> None:
         raise RuntimeError("refusing to run Qwen receipt attack from a dirty Git worktree")
 
 
-def _build_provenance(
-    config: dict[str, Any], config_path: Path, root: Path,
-    versions: dict[str, str], paths: dict[str, Path], output: Path,
-) -> dict[str, Any]:
+def _git_head(root: Path) -> str:
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
+    if GIT_COMMIT_PATTERN.fullmatch(commit) is None:
+        raise RuntimeError(f"Git HEAD is not a full lowercase commit SHA: {commit!r}")
+    return commit
+
+
+def _build_attack_provenance(
+    config: dict[str, Any], config_path: Path, root: Path,
+    versions: dict[str, str], paths: dict[str, Path], output: Path, *,
+    attack_git_commit: str,
+) -> dict[str, Any]:
+    if GIT_COMMIT_PATTERN.fullmatch(attack_git_commit) is None:
+        raise ValueError("attack_git_commit must be a full lowercase Git SHA")
     source_evidence = config["source_evidence"]
     return {
         "run_id": config["run_id"],
@@ -1019,7 +1143,7 @@ def _build_provenance(
         "model_revision": config["model_revision"],
         "prompt_id": config["prompt_id"],
         "config_sha256": sha256_file(config_path),
-        "git_commit": commit,
+        "git_commit": attack_git_commit,
         "baseline_config_sha256": config["baseline_config_sha256"],
         "baseline_predictions_sha256": config["baseline_predictions_sha256"],
         "baseline_manifest_sha256": sha256_file(paths["baseline_manifest"]),
@@ -1036,6 +1160,186 @@ def _build_provenance(
         "output_run_root": str(output),
         "environment_hash": sha256_text(json.dumps(versions, sort_keys=True)),
         "target_policy_id": TARGET_POLICY["policy_id"],
+    }
+
+
+def _build_provenance(
+    config: dict[str, Any], config_path: Path, root: Path,
+    versions: dict[str, str], paths: dict[str, Path], output: Path,
+) -> dict[str, Any]:
+    """Build normal run provenance, binding the attack to the current HEAD."""
+    return _build_attack_provenance(
+        config,
+        config_path,
+        root,
+        versions,
+        paths,
+        output,
+        attack_git_commit=_git_head(root),
+    )
+
+
+def _inventory_summary(inventory: dict[str, Any]) -> dict[str, Any]:
+    """Return the deterministic, compact portion of a recovery inventory."""
+    required = {
+        "schema_version",
+        "file_count",
+        "total_bytes",
+        "manifest_sha256",
+        "categories",
+        "entries",
+    }
+    if not isinstance(inventory, dict) or set(inventory) != required:
+        raise ValueError("merge recovery inventory has an invalid schema")
+    if inventory["schema_version"] != 1:
+        raise ValueError("merge recovery inventory schema_version must equal 1")
+    if (
+        type(inventory["file_count"]) is not int
+        or inventory["file_count"] < 1
+        or type(inventory["total_bytes"]) is not int
+        or inventory["total_bytes"] < 0
+        or SHA256_PATTERN.fullmatch(str(inventory["manifest_sha256"])) is None
+        or not isinstance(inventory["categories"], dict)
+        or not isinstance(inventory["entries"], list)
+        or len(inventory["entries"]) != inventory["file_count"]
+    ):
+        raise ValueError("merge recovery inventory summary is invalid")
+    return {
+        "schema_version": 1,
+        "file_count": inventory["file_count"],
+        "total_bytes": inventory["total_bytes"],
+        "manifest_sha256": inventory["manifest_sha256"],
+        "categories": inventory["categories"],
+    }
+
+
+def _inventory_category(relative_path: Path) -> str:
+    parts = relative_path.parts
+    if parts == ("config.json",):
+        return "run_config"
+    if parts and parts[0] == "assignments":
+        return "assignments"
+    if parts and parts[0] == "shards":
+        if "records" in parts:
+            return "records"
+        if "images" in parts:
+            return "images"
+        if "checkpoints" in parts:
+            return "checkpoints"
+        if "failures" in parts:
+            return "failures"
+        if relative_path.name == "WORKER_COMPLETE.json":
+            return "completion_markers"
+        if relative_path.name == "environment.json":
+            return "environments"
+        if relative_path.name == "progress.json":
+            return "progress"
+        return "shard_other"
+    return "run_other"
+
+
+def _regular_files_under_run(output: Path) -> list[Path]:
+    """List immutable merge inputs without following links or merged outputs."""
+    files: list[Path] = []
+    for current, directory_names, file_names in os.walk(output, followlinks=False):
+        current_path = Path(current)
+        kept_directories: list[str] = []
+        for name in sorted(directory_names):
+            path = current_path / name
+            if name == "merged" or name.startswith(".merged.tmp."):
+                continue
+            if path.is_symlink():
+                raise RuntimeError(
+                    f"merge recovery source tree contains a directory symlink: {path}"
+                )
+            kept_directories.append(name)
+        directory_names[:] = kept_directories
+        for name in sorted(file_names):
+            path = current_path / name
+            relative = path.relative_to(output)
+            if relative == Path(".merge.lock"):
+                continue
+            file_stat = path.lstat()
+            if not stat.S_ISREG(file_stat.st_mode):
+                raise RuntimeError(
+                    f"merge recovery source tree contains a non-regular file: {path}"
+                )
+            files.append(path)
+    return sorted(files, key=lambda path: path.relative_to(output).as_posix())
+
+
+def _merge_recovery_inventory(
+    output: Path, paths: dict[str, Path]
+) -> dict[str, Any]:
+    """Hash every run input plus the frozen files used by the strict merge."""
+    output = output.resolve()
+    if not (output / "config.json").is_file():
+        raise FileNotFoundError(f"receipt run config is missing: {output / 'config.json'}")
+
+    entries: list[dict[str, Any]] = []
+    for path in _regular_files_under_run(output):
+        relative = path.relative_to(output)
+        entries.append({
+            "scope": "run",
+            "category": _inventory_category(relative),
+            "path": f"run/{relative.as_posix()}",
+            "source_path": str(path),
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        })
+
+    frozen_keys = (
+        "baseline_config",
+        "baseline_frozen_config",
+        "baseline_predictions",
+        "baseline_manifest",
+        "baseline_summary",
+        "baseline_correct_ids",
+        "baseline_environment",
+        "master_manifest",
+    )
+    for key in frozen_keys:
+        path = paths.get(key)
+        if not isinstance(path, Path) or not path.is_file():
+            raise FileNotFoundError(f"frozen merge input is missing ({key}): {path}")
+        file_stat = path.lstat()
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise RuntimeError(f"frozen merge input is not a regular file ({key}): {path}")
+        entries.append({
+            "scope": "frozen",
+            "category": "frozen_inputs",
+            "path": f"frozen/{key}",
+            "source_path": str(path.resolve()),
+            "size_bytes": file_stat.st_size,
+            "sha256": sha256_file(path),
+        })
+
+    entries.sort(key=lambda entry: (entry["scope"], entry["path"]))
+    canonical_entries = json.dumps(
+        entries, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    categories: dict[str, dict[str, Any]] = {}
+    for category in sorted({str(entry["category"]) for entry in entries}):
+        category_entries = [
+            entry for entry in entries if entry["category"] == category
+        ]
+        categories[category] = {
+            "file_count": len(category_entries),
+            "total_bytes": sum(int(entry["size_bytes"]) for entry in category_entries),
+            "manifest_sha256": sha256_text(json.dumps(
+                category_entries,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )),
+        }
+    return {
+        "schema_version": 1,
+        "file_count": len(entries),
+        "total_bytes": sum(int(entry["size_bytes"]) for entry in entries),
+        "manifest_sha256": sha256_text(canonical_entries),
+        "categories": categories,
+        "entries": entries,
     }
 
 
@@ -1341,7 +1645,39 @@ def _merge_if_complete(
     provenance: dict[str, Any], candidate_counts: dict[str, int],
     usable_counts: dict[str, int],
     record_contracts: dict[str, dict[str, Any]] | Callable[[], dict[str, dict[str, Any]]],
+    merge_recovery: dict[str, Any] | None = None,
+    recovery_inventory: Callable[[], dict[str, Any]] | None = None,
 ) -> bool:
+    if (merge_recovery is None) != (recovery_inventory is None):
+        raise ValueError(
+            "merge_recovery and recovery_inventory must be provided together"
+        )
+    if merge_recovery is not None:
+        required_recovery = {
+            "schema_version",
+            "mode",
+            "attack_git_commit",
+            "attack_config_sha256",
+            "merger_git_commit",
+        }
+        if set(merge_recovery) != required_recovery:
+            raise ValueError(
+                "merge_recovery must contain exactly the recovery provenance fields"
+            )
+        if (
+            merge_recovery["schema_version"] != 1
+            or merge_recovery["mode"] != "qwen_receipt_cpu_merge_recovery_v1"
+            or merge_recovery["attack_git_commit"] != provenance.get("git_commit")
+            or merge_recovery["attack_config_sha256"]
+            != provenance.get("config_sha256")
+            or GIT_COMMIT_PATTERN.fullmatch(
+                str(merge_recovery["merger_git_commit"])
+            )
+            is None
+            or merge_recovery["merger_git_commit"]
+            == merge_recovery["attack_git_commit"]
+        ):
+            raise ValueError("merge_recovery provenance is invalid")
     expected_dataset_keys = set(RECEIPT_DATASETS)
     if set(candidate_counts) != expected_dataset_keys or set(usable_counts) != expected_dataset_keys:
         raise RuntimeError("receipt merge count maps must contain exactly sroie and cord_v2")
@@ -1368,8 +1704,17 @@ def _merge_if_complete(
 
     lock_path = output / ".merge.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("w") as lock:
+    with lock_path.open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        source_artifacts_before: dict[str, Any] | None = None
+        effective_merge_recovery: dict[str, Any] | None = None
+        if recovery_inventory is not None and merge_recovery is not None:
+            source_artifacts_before = recovery_inventory()
+            effective_merge_recovery = {
+                **merge_recovery,
+                "source_artifacts": _inventory_summary(source_artifacts_before),
+                "source_artifacts_unchanged": True,
+            }
         assigned: list[str] = []
         shared_runtime_contract: dict[str, Any] | None = None
         for worker_id, marker_path in enumerate(markers):
@@ -1469,7 +1814,17 @@ def _merge_if_complete(
                 for field, expected_value in contract.items():
                     if field.startswith("_"):
                         continue
-                    if record.get(field) != expected_value:
+                    if field == "processor_settings":
+                        try:
+                            _require_matching_qwen_processor_settings(
+                                expected_value, record.get(field), record_id
+                            )
+                        except ValueError as exc:
+                            raise RuntimeError(
+                                "receipt scientific contract mismatch in "
+                                f"processor_settings: {path}: {exc}"
+                            ) from exc
+                    elif record.get(field) != expected_value:
                         raise RuntimeError(
                             f"receipt scientific contract mismatch in {field}: {path}"
                         )
@@ -1546,6 +1901,7 @@ def _merge_if_complete(
                 and previous.get("usable_counts") == usable_counts
                 and previous.get("runtime_contract") == shared_runtime_contract
                 and all(previous.get(key) == value for key, value in provenance.items())
+                and previous.get("merge_recovery") == effective_merge_recovery
             ):
                 missing_outputs = [
                     name for name in required_outputs if not (final_merged / name).is_file()
@@ -1568,6 +1924,12 @@ def _merge_if_complete(
                     raise RuntimeError(
                         f"matching receipt merge outputs changed: {changed_outputs}"
                     )
+                if recovery_inventory is not None:
+                    source_artifacts_after = recovery_inventory()
+                    if source_artifacts_after != source_artifacts_before:
+                        raise RuntimeError(
+                            "receipt merge recovery source artifacts changed"
+                        )
                 return True
             raise RuntimeError("merged receipt outputs already exist for different inputs")
         if final_merged.exists():
@@ -1653,21 +2015,28 @@ def _merge_if_complete(
             name: sha256_file(merged / name)
             for name in required_outputs
         }
-        atomic_json(
-            merged / "merge_manifest.json",
-            {
-                **provenance,
-                "records": len(records),
-                "unique_documents": len(expected_ids),
-                "candidate_counts": candidate_counts,
-                "usable_counts": usable_counts,
-                "runtime_contract": shared_runtime_contract,
-                "records_fingerprint": fingerprint,
-                "expected_ids_sha256": sha256_text("".join(f"{value}\n" for value in sorted(expected_ids))),
-                "output_sha256": output_hashes,
-                "merged_at": _now(),
-            },
-        )
+        if recovery_inventory is not None:
+            source_artifacts_after = recovery_inventory()
+            if source_artifacts_after != source_artifacts_before:
+                raise RuntimeError("receipt merge recovery source artifacts changed")
+
+        merge_manifest = {
+            **provenance,
+            "records": len(records),
+            "unique_documents": len(expected_ids),
+            "candidate_counts": candidate_counts,
+            "usable_counts": usable_counts,
+            "runtime_contract": shared_runtime_contract,
+            "records_fingerprint": fingerprint,
+            "expected_ids_sha256": sha256_text(
+                "".join(f"{value}\n" for value in sorted(expected_ids))
+            ),
+            "output_sha256": output_hashes,
+            "merged_at": _now(),
+        }
+        if effective_merge_recovery is not None:
+            merge_manifest["merge_recovery"] = effective_merge_recovery
+        atomic_json(merged / "merge_manifest.json", merge_manifest)
         os.replace(merged, final_merged)
         return True
 
@@ -1709,6 +2078,343 @@ def merge_if_complete(
             ),
         ),
     )
+
+
+def _validate_merge_recovery_identity(
+    *,
+    config_path: Path,
+    root: Path,
+    output: Path,
+    expected_attack_git_commit: str,
+    expected_config_sha256: str,
+    expected_merger_git_commit: str,
+) -> dict[str, Any]:
+    """Bind old attack artifacts and a new merge implementation without spoofing."""
+    if GIT_COMMIT_PATTERN.fullmatch(expected_attack_git_commit) is None:
+        raise ValueError("expected attack Git commit must be a full lowercase SHA")
+    if GIT_COMMIT_PATTERN.fullmatch(expected_merger_git_commit) is None:
+        raise ValueError("expected merger Git commit must be a full lowercase SHA")
+    if SHA256_PATTERN.fullmatch(expected_config_sha256) is None:
+        raise ValueError("expected config SHA-256 must be lowercase hexadecimal")
+    if expected_attack_git_commit == expected_merger_git_commit:
+        raise ValueError("merge recovery commit must differ from the attack commit")
+
+    root = root.resolve()
+    config_path = config_path.resolve()
+    repository = Path(subprocess.check_output(
+        ["git", "rev-parse", "--show-toplevel"], cwd=root, text=True
+    ).strip()).resolve()
+    if repository != root:
+        raise RuntimeError(f"recovery root is not the Git toplevel: {root}")
+    relative_config = config_path.relative_to(root).as_posix()
+    if relative_config != "configs/qwen_attack/receipt_active.json":
+        raise ValueError(
+            "merge recovery requires configs/qwen_attack/receipt_active.json"
+        )
+    status = subprocess.check_output(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=root,
+        text=True,
+    )
+    if status.strip():
+        raise RuntimeError("merge recovery requires a clean Git worktree")
+    observed_merger = _git_head(root)
+    if observed_merger != expected_merger_git_commit:
+        raise RuntimeError(
+            "merge recovery checkout HEAD differs from expected merger commit: "
+            f"{observed_merger} != {expected_merger_git_commit}"
+        )
+
+    try:
+        observed_attack = subprocess.check_output(
+            ["git", "rev-parse", "--verify", f"{expected_attack_git_commit}^{{commit}}"],
+            cwd=root,
+            text=True,
+            stderr=subprocess.STDOUT,
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError("original attack Git commit is unavailable") from exc
+    if observed_attack != expected_attack_git_commit:
+        raise RuntimeError("original attack Git commit did not resolve exactly")
+    ancestry = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            expected_attack_git_commit,
+            expected_merger_git_commit,
+        ],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if ancestry.returncode == 1:
+        raise RuntimeError("original attack commit is not an ancestor of merger commit")
+    if ancestry.returncode != 0:
+        raise RuntimeError(
+            "could not verify attack/merger Git ancestry: "
+            f"{ancestry.stderr.strip()}"
+        )
+
+    attack_config = subprocess.check_output(
+        ["git", "show", f"{expected_attack_git_commit}:{relative_config}"],
+        cwd=root,
+    )
+    current_config = config_path.read_bytes()
+    run_config_path = output / "config.json"
+    if not run_config_path.is_file():
+        raise FileNotFoundError(f"existing receipt run config is missing: {run_config_path}")
+    run_config = run_config_path.read_bytes()
+    hashes = {
+        "attack_commit_config": sha256_bytes(attack_config),
+        "merger_checkout_config": sha256_bytes(current_config),
+        "existing_run_config": sha256_bytes(run_config),
+    }
+    if any(value != expected_config_sha256 for value in hashes.values()):
+        raise RuntimeError(
+            "attack, merger-checkout, and existing-run config hashes must all equal "
+            f"{expected_config_sha256}; observed {hashes}"
+        )
+    if attack_config != current_config or current_config != run_config:
+        raise RuntimeError(
+            "attack, merger-checkout, and existing-run config bytes differ"
+        )
+    return {
+        "schema_version": 1,
+        "attack_git_commit": expected_attack_git_commit,
+        "merger_git_commit": expected_merger_git_commit,
+        "config_relative_path": relative_config,
+        "config_sha256": expected_config_sha256,
+        "config_hashes": hashes,
+        "config_bytes_match_exactly": True,
+        "attack_is_ancestor_of_merger": True,
+    }
+
+
+def _validate_recovery_evidence_path(
+    evidence_dir: Path,
+    *,
+    root: Path,
+    shared_root: Path,
+    output: Path,
+) -> Path:
+    evidence_dir = evidence_dir.expanduser().resolve()
+    if evidence_dir.exists():
+        raise FileExistsError(f"recovery evidence directory already exists: {evidence_dir}")
+    if not evidence_dir.parent.is_dir():
+        raise FileNotFoundError(
+            f"recovery evidence parent directory does not exist: {evidence_dir.parent}"
+        )
+    for label, protected in (
+        ("recovery checkout", root),
+        ("frozen artifact root", shared_root),
+        ("receipt run", output),
+    ):
+        protected = protected.resolve()
+        if (
+            evidence_dir == protected
+            or evidence_dir.is_relative_to(protected)
+            or protected.is_relative_to(evidence_dir)
+        ):
+            raise ValueError(
+                f"recovery evidence directory must be separate from {label}: "
+                f"{evidence_dir}"
+            )
+    return evidence_dir
+
+
+def _require_recovery_implementation_root(root: Path) -> None:
+    """Prevent a config checkout from being credited for code imported elsewhere."""
+    implementation_root = Path(__file__).resolve().parents[2]
+    if root.resolve() != implementation_root:
+        raise RuntimeError(
+            "merge recovery config and implementation must come from the same "
+            f"checkout: config_root={root.resolve()} "
+            f"implementation_root={implementation_root}"
+        )
+
+
+def recover_merge_if_complete(
+    config: dict[str, Any],
+    config_path: str | Path,
+    *,
+    expected_attack_git_commit: str,
+    expected_config_sha256: str,
+    expected_merger_git_commit: str,
+    evidence_dir: str | Path,
+    num_workers: int = 5,
+) -> dict[str, Any]:
+    """Strictly merge an existing validation run from a CPU-only recovery checkout."""
+    _validate_attack_config(config)
+    if config.get("mode") != "validation":
+        raise ValueError("merge recovery supports only receipt validation runs")
+    if num_workers != 5:
+        raise ValueError("receipt validation merge recovery requires num_workers=5")
+    config_path = Path(config_path).resolve()
+    root = Path(subprocess.check_output(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=config_path.parent,
+        text=True,
+    ).strip()).resolve()
+    _require_recovery_implementation_root(root)
+
+    _, selected, paths = _load_plan(config, root)
+    versions = _runtime_versions()
+    _validate_environment(versions, paths["baseline_environment"])
+    output = resolve_output_root(
+        config, root, shared_root=paths["shared_artifact_root"]
+    )
+    identity = _validate_merge_recovery_identity(
+        config_path=config_path,
+        root=root,
+        output=output,
+        expected_attack_git_commit=expected_attack_git_commit,
+        expected_config_sha256=expected_config_sha256,
+        expected_merger_git_commit=expected_merger_git_commit,
+    )
+    evidence_path = _validate_recovery_evidence_path(
+        Path(evidence_dir),
+        root=root,
+        shared_root=paths["shared_artifact_root"],
+        output=output,
+    )
+    provenance = _build_attack_provenance(
+        config,
+        config_path,
+        root,
+        versions,
+        paths,
+        output,
+        attack_git_commit=expected_attack_git_commit,
+    )
+    if provenance["config_sha256"] != expected_config_sha256:
+        raise RuntimeError("constructed attack provenance has the wrong config hash")
+
+    evidence_path.mkdir(mode=0o2770)
+    request_path = evidence_path / "recovery_request.json"
+    atomic_json(request_path, {
+        "schema_version": 1,
+        "verification": "qwen_receipt_cpu_merge_recovery_v1",
+        "status": "started",
+        "run_id": config["run_id"],
+        "attack_identity": identity,
+        "receipt_run": str(output),
+        "requested_at": _now(),
+    })
+
+    inventories: list[dict[str, Any]] = []
+
+    def capture_inventory() -> dict[str, Any]:
+        inventory = _merge_recovery_inventory(output, paths)
+        inventories.append(inventory)
+        return inventory
+
+    recovery_provenance = {
+        "schema_version": 1,
+        "mode": "qwen_receipt_cpu_merge_recovery_v1",
+        "attack_git_commit": expected_attack_git_commit,
+        "attack_config_sha256": expected_config_sha256,
+        "merger_git_commit": expected_merger_git_commit,
+    }
+    completed = _merge_if_complete(
+        output,
+        expected_ids=set(selected.index),
+        epsilons=config["attack"]["epsilons_255"],
+        num_workers=num_workers,
+        provenance=provenance,
+        candidate_counts=_dataset_counts(selected),
+        usable_counts=dict(EXPECTED_USABLE_COUNTS),
+        record_contracts=lambda: _record_contracts(
+            selected,
+            config,
+            _load_processed_rows(
+                paths["processed_data_root"], config["split"], set(selected.index)
+            ),
+        ),
+        merge_recovery=recovery_provenance,
+        recovery_inventory=capture_inventory,
+    )
+    if not completed:
+        raise RuntimeError("not all receipt worker completion markers exist")
+    capture_inventory()
+    if len(inventories) < 3 or inventories[0] != inventories[-1]:
+        raise RuntimeError("merge recovery did not prove source-artifact immutability")
+
+    merged = output / "merged"
+    manifest_path = merged / "merge_manifest.json"
+    manifest = _read_json(manifest_path)
+    expected_recovery = {
+        **recovery_provenance,
+        "source_artifacts": _inventory_summary(inventories[0]),
+        "source_artifacts_unchanged": True,
+    }
+    if manifest.get("git_commit") != expected_attack_git_commit:
+        raise RuntimeError("merged manifest lost the original attack Git provenance")
+    if manifest.get("merge_recovery") != expected_recovery:
+        raise RuntimeError("merged manifest recovery provenance is incomplete")
+
+    before_path = evidence_path / "source_artifacts.before.json"
+    after_path = evidence_path / "source_artifacts.after.json"
+    atomic_json(before_path, inventories[0])
+    atomic_json(after_path, inventories[-1])
+    evidence_hashes = {
+        request_path.name: sha256_file(request_path),
+        before_path.name: sha256_file(before_path),
+        after_path.name: sha256_file(after_path),
+    }
+    report = {
+        "schema_version": 1,
+        "verification": "qwen_receipt_cpu_merge_recovery_v1",
+        "status": "pass",
+        "run_id": config["run_id"],
+        "attack_identity": identity,
+        "runtime_versions": versions,
+        "paths": {
+            "recovery_checkout": str(root),
+            "receipt_run": str(output),
+            "frozen_artifact_root": str(paths["shared_artifact_root"]),
+            "merged": str(merged),
+        },
+        "source_artifacts": {
+            "before": _inventory_summary(inventories[0]),
+            "after": _inventory_summary(inventories[-1]),
+            "unchanged": True,
+        },
+        "merge": {
+            "manifest_sha256": sha256_file(manifest_path),
+            "records": manifest.get("records"),
+            "unique_documents": manifest.get("unique_documents"),
+            "output_sha256": manifest.get("output_sha256"),
+            "records_fingerprint": manifest.get("records_fingerprint"),
+            "expected_ids_sha256": manifest.get("expected_ids_sha256"),
+            "attack_git_commit": manifest.get("git_commit"),
+            "merger_git_commit": expected_merger_git_commit,
+        },
+        "evidence_sha256": evidence_hashes,
+        "completed_at": _now(),
+    }
+    report_path = evidence_path / "recovery_report.json"
+    atomic_json(report_path, report)
+    report_sha256 = sha256_file(report_path)
+    atomic_text(
+        evidence_path / "recovery_report.sha256",
+        f"{report_sha256}  {report_path.name}\n",
+    )
+    return {
+        "status": "pass",
+        "run_id": config["run_id"],
+        "attack_git_commit": expected_attack_git_commit,
+        "merger_git_commit": expected_merger_git_commit,
+        "config_sha256": expected_config_sha256,
+        "source_artifacts_sha256": inventories[0]["manifest_sha256"],
+        "source_artifacts_unchanged": True,
+        "merge_manifest": str(manifest_path),
+        "merge_manifest_sha256": sha256_file(manifest_path),
+        "evidence_dir": str(evidence_path),
+        "recovery_report": str(report_path),
+        "recovery_report_sha256": report_sha256,
+    }
 
 
 def _load_processed_rows(

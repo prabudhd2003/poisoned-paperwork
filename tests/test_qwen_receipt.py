@@ -1255,6 +1255,127 @@ class ReceiptStorageAndLauncherTests(unittest.TestCase):
         )
         self.assertIn("os.umask(0o002)", merge_script)
 
+    def test_receipt_merge_recovery_launcher_is_cpu_only_and_explicit(self):
+        script = ROOT / "scripts/recover_qwen_receipt_merge.py"
+        source = script.read_text(encoding="utf-8")
+        compile(source, str(script), "exec")
+        result = subprocess.run(
+            [sys.executable, str(script), "--help"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        for option in (
+            "--expected-attack-git-commit",
+            "--expected-config-sha256",
+            "--expected-merger-git-commit",
+            "--evidence-dir",
+            "--num-workers",
+        ):
+            self.assertIn(option, result.stdout)
+        self.assertIn("CPU-only merge recovery", source)
+        self.assertIn("recover_merge_if_complete", source)
+        self.assertIn("os.umask(0o002)", source)
+        self.assertNotIn("sbatch", source)
+        self.assertNotIn("QwenVLWrapper", source)
+
+
+class ReceiptProcessorSettingsRecoveryTests(unittest.TestCase):
+    @staticmethod
+    def _attack_settings() -> dict:
+        return {
+            "precision": MODEL["precision"],
+            "min_pixels": MODEL["min_pixels"],
+            "max_pixels": MODEL["max_pixels"],
+            "max_new_tokens": MODEL["max_new_tokens"],
+            "do_sample": False,
+            "batch_size": 1,
+        }
+
+    def _parquet_padded_qwen_settings(self, root: Path) -> dict:
+        path = root / "mixed-baseline.parquet"
+        donut_settings = {
+            "precision": "float32",
+            "height": 1280,
+            "width": 960,
+            "align_long_axis": False,
+            "image_mean": [0.485, 0.456, 0.406],
+            "image_std": [0.229, 0.224, 0.225],
+            "max_length": 512,
+        }
+        pd.DataFrame([
+            {"model_key": "donut", "processor_settings": donut_settings},
+            {"model_key": "qwen", "processor_settings": self._attack_settings()},
+        ]).to_parquet(path, index=False)
+        restored = pd.read_parquet(path)
+        return dict(
+            restored.loc[restored.model_key.eq("qwen"), "processor_settings"].iloc[0]
+        )
+
+    def test_mixed_parquet_null_padding_and_integer_valued_floats_are_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            padded = self._parquet_padded_qwen_settings(Path(directory))
+
+        self.assertEqual(
+            set(padded),
+            set(qwen_attack_receipt.QWEN_PROCESSOR_REQUIRED_FIELDS)
+            | set(qwen_attack_receipt.QWEN_PROCESSOR_NULL_PADDING_FIELDS),
+        )
+        for field in qwen_attack_receipt.QWEN_PROCESSOR_NULL_PADDING_FIELDS:
+            self.assertIsNone(padded[field])
+        for field in ("min_pixels", "max_pixels", "max_new_tokens", "batch_size"):
+            self.assertIsInstance(padded[field], float)
+        qwen_attack_receipt._require_matching_qwen_processor_settings(
+            padded,
+            self._attack_settings(),
+            "sroie/validation/observed",
+        )
+        qwen_attack_receipt._require_matching_qwen_processor_settings(
+            self._attack_settings(),
+            padded,
+            "sroie/validation/observed",
+        )
+
+    def test_required_qwen_processor_setting_drift_is_rejected(self):
+        required = self._attack_settings()
+        cases = {
+            "changed value": ({**required, "max_new_tokens": 64}, "setting drift"),
+            "missing required": (
+                {key: value for key, value in required.items() if key != "batch_size"},
+                "missing required fields",
+            ),
+            "null required": ({**required, "batch_size": None}, "positive integer"),
+            "unknown null": ({**required, "future_setting": None}, "unknown fields"),
+            "unknown false": ({**required, "future_setting": False}, "unknown fields"),
+            "non-null padding": ({**required, "width": 960}, "non-null padding"),
+            "boolean as number": ({**required, "max_pixels": True}, "positive integer"),
+            "number as boolean": ({**required, "do_sample": 0}, "must be boolean"),
+            "numeric string": ({**required, "min_pixels": "200704"}, "positive integer"),
+            "fractional number": ({**required, "batch_size": 1.5}, "positive integer"),
+        }
+        for name, (observed, message) in cases.items():
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, message):
+                qwen_attack_receipt._require_matching_qwen_processor_settings(
+                    required,
+                    observed,
+                    "cord_v2/validation/negative",
+                )
+
+    def test_baseline_unknown_and_non_null_padding_are_also_rejected(self):
+        required = self._attack_settings()
+        cases = (
+            ({**required, "future_setting": None}, "unknown fields"),
+            ({**required, "height": 1280}, "non-null padding"),
+            ({**required, "precision": None}, "non-empty string"),
+        )
+        for baseline, message in cases:
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                qwen_attack_receipt._require_matching_qwen_processor_settings(
+                    baseline,
+                    required,
+                    "sroie/validation/baseline-negative",
+                )
+
 
 class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
     provenance = {
@@ -1514,6 +1635,36 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
         marker_path.write_text(json.dumps(marker), encoding="utf-8")
         return output, ids
 
+    @staticmethod
+    def _inventory_paths(root: Path, output: Path) -> dict[str, Path]:
+        (output / "config.json").write_text(
+            '{"run_id":"receipt-smoke-test"}\n', encoding="utf-8"
+        )
+        checkpoint = output / "shards/worker_00/checkpoints/state.json"
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint.write_text('{"step":10}\n', encoding="utf-8")
+        (output / "shards/worker_00/progress.json").write_text(
+            '{"records":2}\n', encoding="utf-8"
+        )
+
+        frozen = root / "frozen"
+        frozen.mkdir()
+        paths: dict[str, Path] = {}
+        for index, key in enumerate((
+            "baseline_config",
+            "baseline_frozen_config",
+            "baseline_predictions",
+            "baseline_manifest",
+            "baseline_summary",
+            "baseline_correct_ids",
+            "baseline_environment",
+            "master_manifest",
+        )):
+            path = frozen / f"{index:02d}-{key}.artifact"
+            path.write_text(f"{key}\n", encoding="utf-8")
+            paths[key] = path
+        return paths
+
     def test_saved_record_validation_and_tamper_rejection(self):
         with tempfile.TemporaryDirectory() as directory:
             output, ids = self._complete_output(Path(directory))
@@ -1581,6 +1732,158 @@ class ReceiptSavedRecordAndMergeTests(unittest.TestCase):
                     candidate_counts={"sroie": 1, "cord_v2": 1},
                     usable_counts={"sroie": 2, "cord_v2": 4},
                     record_contracts=self._contracts(ids),
+                )
+
+    def test_strict_merge_accepts_only_observed_qwen_null_padding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            padded = (
+                ReceiptProcessorSettingsRecoveryTests()
+                ._parquet_padded_qwen_settings(root)
+            )
+            output, ids = self._complete_output(root)
+            contracts = self._contracts(ids)
+            for contract in contracts.values():
+                contract["processor_settings"] = copy.deepcopy(padded)
+            self.assertTrue(qwen_attack_receipt._merge_if_complete(
+                output,
+                expected_ids=ids,
+                epsilons=[8],
+                num_workers=1,
+                provenance=dict(self.provenance),
+                candidate_counts={"sroie": 1, "cord_v2": 1},
+                usable_counts={"sroie": 2, "cord_v2": 4},
+                record_contracts=contracts,
+            ))
+
+    def test_strict_merge_still_rejects_real_processor_setting_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, ids = self._complete_output(Path(directory))
+            record_id = "sroie/validation/sroie-000"
+            key = qwen_attack_receipt._record_key(record_id, 8, 566)
+            record_path = output / "shards/worker_00/records" / f"{key}.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record["processor_settings"]["max_new_tokens"] = 64
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "processor_settings.*drift"):
+                qwen_attack_receipt._merge_if_complete(
+                    output,
+                    expected_ids=ids,
+                    epsilons=[8],
+                    num_workers=1,
+                    provenance=dict(self.provenance),
+                    candidate_counts={"sroie": 1, "cord_v2": 1},
+                    usable_counts={"sroie": 2, "cord_v2": 4},
+                    record_contracts=self._contracts(ids),
+                )
+
+    def test_recovery_inventory_and_manifest_are_stable_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output, ids = self._complete_output(root)
+            paths = self._inventory_paths(root, output)
+            before = qwen_attack_receipt._merge_recovery_inventory(output, paths)
+            categories = before["categories"]
+            for category in (
+                "run_config",
+                "assignments",
+                "records",
+                "images",
+                "checkpoints",
+                "completion_markers",
+                "environments",
+                "progress",
+                "frozen_inputs",
+            ):
+                self.assertIn(category, categories)
+            self.assertEqual(categories["frozen_inputs"]["file_count"], 8)
+            self.assertNotIn(
+                "run/.merge.lock",
+                {entry["path"] for entry in before["entries"]},
+            )
+
+            snapshots = []
+
+            def inventory():
+                value = qwen_attack_receipt._merge_recovery_inventory(output, paths)
+                snapshots.append(copy.deepcopy(value))
+                return value
+
+            recovery = {
+                "schema_version": 1,
+                "mode": "qwen_receipt_cpu_merge_recovery_v1",
+                "attack_git_commit": self.provenance["git_commit"],
+                "attack_config_sha256": self.provenance["config_sha256"],
+                "merger_git_commit": "e" * 40,
+            }
+            arguments = {
+                "expected_ids": ids,
+                "epsilons": [8],
+                "num_workers": 1,
+                "provenance": dict(self.provenance),
+                "candidate_counts": {"sroie": 1, "cord_v2": 1},
+                "usable_counts": {"sroie": 2, "cord_v2": 4},
+                "record_contracts": self._contracts(ids),
+                "merge_recovery": recovery,
+                "recovery_inventory": inventory,
+            }
+            self.assertTrue(qwen_attack_receipt._merge_if_complete(output, **arguments))
+            self.assertTrue(qwen_attack_receipt._merge_if_complete(output, **arguments))
+            self.assertEqual(len(snapshots), 4)
+            self.assertTrue(all(snapshot == before for snapshot in snapshots))
+
+            manifest = json.loads(
+                (output / "merged/merge_manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(manifest["git_commit"], self.provenance["git_commit"])
+            self.assertEqual(
+                manifest["merge_recovery"]["merger_git_commit"],
+                recovery["merger_git_commit"],
+            )
+            self.assertTrue(manifest["merge_recovery"]["source_artifacts_unchanged"])
+            self.assertEqual(
+                manifest["merge_recovery"]["source_artifacts"],
+                qwen_attack_receipt._inventory_summary(before),
+            )
+            self.assertEqual(
+                qwen_attack_receipt._merge_recovery_inventory(output, paths),
+                before,
+            )
+
+    def test_recovery_merge_rejects_changed_before_after_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output, ids = self._complete_output(root)
+            paths = self._inventory_paths(root, output)
+            baseline = qwen_attack_receipt._merge_recovery_inventory(output, paths)
+            calls = 0
+
+            def changing_inventory():
+                nonlocal calls
+                calls += 1
+                result = copy.deepcopy(baseline)
+                if calls > 1:
+                    result["manifest_sha256"] = "0" * 64
+                return result
+
+            with self.assertRaisesRegex(RuntimeError, "source artifacts changed"):
+                qwen_attack_receipt._merge_if_complete(
+                    output,
+                    expected_ids=ids,
+                    epsilons=[8],
+                    num_workers=1,
+                    provenance=dict(self.provenance),
+                    candidate_counts={"sroie": 1, "cord_v2": 1},
+                    usable_counts={"sroie": 2, "cord_v2": 4},
+                    record_contracts=self._contracts(ids),
+                    merge_recovery={
+                        "schema_version": 1,
+                        "mode": "qwen_receipt_cpu_merge_recovery_v1",
+                        "attack_git_commit": self.provenance["git_commit"],
+                        "attack_config_sha256": self.provenance["config_sha256"],
+                        "merger_git_commit": "e" * 40,
+                    },
+                    recovery_inventory=changing_inventory,
                 )
 
     def test_merge_rejects_tampered_deterministic_manifest_fields(self):
