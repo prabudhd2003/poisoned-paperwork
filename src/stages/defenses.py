@@ -11,7 +11,7 @@ from typing import Any
 from PIL import Image
 
 from checkpoints import atomic_json, sha256_file, sha256_text
-from defenses import evaluate_defense
+from defenses import evaluate_defense, evaluate_semantic_consistency
 from experiment_utils import (
     initialize_run, load_collected_image, load_collected_manifest,
     merge_json_records, repo_root_from_config, write_worker_complete,
@@ -19,7 +19,7 @@ from experiment_utils import (
 from normalization import normalize_receipt_total, normalize_resume_degree
 
 
-DEFENSE_IDS = ("none", "jpeg", "resize_vote", "selective_multiview")
+DEFENSE_IDS = ("jpeg", "resize_vote", "selective_multiview", "semantic_consistency")
 
 
 def _scalar(value: Any):
@@ -30,6 +30,19 @@ def _scalar(value: Any):
     if isinstance(value, float) and value != value:
         return None
     return value
+
+
+def _source_attack_success(row) -> bool | None:
+    for field in (
+        "saved_image_success",
+        "targeted_success_reloaded",
+        "reloaded_success",
+        "attack_success",
+    ):
+        value = _scalar(row.get(field))
+        if value is not None:
+            return bool(value)
+    return None
 
 
 def validate_config(config: dict[str, Any]) -> None:
@@ -48,6 +61,24 @@ def validate_config(config: dict[str, Any]) -> None:
     transforms = settings.get("multiview_transforms", [])
     if len(transforms) < 5 or "identity" not in transforms:
         raise ValueError("selective multiview needs identity plus at least four transformations")
+    semantic_transforms = settings.get("semantic_transforms", [])
+    semantic_prompts = config.get("semantic_prompts", {})
+    if len(semantic_transforms) < 3:
+        raise ValueError("semantic consistency needs at least three visual transforms")
+    for task in ("receipt", "resume"):
+        prompts = semantic_prompts.get(task, [])
+        if len(prompts) != len(semantic_transforms):
+            raise ValueError(
+                f"semantic {task} prompts must match semantic_transforms length"
+            )
+        if any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts):
+            raise ValueError(f"semantic {task} prompts must be nonempty strings")
+    minimum = int(settings.get("semantic_minimum_votes", 0))
+    if not 1 <= minimum <= len(semantic_transforms):
+        raise ValueError("invalid semantic_minimum_votes")
+    attack_epsilons = [int(value) for value in config.get("attack_epsilons_255", [])]
+    if not attack_epsilons or any(value < 0 or value > 255 for value in attack_epsilons):
+        raise ValueError("attack_epsilons_255 must contain valid pixel budgets")
     adaptive = config.get("adaptive", {})
     if adaptive.get("enabled"):
         if not adaptive.get("epsilons_255"):
@@ -86,7 +117,11 @@ def _parse_images(value: Any) -> list[str]:
 
 def _resolve_image(path: str, root: Path, source_root: Path) -> Path:
     candidate = Path(path)
-    choices = [candidate] if candidate.is_absolute() else [source_root / candidate, root / candidate]
+    choices = [candidate] if candidate.is_absolute() else [
+        source_root / candidate,
+        root / candidate,
+        *(parent / candidate for parent in list(source_root.parents)[:5]),
+    ]
     for choice in choices:
         if choice.is_file():
             return choice
@@ -125,6 +160,16 @@ def _load_attack_sources(root: Path, config: dict[str, Any]):
         return sha256_text(f"{row.source_name}|{row.record_id}|{row.epsilon_255}")
 
     combined["source_experiment_key"] = combined.apply(source_key, axis=1)
+    configured_epsilons = config.get("attack_epsilons_255")
+    if configured_epsilons is not None:
+        attack_epsilons = {float(value) for value in configured_epsilons}
+        combined = combined.loc[
+            combined["epsilon_255"].astype(float).isin(attack_epsilons)
+        ].copy()
+        if combined.empty:
+            raise RuntimeError(
+                f"no attack records remain at frozen epsilons {sorted(attack_epsilons)}"
+            )
     per_dataset = config.get("study_documents_per_dataset")
     if per_dataset is not None:
         limit = int(per_dataset)
@@ -199,11 +244,23 @@ def _defense_record(
         prompt = config["prompts"][
             "resume" if dataset == "resume_parsing_vision" else "receipt"
         ]
-    result, views = evaluate_defense(
-        pages=pages, defense_id=defense_id, record_id=str(row["record_id"]),
-        predict=lambda value: wrapper.predict(value, prompt),
-        normalize=normalize, config=config["defense"],
-    )
+    if defense_id == "semantic_consistency":
+        task = "resume" if dataset == "resume_parsing_vision" else "receipt"
+        result, views = evaluate_semantic_consistency(
+            pages=pages,
+            record_id=str(row["record_id"]),
+            predict=lambda value, semantic_prompt: wrapper.predict(value, semantic_prompt),
+            normalize=normalize,
+            transforms=config["defense"]["semantic_transforms"],
+            prompts=config["semantic_prompts"][task],
+            minimum_votes=int(config["defense"]["semantic_minimum_votes"]),
+        )
+    else:
+        result, views = evaluate_defense(
+            pages=pages, defense_id=defense_id, record_id=str(row["record_id"]),
+            predict=lambda value: wrapper.predict(value, prompt),
+            normalize=normalize, config=config["defense"],
+        )
     saved = _save_views(audit_root, views) if audit_root is not None else {}
     clean_target, attack_target = str(row["clean_target"]), str(row["attack_target"])
     return {
@@ -213,6 +270,7 @@ def _defense_record(
         "example_type": example_type, "source_name": str(row.get("source_name", "clean")),
         "source_experiment_key": str(row.get("source_experiment_key", "clean")),
         "epsilon_255": _scalar(row.get("epsilon_255")), "defense_id": defense_id,
+        "source_attack_success": _source_attack_success(row),
         "clean_target": clean_target, "attack_target": attack_target,
         "final_prediction": result.final_prediction,
         "clean_correct": result.final_prediction == clean_target,
@@ -385,11 +443,40 @@ def _summarize(output: Path) -> None:
         median_runtime_seconds=("runtime_seconds", "median"),
         mean_extra_passes=("additional_vlm_passes", "mean"),
     ).reset_index()
+    source_control = frame.loc[
+        frame.example_type.eq("non_adaptive_attack")
+    ].drop_duplicates("source_experiment_key").groupby(
+        ["dataset_name", "epsilon_255"], dropna=False
+    ).agg(
+        attempts=("source_experiment_key", "size"),
+        original_targeted_successes=("source_attack_success", "sum"),
+        original_asr=("source_attack_success", "mean"),
+    ).reset_index()
+    successful_sources = frame.loc[
+        frame.example_type.eq("non_adaptive_attack")
+        & frame.source_attack_success.eq(True)
+    ]
+    recovery = successful_sources.groupby(
+        ["dataset_name", "defense_id", "epsilon_255"], dropna=False
+    ).agg(
+        originally_successful=("experiment_key", "size"),
+        remaining_target_success=("adversarial_target_success", "sum"),
+        abstention_rate=("abstained", "mean"),
+    ).reset_index()
+    if not recovery.empty:
+        recovery["recovery_rate"] = 1 - (
+            recovery["remaining_target_success"] / recovery["originally_successful"]
+        )
     atomic_json(output / "merged" / "defense_summary.json", {
         "groups": json.loads(groups.to_json(orient="records")),
+        "saved_no_defense_control": json.loads(source_control.to_json(orient="records")),
+        "originally_successful_attack_recovery": json.loads(
+            recovery.to_json(orient="records")
+        ),
         "novel_contribution": (
-            "Selective multi-view consistency jointly reports robustness, clean coverage, "
-            "answer stability, abstention, and compute cost."
+            "Cross-view and cross-prompt semantic consistency extends selective visual "
+            "consistency while jointly reporting robustness, clean coverage, answer "
+            "stability, abstention, and compute cost."
         ),
     })
 

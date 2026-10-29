@@ -4,15 +4,32 @@
   "ready_for_production": false,
   "seed": 566,
   "require_clean_git": true,
-  "study_documents_per_dataset": 20,
-  "defense_ids": ["none", "jpeg", "resize_vote", "selective_multiview"],
+  "study_documents_per_dataset": null,
+  "attack_epsilons_255": [4, 8, 16],
+  "defense_ids": ["jpeg", "resize_vote", "selective_multiview", "semantic_consistency"],
   "prompts": {
     "receipt": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
     "resume": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
   },
+  "semantic_prompts": {
+    "receipt": [
+      "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+      "Return the grand total that the customer ultimately paid. Output only the numeric amount.",
+      "Identify the final payable amount on this receipt, excluding subtotal and individual tax lines. Return only the amount.",
+      "What amount is labeled as the receipt's total, balance due, or amount paid? Return only the numeric amount.",
+      "Read the complete receipt and provide its final transaction total. Output only the amount."
+    ],
+    "resume": [
+      "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+      "Classify the highest formal education level stated in this resume. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+      "Using only the education section, return the candidate's highest degree category from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+      "Ignore job titles and classify the highest completed or stated academic degree. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+      "Read the full resume and identify its highest education level. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+    ]
+  },
   "attack_sources": [
-    {"name": "qwen_resume", "records": "outputs/qwen_attack/qwen_resume_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
-    {"name": "qwen_receipt", "records": "outputs/qwen_attack/qwen_receipt_validation_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_resume", "records": "outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
+    {"name": "qwen_receipt", "records": "outputs/qwen_attack/qwen_receipt_validation_v1/merged/attacks.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"},
     {"name": "qwen_collected", "records": "outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"}
   ],
   "collected_manifest_contract": {"manifest": "data/processed/collected_receipts/manifest.csv", "manifest_sha256": "REPLACE_AFTER_FREEZE", "expected_documents": 100},
@@ -22,7 +39,9 @@
     "jpeg_quality": 85,
     "resize_votes": 5,
     "multiview_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
-    "multiview_minimum_votes": 3
+    "multiview_minimum_votes": 3,
+    "semantic_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+    "semantic_minimum_votes": 3
   },
   "audit_documents_per_worker": 3,
   "adaptive": {

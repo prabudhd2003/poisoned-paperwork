@@ -124,6 +124,45 @@ its output never modifies an attack.
 
 ## 6. Defenses and adaptive evaluation
 
+### 6a. Full public-Qwen defense evaluation
+
+This is the frozen final protocol for SROIE, CORD v2, and resumes. It uses all
+clean-correct documents and every saved Qwen attack at epsilon 4, 8, and 16.
+Epsilon 2 remains in the attack study as a negative control, but is not sent
+through the expensive defense ensembles because it produced zero targeted
+successes on every public dataset.
+
+```bash
+RESUME=outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet
+RECEIPT=/project2/yzhao010_1531/qwen-receipt-runs/qwen_attack/qwen_receipt_validation_v1/merged/attacks.parquet
+
+python scripts/prepare_stage_config.py defenses_public \
+  --source resume="$RESUME" \
+  --source receipt="$RECEIPT" \
+  --output outputs/runtime_configs/defenses_qwen_public_final_v1.json
+
+for USER in user1 user2 user3 user4 user5; do
+  bash scripts/submit_stage.sh defenses "$USER" \
+    outputs/runtime_configs/defenses_qwen_public_final_v1.json
+done
+
+python scripts/stage_status.py defenses defenses_qwen_public_final_v1
+```
+
+The public run evaluates JPEG recompression, randomized resize voting,
+selective visual multi-view consistency, and the project-specific cross-view /
+cross-prompt semantic-consistency defense. The already saved official Qwen
+predictions are the no-defense control; they are not recomputed as a fifth
+"defense." The same frozen transformations, prompts, voting thresholds, and
+metrics will later be applied to the 100 collected receipts.
+
+Primary reporting includes post-defense ASR over every attempt and recovery
+rate over attacks that originally achieved their exact target. Clean accuracy,
+coverage, abstention, agreement, entropy, runtime, and added Qwen passes prevent
+a defense from appearing effective merely by rejecting everything.
+
+### 6b. Collected-receipt and adaptive evaluation
+
 Use the same exact frozen attack tables:
 
 ```bash
@@ -138,12 +177,12 @@ done
 python scripts/stage_status.py defenses defenses_validation_v1
 ```
 
-The four defenses are:
+The defense conditions are:
 
-1. no defense;
-2. JPEG recompression;
-3. randomized resize majority vote;
-4. selective multi-view consistency over identity/JPEG/resize/blur/brightness.
+1. JPEG recompression;
+2. randomized resize majority vote;
+3. selective multi-view consistency over identity/JPEG/resize/blur/brightness;
+4. cross-view and cross-prompt semantic consistency.
 
 The fourth defense is the project-specific contribution. It reports answer
 agreement and entropy, abstains when fewer than three of five views agree, and

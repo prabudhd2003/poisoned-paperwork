@@ -21,6 +21,7 @@ TEMPLATES = {
     "eot_patch": "configs/eot_patch/active.json",
     "transfer": "configs/transfer_robustness/active.json",
     "defenses": "configs/defenses/active.json",
+    "defenses_public": "configs/defenses/qwen_public_final.json",
 }
 
 
@@ -52,7 +53,7 @@ def main():
             raise SystemExit(f"baseline output missing: {baseline}")
         config["baseline_predictions"] = relative_or_absolute(baseline)
         config["baseline_predictions_sha256"] = sha256_file(baseline)
-    if args.stage in {"transfer", "defenses"}:
+    if args.stage in {"transfer", "defenses", "defenses_public"}:
         if not args.source:
             raise SystemExit("provide every frozen attack table as --source NAME=PATH")
         sources = []
@@ -67,10 +68,11 @@ def main():
                 raise SystemExit(f"attack source missing: {path}")
             sources.append({
                 "name": name, "records": relative_or_absolute(path),
-                "artifact_root": str(ROOT), "sha256": sha256_file(path),
+                "artifact_root": str(path.parent.parent.resolve()),
+                "sha256": sha256_file(path),
             })
         config["attack_sources"] = sources
-        if contract is not None:
+        if contract is not None and "collected_manifest_contract" in config:
             config["collected_manifest_contract"].update(contract)
     config["ready_for_production"] = True
     output = args.output or ROOT / "outputs/runtime_configs" / f"{args.stage}.json"
