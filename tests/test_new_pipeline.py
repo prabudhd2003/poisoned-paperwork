@@ -1,15 +1,22 @@
 import tempfile
 import unittest
+import json
+import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+
 class DefenseTests(unittest.TestCase):
     def setUp(self):
-        from defenses import evaluate_defense
+        from defenses import evaluate_defense, evaluate_semantic_consistency
         self.evaluate = evaluate_defense
+        self.evaluate_semantic = evaluate_semantic_consistency
         self.page = Image.fromarray(np.full((24, 30, 3), 240, dtype=np.uint8))
         self.config = {
             "jpeg_quality": 85, "resize_votes": 5, "defense_seed": 566,
@@ -52,6 +59,50 @@ class DefenseTests(unittest.TestCase):
             config=self.config,
         )
         self.assertEqual(first.raw_predictions, second.raw_predictions)
+
+    def test_semantic_consistency_pairs_views_and_prompts(self):
+        observed = []
+        prompts = ["direct", "paraphrase", "verify", "evidence", "alternate"]
+        result, views = self.evaluate_semantic(
+            pages=[self.page],
+            record_id="x",
+            predict=lambda pages, prompt: observed.append(prompt) or "10.00",
+            normalize=lambda value: value,
+            transforms=["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+            prompts=prompts,
+            minimum_votes=3,
+        )
+        self.assertEqual(observed, prompts)
+        self.assertEqual(result.final_prediction, "10.00")
+        self.assertFalse(result.abstained)
+        self.assertEqual(result.additional_vlm_passes, 4)
+        self.assertEqual(len(views), 5)
+
+    def test_semantic_consistency_abstains_without_majority(self):
+        answers = iter(["1", "2", "3", "4", "5"])
+        result, _ = self.evaluate_semantic(
+            pages=[self.page],
+            record_id="x",
+            predict=lambda pages, prompt: next(answers),
+            normalize=lambda value: value,
+            transforms=["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+            prompts=["a", "b", "c", "d", "e"],
+            minimum_votes=3,
+        )
+        self.assertIsNone(result.final_prediction)
+        self.assertTrue(result.abstained)
+
+    def test_public_final_defense_config_is_valid_when_frozen(self):
+        from stages.defenses import validate_config
+
+        root = Path(__file__).resolve().parents[1]
+        config = json.loads(
+            (root / "configs/defenses/qwen_public_final.json").read_text()
+        )
+        config["ready_for_production"] = True
+        validate_config(config)
+        self.assertEqual(config["attack_epsilons_255"], [4, 8, 16])
+        self.assertIsNone(config["study_documents_per_dataset"])
 
 
 class PatchTests(unittest.TestCase):

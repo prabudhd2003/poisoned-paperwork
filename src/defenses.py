@@ -160,3 +160,51 @@ def evaluate_defense(
     )
     return result, {name: value for name, value in views}
 
+
+def evaluate_semantic_consistency(
+    *,
+    pages: Sequence[Image.Image],
+    record_id: str,
+    predict: Callable[[Sequence[Image.Image], str], str],
+    normalize: Callable[[str | None], str | None],
+    transforms: Sequence[str],
+    prompts: Sequence[str],
+    minimum_votes: int,
+) -> tuple[DefenseResult, dict[str, list[Image.Image]]]:
+    """Joint visual/prompt ensemble with selective majority consensus.
+
+    Each view pairs a deterministic image transformation with a semantically
+    equivalent prompt.  The answer is released only when the configured
+    majority agrees after task normalization; otherwise the defense abstains.
+    """
+    if len(transforms) != len(prompts) or len(transforms) < 3:
+        raise ValueError("semantic consistency needs equally sized transform/prompt lists")
+    if not 1 <= int(minimum_votes) <= len(transforms):
+        raise ValueError("semantic minimum_votes is outside the ensemble size")
+    views: dict[str, list[Image.Image]] = {}
+    raw = []
+    view_ids = []
+    for index, (transform_id, prompt) in enumerate(zip(transforms, prompts)):
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("semantic prompts must be nonempty strings")
+        view_id = f"semantic_{index:02d}_{transform_id}"
+        view_pages = transform_pages(
+            pages, transform_id, seed=_seed(record_id, "semantic", index, transform_id)
+        )
+        views[view_id] = view_pages
+        view_ids.append(view_id)
+        raw.append(predict(view_pages, prompt))
+    normalized = tuple(normalize(value) for value in raw)
+    winner, agreement, entropy = _consensus(normalized, int(minimum_votes))
+    return DefenseResult(
+        defense_id="semantic_consistency",
+        final_prediction=winner,
+        raw_predictions=tuple(raw),
+        normalized_predictions=normalized,
+        view_ids=tuple(view_ids),
+        agreement=agreement,
+        entropy=entropy,
+        abstained=winner is None,
+        additional_vlm_passes=len(transforms) - 1,
+    ), views
+

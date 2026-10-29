@@ -552,6 +552,33 @@ def run_defense_report(
     display(summary.style.format({"clean_accuracy": "{:.1%}", "target_asr": "{:.1%}", "abstention": "{:.1%}", "agreement": "{:.1%}", "extra_passes": "{:.2f}", "median_runtime_seconds": "{:.1f}"}))
     export_table(summary, "defense_results")
 
+    source_control = records.loc[
+        records["example_type"].eq("non_adaptive_attack")
+    ].drop_duplicates("source_experiment_key").groupby(
+        ["dataset_name", "epsilon_255"], dropna=False
+    ).agg(
+        attempts=("source_experiment_key", "size"),
+        original_targeted_successes=("source_attack_success", "sum"),
+        original_asr=("source_attack_success", "mean"),
+    ).reset_index()
+    display(source_control.style.format({"original_asr": "{:.1%}"}))
+    export_table(source_control, "saved_no_defense_control")
+
+    recovery = records.loc[
+        records["example_type"].eq("non_adaptive_attack")
+        & records["source_attack_success"].eq(True)
+    ].groupby(
+        ["dataset_name", "defense_id", "epsilon_255"], dropna=False
+    ).agg(
+        originally_successful=("experiment_key", "size"),
+        remaining_target_success=("adversarial_target_success", "sum"),
+        abstention=("abstained", "mean"),
+    ).reset_index()
+    if not recovery.empty:
+        recovery["recovery_rate"] = 1 - recovery["remaining_target_success"] / recovery["originally_successful"]
+        display(recovery.style.format({"recovery_rate": "{:.1%}", "abstention": "{:.1%}"}))
+        export_table(recovery, "successful_attack_recovery")
+
     nonadaptive = summary[summary["example_type"].eq("non_adaptive_attack")].copy()
     if nonadaptive.empty:
         nonadaptive = summary.copy()
@@ -594,7 +621,7 @@ def run_defense_report(
         axis.yaxis.set_major_formatter(PercentFormatter(1.0)); axis.legend()
         adaptive_figure.tight_layout()
         save_figure(adaptive_figure, "adaptive_defense_results")
-    return records, summary, adaptive_summary
+    return records, summary, source_control, recovery, adaptive_summary
 
 
 def render_authoritative_overview():
