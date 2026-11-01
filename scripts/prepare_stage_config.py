@@ -22,6 +22,7 @@ TEMPLATES = {
     "transfer": "configs/transfer_robustness/active.json",
     "defenses": "configs/defenses/active.json",
     "defenses_public": "configs/defenses/qwen_public_final.json",
+    "jpeg_eot": "configs/jpeg_eot_attack/public_full.json",
 }
 
 
@@ -53,7 +54,7 @@ def main():
             raise SystemExit(f"baseline output missing: {baseline}")
         config["baseline_predictions"] = relative_or_absolute(baseline)
         config["baseline_predictions_sha256"] = sha256_file(baseline)
-    if args.stage in {"transfer", "defenses", "defenses_public"}:
+    if args.stage in {"transfer", "defenses", "defenses_public", "jpeg_eot"}:
         if not args.source:
             raise SystemExit("provide every frozen attack table as --source NAME=PATH")
         sources = []

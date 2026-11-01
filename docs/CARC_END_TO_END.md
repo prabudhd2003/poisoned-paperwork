@@ -203,6 +203,61 @@ outputs/defenses/defenses_validation_v1/shards/worker_XX/defended_images/
 Receipt and resume records remain distinguishable by `dataset_name` and
 `record_id`; they are never mixed in reported denominators.
 
+### 6c. Full defense-aware EOT/BPDA attack
+
+This is the adaptive follow-up to the completed non-adaptive defense study. It
+uses every clean-correct public document (96 CORD, 123 SROIE, and 74 resumes)
+at epsilon 4, 8, and 16: 879 attacks total. Epsilon 2 is retained as the
+already completed negative control because the original attack achieved 0/293
+targeted successes at that budget.
+
+The output remains a bounded PNG. During optimization, exact Pillow JPEG,
+resize, blur, and brightness transforms run in the forward pass; BPDA provides
+the backward approximation. EOT also samples the five frozen semantic prompts.
+The final PNG is evaluated independently against the exact JPEG, resize-vote,
+selective multi-view, and cross-view/cross-prompt defenses.
+
+```bash
+cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+source scripts/activate_paperwork.sh
+
+RESUME="$PWD/outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet"
+RECEIPT="$PWD/outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet"
+
+python scripts/prepare_stage_config.py jpeg_eot \
+  --source resume="$RESUME" \
+  --source receipt="$RECEIPT" \
+  --output outputs/runtime_configs/jpeg_eot_public_full_v1.json
+
+python scripts/preflight_stage.py \
+  --stage jpeg_eot_attack \
+  --config outputs/runtime_configs/jpeg_eot_public_full_v1.json
+
+for USER in user1 user2 user3 user4 user5; do
+  bash scripts/submit_stage.sh jpeg_eot_attack "$USER" \
+    outputs/runtime_configs/jpeg_eot_public_full_v1.json
+done
+```
+
+The jobs are checkpointed every ten optimization steps. If a shard times out,
+resubmit only the same user's identical command; it resumes instead of
+discarding completed work. Read-only progress and final results are available
+with:
+
+```bash
+python scripts/stage_status.py \
+  jpeg_eot_attack qwen_jpeg_eot_public_full_v1
+
+python -m json.tool \
+  outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1/merged/jpeg_eot_summary.json
+```
+
+After the strict merge exists, run `midterm/10_adaptive_defense_attack.ipynb`
+for the report table, adaptive-ASR figure, and native-resolution qualitative
+example. This experiment tests whether the defenses remain useful against an
+attacker who knows their transformations; it does not assume or guarantee that
+every document will be successfully attacked.
+
 ## 7. Analysis only (no GPU execution)
 
 After each strict merge exists, use these notebooks locally or through VS Code
@@ -216,6 +271,8 @@ connected to CARC:
 - `10_defense_analysis.ipynb`: clean utility, coverage, abstention, cost,
   non-adaptive ASR, and adaptive ASR.
 - `11_final_results.ipynb`: report-ready final tables.
+- `midterm/10_adaptive_defense_attack.ipynb`: full adaptive EOT/BPDA results
+  against the four completed Qwen defenses.
 
 If analyzing on the Mac, copy `outputs/` with `rsync` or `scp`; experiment
 outputs are intentionally not pushed through Git.

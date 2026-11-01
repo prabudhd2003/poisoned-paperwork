@@ -15,11 +15,63 @@ notebooks only read and visualize merged results.
 |---|---|
 | Download, audit, and preprocess SROIE, CORD v2, and English resumes | Complete |
 | Manual receipt-label repair | Complete |
-| Unified Qwen + Donut clean baseline | Implemented; CARC GPU smoke test required |
-| Donut targeted attack | Implemented scaffold; do not run until the baseline is accepted |
-| Qwen resume attack | Shared core and resume track implemented; CARC smoke required before production |
-| Qwen receipt attack | Saaketh can now implement it on the merged shared core |
-| Transfer tests, EOT, and defenses | Planned in `docs/` |
+| Qwen clean baselines and full-page attacks on public datasets | Complete |
+| Four Qwen defenses on all public clean-correct documents | Complete: 4,688 records, zero failures |
+| Donut clean baselines and attacks | In progress in the Donut worktree |
+| Full defense-aware Qwen EOT/BPDA attack | Implemented for all 293 documents at ε=4,8,16; CARC run pending |
+| Team-collected 100-receipt external test | Collection/annotation in progress |
+| Transfer and localized-patch studies | Implemented; CARC runs pending |
+
+## Current results
+
+Qwen's clean accuracy is high on the three public validation sets: 96/100 on
+CORD v2, 123/126 on SROIE, and 74/75 on resumes. All attack rates below are
+therefore conditional on documents the model originally answered correctly.
+
+| Dataset | ε=2 | ε=4 | ε=8 | ε=16 |
+|---|---:|---:|---:|---:|
+| CORD v2 | 0.0% | 62.5% | 87.5% | 89.6% |
+| SROIE | 0.0% | 37.4% | 67.5% | 91.1% |
+| Resumes | 0.0% | 1.4% | 5.4% | 23.0% |
+
+This establishes a real, dataset-dependent robustness curve rather than merely
+showing that perturbations can change an answer. Receipt totals are much easier
+to target than resume degree classification, and ε=2 is a useful negative
+control: it produced 0/293 targeted successes.
+
+The completed defense study contains all 293 clean-correct documents at ε=4,
+8, and 16. It evaluates exact JPEG recompression, randomized resize voting,
+selective multi-view consistency, and cross-view/cross-prompt semantic
+consistency. Aggregate post-defense targeted ASR is:
+
+| Condition | ε=4 | ε=8 | ε=16 |
+|---|---:|---:|---:|
+| No defense (saved attack outputs) | 36.5% | 58.4% | 73.4% |
+| JPEG Q85 | **4.4%** | **15.7%** | 41.0% |
+| Resize vote | 11.6% | 22.5% | **39.9%** |
+| Selective multi-view | 23.9% | 38.2% | 54.6% |
+| Semantic consistency | 15.4% | 31.1% | 44.4% |
+
+JPEG is the strongest tested defense at ε=4 and ε=8, while resize voting is
+slightly stronger at ε=16. These are non-adaptive results: the original attack
+did not know which defense would be applied.
+
+## Direction
+
+The next experiment is a full adaptive test, not a small demonstration. For
+every one of the 293 public clean-correct documents and ε in {4, 8, 16}, the
+attacker optimizes a bounded PNG using EOT/BPDA over the exact JPEG, resize,
+blur, brightness, and semantic-prompt views used by the defenses. The final PNG
+is then evaluated independently against all four defenses, including a strict
+"beats all four" outcome. This determines how much of the apparent protection
+survives when the attacker knows the defense.
+
+After that, the same frozen methodology is applied to the independently
+collected 100-receipt external set to address memorization concerns. Transfer
+tests provide a separate black-box check, and Donut supplies a second model
+family. The final study therefore reports clean utility, targeted ASR,
+perceptibility, adaptive robustness, cross-model transfer, runtime, and exact
+denominators—not only whether a perturbation changes one prediction.
 
 The processed manifest contains 301 validation documents and 536 test
 documents. The unified baseline produces 527 validation predictions and 997

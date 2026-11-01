@@ -41,7 +41,10 @@ def main():
             outcome = next((name for name in (
                 "saved_image_success", "adversarial_target_success", "clean_correct"
             ) if name in frame), None)
-            groups = [name for name in ("model_key", "example_type", "defense_id", "control", "epsilon_255") if name in frame]
+            groups = [name for name in (
+                "dataset_name", "model_key", "example_type", "defense_id",
+                "control", "epsilon_255",
+            ) if name in frame]
             if outcome:
                 print(f"interim outcome: {outcome}")
                 if groups:

@@ -26,6 +26,7 @@ STAGES = {
     "transfer_robustness",
     "eot_patch",
     "defenses",
+    "jpeg_eot_attack",
 }
 
 
