@@ -1,5 +1,6 @@
 {
   "stage": "jpeg_eot_attack",
+  "track": "uniform_eot",
   "run_id": "qwen_jpeg_eot_public_full_v1",
   "ready_for_production": false,
   "seed": 566,
@@ -68,6 +69,8 @@
     "semantic_minimum_votes": 3
   },
   "attack": {
+    "method": "uniform_multiview_eot",
+    "view_sampling": "uniform",
     "epsilons_255": [4, 8, 16],
     "max_steps": 100,
     "step_size_255": {"4": 1.0, "8": 2.0, "16": 4.0},
@@ -89,6 +92,12 @@
     ],
     "include_exact_resize_vote_views": true,
     "eot_samples_per_step": 3,
+    "frequency_aware": {
+      "enabled": false,
+      "cutoff": 0.25,
+      "gradient_mix": 0.0,
+      "delta_mix": 0.0
+    },
     "loss_type": "cross_entropy",
     "optimizer": "sign_pgd",
     "bpda": "real_pillow_defense_forward_identity_backward",

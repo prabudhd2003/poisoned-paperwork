@@ -4,6 +4,25 @@ All model inference, attacks, transformations, and defenses run from the CARC
 terminal on L40S GPUs. Notebooks are read-only analysis artifacts and are never
 used to submit or execute an experiment.
 
+This is the canonical operational contract for humans and coding agents. Read
+it completely before changing a launcher, runtime config, output contract, or
+worker assignment.
+
+## Worker and hardware contract
+
+| User ID | Team member | Worker shard |
+|---|---|---:|
+| `user1` | Prabudhd | 0 |
+| `user2` | Gary | 1 |
+| `user3` | Saaketh | 2 |
+| `user4` | Khalid | 3 |
+| `user5` | Shail | 4 |
+
+Production stages always use these five deterministic shards. All GPU jobs use
+one L40S; do not change the GPU type between workers or add another GPU type as
+a fallback. Runtime configurations belong under `outputs/runtime_configs/` so
+their frozen source hashes do not dirty the tracked worktree.
+
 ## 0. One-time setup
 
 ```bash
@@ -17,6 +36,83 @@ git status --short --branch
 The status must be clean before a job is submitted. Every command below is
 restart-safe: submitting the same user/config again skips completed JSON records
 and continues its assigned shard.
+
+Verify the exact environment before a production submission:
+
+```bash
+python - <<'PY'
+import sys, torch, transformers, pandas, numpy, PIL, lpips
+print("python:", sys.executable, sys.version.split()[0])
+print("torch:", torch.__version__)
+print("transformers:", transformers.__version__)
+print("pandas:", pandas.__version__)
+print("numpy:", numpy.__version__)
+print("pillow:", PIL.__version__)
+print("lpips: available")
+PY
+```
+
+The launcher repeats these imports before calling `sbatch`, so a missing package
+fails on the login node instead of after waiting for a GPU. Runtime config
+preflight also validates source hashes, exact dataset counts, prompts, model
+revision, epsilon grid, and method-specific settings.
+
+Once any worker for a frozen run has been submitted, do not pull another commit
+or edit tracked files in that checkout until every worker has started or the run
+has been deliberately cancelled. Each worker records the Git commit it actually
+used, and strict merge rejects workers from different commits. Generating an
+ignored runtime config or reading logs/results is safe while jobs run.
+
+## Monitoring, logs, and recovery
+
+The submission command prints each job ID and exact log path. Check active jobs:
+
+```bash
+squeue -u "$USER" -o "%.18i %.36j %.10T %.12M %.12l %.24R"
+```
+
+Check a finished or disappeared job using its ID:
+
+```bash
+sacct -j JOB_ID \
+  --format=JobID,JobName,State,Elapsed,Timelimit,ExitCode,MaxRSS
+```
+
+`COMPLETED` with exit code `0:0` means Slurm finished the script. `TIMEOUT`,
+`OUT_OF_MEMORY`, or `FAILED` means the shard is incomplete even if some records
+were saved. Inspect both streams:
+
+```bash
+tail -n 150 logs/JOB_NAME_JOB_ID.out
+tail -n 150 logs/JOB_NAME_JOB_ID.err
+```
+
+Warnings about unauthenticated Hugging Face downloads or deprecated torchvision
+weights are not failures by themselves. A Python traceback, CUDA OOM, missing
+module, nonzero exit code, or missing worker marker requires action.
+
+Use the read-only status command at any time:
+
+```bash
+python scripts/stage_status.py STAGE RUN_ID
+```
+
+A shard is complete only when its `WORKER_COMPLETE.json` exists. A run is
+complete only when all five markers exist and the strict merged summary has
+been written. For a timeout or transient failure, resubmit the identical stage,
+user, and runtime-config command. Do not delete records, images, checkpoints,
+assignments, or the run contract.
+
+For CUDA fragmentation, the launch environment may use
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`; this does not change the
+scientific configuration. Persistent OOM on the same record requires a reviewed
+code/config fix rather than silently dropping the example.
+
+Shared directories must remain group-searchable and group-writable. Diagnose a
+permission failure with `namei -l /absolute/path/to/file`. Do not recursively
+change another team member's private directory. Copy only readable artifacts
+into the main repository output tree, verify record/image counts and hashes,
+and freeze the copied source path in the runtime config.
 
 ## 1. Freeze the 100 collected PNG receipts
 
@@ -258,6 +354,60 @@ example. This experiment tests whether the defenses remain useful against an
 attacker who knows their transformations; it does not assume or guarantee that
 every document will be successfully attacked.
 
+### 6d. Full frequency-aware hard-view attack
+
+This second adaptive run uses the identical 293 documents, targets, epsilon
+values, defenses, and metrics. Its optimizer reweights sampling toward the
+highest-loss views and mixes a smooth FFT low-frequency component into the
+gradient and perturbation before projection. Its output directory and
+checkpoint contracts are independent from the uniform-EOT run, so both can run
+concurrently.
+
+Use the same frozen `RESUME` and `RECEIPT` paths defined above:
+
+```bash
+python scripts/prepare_stage_config.py jpeg_eot_hardview \
+  --source resume="$RESUME" \
+  --source receipt="$RECEIPT" \
+  --output outputs/runtime_configs/jpeg_eot_hardview_public_full_v1.json
+
+python scripts/preflight_stage.py \
+  --stage jpeg_eot_attack \
+  --config outputs/runtime_configs/jpeg_eot_hardview_public_full_v1.json
+
+for USER in user1 user2 user3 user4 user5; do
+  bash scripts/submit_stage.sh jpeg_eot_attack "$USER" \
+    outputs/runtime_configs/jpeg_eot_hardview_public_full_v1.json
+done
+```
+
+To submit both full methods together after both preflights pass:
+
+```bash
+for CONFIG in \
+  outputs/runtime_configs/jpeg_eot_public_full_v1.json \
+  outputs/runtime_configs/jpeg_eot_hardview_public_full_v1.json
+do
+  for USER in user1 user2 user3 user4 user5; do
+    bash scripts/submit_stage.sh jpeg_eot_attack "$USER" "$CONFIG"
+  done
+done
+```
+
+CARC may queue rather than simultaneously run all ten jobs. That does not
+affect the frozen experiment. Check each method independently:
+
+```bash
+python scripts/stage_status.py \
+  jpeg_eot_attack qwen_jpeg_eot_public_full_v1
+
+python scripts/stage_status.py \
+  jpeg_eot_attack qwen_frequency_hardview_public_full_v1
+```
+
+After both strict merges exist, run
+`midterm/10_adaptive_defense_attack.ipynb` for the matched comparison.
+
 ## 7. Analysis only (no GPU execution)
 
 After each strict merge exists, use these notebooks locally or through VS Code
@@ -291,9 +441,16 @@ outputs are intentionally not pushed through Git.
 
 ## L40S budget estimate
 
-The remaining stages are expected to consume roughly 55-85 aggregate L40S
-GPU-hours, depending mainly on how many collected receipts are clean-correct
-and how often attacks stop early. Five workers reduce wall-clock time but do
-not reduce aggregate GPU-hours. Time limits are safety ceilings, not expected
-usage: baseline 4 hours/job, collected Qwen 8, Donut 8, transfer 8, patch 8,
-and defenses 8. Restarting an incomplete shard resumes saved work.
+The two full adaptive studies dominate the remaining budget. Each contains 879
+attacks, three gradient-bearing EOT views per step, full-view checkpoint loss
+audits, and exact four-defense evaluations. A reasonable planning range is
+roughly 200-350 aggregate L40S hours per adaptive method, with early stopping
+and multi-page resumes determining the actual value. Together with collected
+receipts, Donut, and transfer work, the remaining project may require roughly
+450-750 aggregate L40S hours.
+
+Five workers reduce wall-clock time but not aggregate GPU-hours. The eight-hour
+request is a safety ceiling per allocation, not an expectation that a full
+shard finishes once. If a worker times out, resubmit its identical command; it
+reuses completed records and resumes the current attack from its ten-step
+checkpoint. Never delete or rename the partial run directory.

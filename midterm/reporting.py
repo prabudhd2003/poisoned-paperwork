@@ -630,6 +630,8 @@ def run_adaptive_defense_attack_report(
         "outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1",
     ),
     env_var: str = "PP_ADAPTIVE_DEFENSE_ATTACK_RUN_DIR",
+    artifact_stem: str = "adaptive_multidefense",
+    title: str = "Defense-aware EOT/BPDA attack success",
 ):
     """Report the full adaptive EOT/BPDA attack against all four defenses."""
     import matplotlib.pyplot as plt
@@ -692,7 +694,7 @@ def run_adaptive_defense_attack_report(
         "adaptive_asr": "{:.1%}", "median_lpips": "{:.3f}",
         "median_ssim": "{:.3f}", "median_runtime_seconds": "{:.1f}",
     }))
-    export_table(summary, "adaptive_multidefense_results")
+    export_table(summary, f"{artifact_stem}_results")
 
     setup_style()
     datasets = sorted(summary.dataset_name.unique())
@@ -710,14 +712,14 @@ def run_adaptive_defense_attack_report(
         )
         axis.yaxis.set_major_formatter(PercentFormatter(1.0))
     axes.flat[-1].legend(loc="best", fontsize=8)
-    figure.suptitle("Defense-aware EOT/BPDA attack success", fontsize=16)
+    figure.suptitle(title, fontsize=16)
     figure.tight_layout()
-    save_figure(figure, "adaptive_multidefense_results")
+    save_figure(figure, f"{artifact_stem}_results")
     qualitative = normalize_attack_records(records, run_dir)
     qualitative["success"] = records["all_defenses_success"].fillna(False).astype(bool)
     show_qualitative_example(
         qualitative, preferred_epsilon=16, success=True,
-        stem="adaptive_multidefense_successful_example",
+        stem=f"{artifact_stem}_successful_example",
     )
     return records, summary
 

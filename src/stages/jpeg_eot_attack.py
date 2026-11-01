@@ -35,6 +35,18 @@ def validate_config(config: dict[str, Any]) -> None:
     if config.get("expected_documents_by_dataset") != EXPECTED_DOCUMENTS:
         raise ValueError(f"expected document counts must equal {EXPECTED_DOCUMENTS}")
     attack = config.get("attack", {})
+    method = attack.get("method")
+    if method not in {"uniform_multiview_eot", "frequency_hardview_minimax_eot"}:
+        raise ValueError("unknown adaptive attack method")
+    expected_track = {
+        "uniform_multiview_eot": "uniform_eot",
+        "frequency_hardview_minimax_eot": "hardview_eot",
+    }[method]
+    if config.get("track") != expected_track:
+        raise ValueError(f"adaptive attack track must equal {expected_track}")
+    sampling = attack.get("view_sampling")
+    if sampling not in {"uniform", "hard_view"}:
+        raise ValueError("view_sampling must be uniform or hard_view")
     if attack.get("epsilons_255") != EPSILONS:
         raise ValueError("JPEG-EOT study must use epsilons [4,8,16]; epsilon 2 is the existing negative control")
     if int(attack.get("max_steps", 0)) < 1:
@@ -66,6 +78,27 @@ def validate_config(config: dict[str, Any]) -> None:
     samples = int(attack.get("eot_samples_per_step", 0))
     if not 1 <= samples <= len(views):
         raise ValueError("eot_samples_per_step is outside the view distribution")
+    frequency = attack.get("frequency_aware", {})
+    if not isinstance(frequency.get("enabled"), bool):
+        raise ValueError("frequency_aware.enabled must be boolean")
+    if not 0 < float(frequency.get("cutoff", 0)) <= 1:
+        raise ValueError("frequency cutoff must be in (0,1]")
+    if any(
+        not 0 <= float(frequency.get(name, -1)) <= 1
+        for name in ("gradient_mix", "delta_mix")
+    ):
+        raise ValueError("frequency mixes must be in [0,1]")
+    if method == "uniform_multiview_eot" and (
+        sampling != "uniform" or frequency["enabled"]
+    ):
+        raise ValueError("uniform EOT method drifted")
+    if method == "frequency_hardview_minimax_eot":
+        if sampling != "hard_view" or not frequency["enabled"]:
+            raise ValueError("frequency hard-view method drifted")
+        temperature = float(attack.get("hard_view_temperature", 0))
+        floor = float(attack.get("hard_view_probability_floor", -1))
+        if temperature <= 0 or not 0 <= floor < 1 / len(views):
+            raise ValueError("hard-view temperature or probability floor is invalid")
     prompts = config.get("semantic_prompts", {})
     if any(len(prompts.get(task, [])) != 5 for task in ("receipt", "resume")):
         raise ValueError("five frozen semantic prompts are required per task")
@@ -265,7 +298,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
                     "clean_target": str(row["clean_target"]),
                     "attack_target": str(row["attack_target"]),
                     "prompt_text": str(row["prompt_text"]),
-                    "attack_family": "multidefense_eot_bpda_pgd",
+                    "attack_family": str(config["attack"]["method"]),
                     "user_id": user_id,
                     "status": "complete",
                     "error": None,
@@ -323,6 +356,7 @@ def _summarize(output: Path) -> None:
     )
     groups["all_defenses_asr"] = groups.all_defenses_successes / groups.attempted
     atomic_json(output / "merged" / "jpeg_eot_summary.json", {
+        "attack_method": str(frame.attack_method.iloc[0]),
         "groups": json.loads(groups.to_json(orient="records")),
         "interpretation": (
             "The optimized artifact is a bounded PNG. Each ASR is measured after "
