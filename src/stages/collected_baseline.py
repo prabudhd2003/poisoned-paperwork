@@ -1,4 +1,4 @@
-"""Clean Qwen and Donut inference on the frozen 100-receipt external set."""
+"""Clean Qwen and Donut inference on the frozen 114-receipt external set."""
 
 from __future__ import annotations
 
@@ -34,7 +34,9 @@ def validate_config(config: dict[str, Any]) -> None:
     if config.get("split") != "external_test":
         raise ValueError("collected receipts must remain split=external_test")
     if config.get("ready_for_production") is not True:
-        raise RuntimeError("collected baseline is gated until all 100 labels and hashes are frozen")
+        raise RuntimeError(
+            "collected baseline is gated until all external labels and hashes are frozen"
+        )
     if set(config["models"]) != {"qwen", "donut"}:
         raise ValueError("collected baseline requires exactly Qwen and Donut")
 

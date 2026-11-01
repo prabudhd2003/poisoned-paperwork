@@ -60,7 +60,8 @@ target is a fixed upward change, such as `bachelor → master` or
 
 ### Independently collected receipts
 
-The team is collecting and manually annotating 100 new receipt photographs.
+The team collected 114 new receipt photographs and is manually auditing their
+final-total annotations.
 They are converted to PNG, audited one at a time, and kept as a separately
 labeled external test set. These documents were not selected from the public
 benchmark and are the main response to the concern that an open-source VLM may
@@ -301,7 +302,7 @@ prevent us from reporting a defense only against an attacker that did not know
 the defense existed.
 
 **“Open-source VLMs may memorize public data.”** The independently collected
-100-receipt external set is never used to select public examples. Transfer to a
+114-receipt external set is never used to select public examples. Transfer to a
 second model and the second Donut architecture provide additional evidence that
 the findings concern model behavior rather than only one public benchmark.
 
@@ -309,7 +310,7 @@ the findings concern model behavior rather than only one public benchmark.
 
 1. Run and strictly merge both 879-record adaptive Qwen studies.
 2. Compare them using `midterm/10_adaptive_defense_attack.ipynb`.
-3. Finish and freeze the 100-receipt external manifest.
+3. Finish and freeze the 114-receipt external manifest.
 4. Run Qwen and Donut clean baselines and attacks on the external set.
 5. Complete Donut public attacks and the black-box transfer study.
 6. Design one final defense from the observed adaptive failure pattern.

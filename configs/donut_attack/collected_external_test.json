@@ -9,7 +9,7 @@
   "require_clean_git": true,
   "manifest": "data/processed/collected_receipts/manifest.csv",
   "manifest_sha256": "REPLACE_AFTER_FREEZE",
-  "expected_documents": 100,
+  "expected_documents": 114,
   "baseline_predictions": "outputs/baseline/baseline_collected_external_v1/merged/records.parquet",
   "baseline_predictions_sha256": "REPLACE_AFTER_BASELINE",
   "model": {
