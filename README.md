@@ -1,32 +1,226 @@
 # Poisoned Paperwork
 
-Targeted adversarial attacks and defenses for document vision-language models.
-Receipt-total extraction is the primary task; resume highest-degree extraction
-is the secondary case study.
+Poisoned Paperwork studies targeted adversarial attacks and defenses for
+document vision-language models (VLMs). The central question is not merely
+whether changing pixels can change a prediction. We ask how reliably an
+attacker can force a specific wrong answer, how visible that manipulation is,
+whether ordinary document processing removes it, and whether those defenses
+remain useful after the attacker learns how they work.
 
-For the terminal-only CARC workflow from the 100 collected receipts through
-transfer, EOT patches, defenses, adaptive evaluation, and final analysis, see
-[`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md). All GPU stages use L40S;
-notebooks only read and visualize merged results.
+The primary task is receipt-total extraction. The secondary task is identifying
+the highest degree stated in a resume. Together they test numerical extraction
+and semantic document classification across two model families, public data,
+and a prospectively collected external dataset.
 
-## Status
+> **Required reading for contributors and coding agents:** read
+> [`AGENTS.md`](AGENTS.md) and
+> [`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md) before changing
+> experiment code or launching jobs. Cluster commands, worker ownership,
+> environment requirements, restart rules, and completion checks deliberately
+> live in that separate operational runbook rather than this scientific README.
 
-| Stage | Status |
-|---|---|
-| Download, audit, and preprocess SROIE, CORD v2, and English resumes | Complete |
-| Manual receipt-label repair | Complete |
-| Qwen clean baselines and full-page attacks on public datasets | Complete |
-| Four Qwen defenses on all public clean-correct documents | Complete: 4,688 records, zero failures |
-| Donut clean baselines and attacks | In progress in the Donut worktree |
-| Full defense-aware Qwen EOT/BPDA attack | Implemented for all 293 documents at ε=4,8,16; CARC run pending |
-| Team-collected 100-receipt external test | Collection/annotation in progress |
-| Transfer and localized-patch studies | Implemented; CARC runs pending |
+## Why this project matters
+
+Document VLMs increasingly read receipts, invoices, applications, resumes, and
+other records that can influence financial or administrative decisions. An
+image can appear normal to a person while causing a model to return an
+attacker-chosen total or education category. At the same time, a defense that
+simply destroys image quality, rejects every document, or changes clean answers
+is not useful.
+
+The project therefore measures an attack–defense trade-off:
+
+1. Can a bounded perturbation force an exact target answer?
+2. At what perturbation budget does this become reliable?
+3. Does the attacked page remain visually similar to the original?
+4. Do JPEG, resizing, multi-view voting, or prompt consistency remove it?
+5. Can an informed attacker adapt to those defenses?
+6. Do conclusions hold on newly collected receipts and another model?
+
+## Tasks, datasets, and models
+
+### Receipt-total extraction
+
+The model receives a receipt image and must return only its final transaction
+total. Public experiments use:
+
+- **SROIE**, with 123 clean-correct Qwen validation documents out of 126;
+- **CORD v2**, with 96 clean-correct Qwen validation documents out of 100.
+
+The targeted public-receipt attack asks the model to return a frozen incorrect
+amount equal to ten times the canonical clean total. Exact decimal handling is
+used so formatting differences do not silently change the target definition.
+
+### Resume highest-degree classification
+
+The model receives every page of a resume and returns one label from a frozen
+education taxonomy. Qwen is clean-correct on 74 of 75 validation resumes. The
+target is a fixed upward change, such as `bachelor → master` or
+`master → doctorate`.
+
+### Independently collected receipts
+
+The team is collecting and manually annotating 100 new receipt photographs.
+They are converted to PNG, audited one at a time, and kept as a separately
+labeled external test set. These documents were not selected from the public
+benchmark and are the main response to the concern that an open-source VLM may
+have memorized public data. Public and collected results are never pooled into
+one denominator.
+
+### Models
+
+- **Qwen2.5-VL-3B-Instruct** is the main differentiable VLM and supports the
+  full adaptive attack study.
+- **Donut** supplies a second document-model architecture with its own clean
+  baselines and targeted attacks.
+- A separate vision-language model is used for black-box transfer evaluation;
+  it never supplies gradients to the source attack.
+
+## Experimental contract
+
+Attacks are evaluated only on documents the relevant model originally answered
+correctly. This conditional denominator prevents ordinary model errors from
+being counted as successful attacks.
+
+Every saved adversarial artifact is an RGB PNG constrained by an image-space
+L-infinity budget measured in ordinary 0–255 pixel levels. The principal
+budgets are ε = 2, 4, 8, and 16. The saved PNG is reopened and evaluated again;
+success is never inferred only from an in-memory optimization tensor.
+
+The principal metrics are:
+
+- exact targeted attack success rate (ASR), with the numerator and denominator;
+- LPIPS and SSIM for perceptual similarity;
+- measured L-infinity distance after saving and reloading;
+- clean accuracy, defense coverage, abstention, agreement, and entropy;
+- runtime, optimization steps, model passes, and peak GPU memory;
+- success after each real defense transformation;
+- transfer success on a model that did not generate the gradient.
+
+All production runs use frozen configurations, model revisions, prompts,
+dataset counts, source hashes, deterministic sharding, checkpoint contracts,
+and strict merged-result validation.
+
+## Attack progression
+
+The attacks deliberately form a sequence rather than a collection of unrelated
+demos.
+
+### 1. Standard targeted full-page attack
+
+The first attack uses teacher-forced targeted cross-entropy and projected
+gradient descent. Qwen's official image processor is used in the forward pass.
+A differentiable surrogate with an exact-forward BPDA construction supplies
+the backward path, so optimization sees the same processed pixels used by the
+model while still receiving image gradients.
+
+After every update, the image is projected into the ε-bounded RGB region and
+quantized. Checkpoints retain the lowest-loss and verified successful
+candidates. The final result is accepted only after the saved PNG is reloaded
+and produces the exact target.
+
+### 2. Uniform multi-view EOT/BPDA attack
+
+The first adaptive attack assumes the attacker knows the completed defenses.
+It uses Expectation over Transformation (EOT) and BPDA across:
+
+- identity;
+- JPEG qualities 65, 75, 85, and 95;
+- fixed and exact per-document randomized resize views;
+- Gaussian blur;
+- brightness adjustment;
+- five semantically equivalent task prompts.
+
+Three frozen views are sampled per optimization step. Real Pillow transforms
+run in the forward pass and an identity straight-through approximation supplies
+the transformation gradient. Every twenty steps, the saved PNG is tested
+against the exact four defense protocols. Candidate selection first maximizes
+the number of defenses defeated and then uses target loss as the tie-breaker.
+
+This full run contains all 293 public clean-correct documents at ε = 4, 8, and
+16, for 879 adaptive attacks. ε = 2 remains the completed negative control from
+the standard attack, where it achieved 0/293 successes.
+
+### 3. Frequency-aware hard-view EOT/BPDA attack
+
+The second adaptive method uses the same documents, budgets, transformations,
+prompts, targets, and final defense evaluation, but strengthens the optimizer
+in two ways.
+
+**Hard-view weighting.** At each checkpoint, the attack measures target loss
+for every visual/prompt view. A temperature-controlled distribution gives more
+sampling probability to the highest-loss views while retaining a nonzero floor
+for every view. The optimizer therefore concentrates on whichever defense is
+currently hardest instead of spending equal work on views it already defeats.
+
+**Frequency-aware updates.** A smooth FFT low-pass component is mixed into both
+the gradient direction and the perturbation itself before L-infinity projection
+and quantization. JPEG and resizing preferentially suppress fragile
+high-frequency noise, so this biases the attack toward spatial structure more
+likely to survive those operations while preserving the identical pixel budget.
+
+The method is evaluated separately from uniform EOT. It is considered better
+only if it raises defended ASR without an unacceptable LPIPS, SSIM, or runtime
+cost. The repository does not claim that either adaptive method is guaranteed
+to defeat every document.
+
+## Defenses
+
+All four defenses were run on every one of the 293 public clean-correct
+documents at ε = 4, 8, and 16. Clean examples are evaluated as well so a defense
+cannot appear effective merely by rejecting or corrupting inputs. The completed
+study contains 4,688 records with zero logged failures:
+
+- 293 documents × 4 clean-defense evaluations = 1,172;
+- 293 documents × 3 ε values × 4 attack-defense evaluations = 3,516.
+
+### JPEG Q85
+
+The page is recompressed using real JPEG quality 85 with fixed chroma handling,
+then decoded and sent to Qwen. This is inexpensive and particularly effective
+against non-adaptive high-frequency perturbations, but may be vulnerable once
+the attacker optimizes through JPEG.
+
+### Randomized resize voting
+
+Five deterministic, record-specific downsample/upsample views are generated
+with scales between 0.70 and 1.00. Qwen predicts each view and the majority
+wins. Randomization makes one fixed preprocessing path less predictable, while
+the frozen seed keeps the experiment reproducible.
+
+### Selective visual multi-view consistency
+
+The model sees identity, JPEG, resize, blur, and brightness views under the same
+prompt. At least three of five normalized answers must agree; otherwise the
+system abstains. This tests whether the answer is stable under small ordinary
+document transformations.
+
+### Cross-view and cross-prompt semantic consistency
+
+The project-specific ensemble pairs the same five visual transformations with
+five semantically equivalent prompts. It releases an answer only with a
+three-of-five majority and records agreement, normalized entropy, abstention,
+runtime, and added VLM calls. This targets attacks that overfit one exact prompt
+or one visual preprocessing path.
+
+These are initially **non-adaptive defenses** because the standard attack did
+not know which defense would be applied. Both full adaptive attack runs then
+evaluate the same defenses under a stronger white-box threat model.
 
 ## Current results
 
-Qwen's clean accuracy is high on the three public validation sets: 96/100 on
-CORD v2, 123/126 on SROIE, and 74/75 on resumes. All attack rates below are
-therefore conditional on documents the model originally answered correctly.
+### Clean Qwen performance
+
+| Dataset | Correct | Total | Clean accuracy |
+|---|---:|---:|---:|
+| CORD v2 | 96 | 100 | 96.0% |
+| SROIE | 123 | 126 | 97.6% |
+| Resumes | 74 | 75 | 98.7% |
+
+The high clean accuracy makes the robustness evaluation meaningful: nearly all
+documents enter the clean-correct attack pool, especially for resumes.
+
+### Standard targeted Qwen attack
 
 | Dataset | ε=2 | ε=4 | ε=8 | ε=16 |
 |---|---:|---:|---:|---:|
@@ -34,154 +228,109 @@ therefore conditional on documents the model originally answered correctly.
 | SROIE | 0.0% | 37.4% | 67.5% | 91.1% |
 | Resumes | 0.0% | 1.4% | 5.4% | 23.0% |
 
-This establishes a real, dataset-dependent robustness curve rather than merely
-showing that perturbations can change an answer. Receipt totals are much easier
-to target than resume degree classification, and ε=2 is a useful negative
-control: it produced 0/293 targeted successes.
+These results show three important patterns.
 
-The completed defense study contains all 293 clean-correct documents at ε=4,
-8, and 16. It evaluates exact JPEG recompression, randomized resize voting,
-selective multi-view consistency, and cross-view/cross-prompt semantic
-consistency. Aggregate post-defense targeted ASR is:
+1. **ε = 2 is a meaningful negative control.** It produced no targeted success
+   on any of the 293 documents, so a nonzero perturbation budget alone does not
+   guarantee an attack.
+2. **The task matters.** Receipt totals are substantially easier to redirect
+   than resume degree classification under the same model and budget.
+3. **Effectiveness grows with ε.** This creates an explicit robustness–visibility
+   curve that must be interpreted together with LPIPS, SSIM, and visual review.
+
+### Existing defenses against the standard attack
 
 | Condition | ε=4 | ε=8 | ε=16 |
 |---|---:|---:|---:|
-| No defense (saved attack outputs) | 36.5% | 58.4% | 73.4% |
+| No defense, saved attack outputs | 36.5% | 58.4% | 73.4% |
 | JPEG Q85 | **4.4%** | **15.7%** | 41.0% |
 | Resize vote | 11.6% | 22.5% | **39.9%** |
-| Selective multi-view | 23.9% | 38.2% | 54.6% |
+| Selective visual multi-view | 23.9% | 38.2% | 54.6% |
 | Semantic consistency | 15.4% | 31.1% | 44.4% |
 
-JPEG is the strongest tested defense at ε=4 and ε=8, while resize voting is
-slightly stronger at ε=16. These are non-adaptive results: the original attack
-did not know which defense would be applied.
+JPEG is strongest at ε = 4 and 8. Resize voting is slightly stronger at ε =
+16. The more elaborate consistency ensembles are useful but do not dominate the
+simple preprocessing baselines in this non-adaptive setting. That is a result,
+not a failure: complexity alone does not make a defense better.
 
-## Direction
+The table does not yet establish robustness against an informed attacker.
+Uniform EOT and frequency-aware hard-view EOT are designed to measure how much
+of each reduction survives after the attacker adapts.
 
-The next experiment is a full adaptive test, not a small demonstration. For
-every one of the 293 public clean-correct documents and ε in {4, 8, 16}, the
-attacker optimizes a bounded PNG using EOT/BPDA over the exact JPEG, resize,
-blur, brightness, and semantic-prompt views used by the defenses. The final PNG
-is then evaluated independently against all four defenses, including a strict
-"beats all four" outcome. This determines how much of the apparent protection
-survives when the attacker knows the defense.
+## How the results guide the final defense
 
-After that, the same frozen methodology is applied to the independently
-collected 100-receipt external set to address memorization concerns. Transfer
-tests provide a separate black-box check, and Donut supplies a second model
-family. The final study therefore reports clean utility, targeted ASR,
-perceptibility, adaptive robustness, cross-model transfer, runtime, and exact
-denominators—not only whether a perturbation changes one prediction.
+The project will not invent the final defense before observing the adaptive
+failure modes. After both adaptive runs finish, we will compare, for each
+dataset and ε:
 
-The processed manifest contains 301 validation documents and 536 test
-documents. The unified baseline produces 527 validation predictions and 997
-test predictions because Qwen runs on every document while Donut runs only on
-the 226 validation or 461 test receipts.
+- defended ASR for all four defenses;
+- the strict fraction of PNGs that defeat all four;
+- which visual or prompt views remain hardest;
+- LPIPS/SSIM and visual quality;
+- abstention, clean utility, latency, and model-call cost;
+- uniform-EOT versus frequency-hard-view improvement.
 
-## Repository layout
+The final defense will target the measured weakness. For example, if
+low-frequency attacks survive JPEG but disagree across prompts, the design
+should emphasize semantic verification. If they remain prompt-consistent but
+fail under particular transformations, the defense should select or randomize
+those transformations. Any proposed defense must then be evaluated on clean
+documents, the original attacks, both adaptive attacks, and the external
+receipts. This produces an evidence-driven attack–defense arms race rather than
+a defense selected because it sounds sophisticated.
 
-```text
-data/          local/CARC data; ignored by Git
-notebooks/     data loading, exploration, preprocessing, and later analysis
-src/           reusable model, attack, checkpoint, and GPU-stage code
-configs/       tracked frozen experiment definitions
-scripts/       CARC setup, Slurm launchers, smoke tests, and CPU merge tools
-outputs/       checkpoints and results; ignored by Git
-docs/          execution contract and detailed stage plans
-```
+## Response to the proposal feedback
 
-Start with [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). The exact next action
-and acceptance checklist are in [`docs/imm_next.md`](docs/imm_next.md).
+The project directly addresses the three concerns raised at proposal time.
 
-## CARC setup
+**“The project may be trivial because perturbations should affect the model.”**
+We require exact attacker-chosen outputs, bounded and reloaded PNGs, multiple ε
+values, perceptual metrics, clean-correct denominators, two tasks, and defended
+evaluation. The ε = 2 and resume results show that influence is not automatic.
 
-Clone or pull the repository in the shared project directory. Download and
-preprocess data only if `data/processed/master_manifest.parquet` is absent.
+**“The attack method needs a clearer and more difficult treatment.”** The
+method progresses from exact-forward targeted PGD to visual and semantic
+EOT/BPDA, exact randomized defense views, hard-view loss weighting, and
+frequency-aware optimization. Each addition has a controlled baseline and
+frozen contract.
 
-```bash
-bash scripts/setup_carc.sh
-source scripts/activate_paperwork.sh
-export PYTHONPATH="$PWD/src"
-python -m unittest discover -s tests -v
-```
+**“Existing attacks and defenses should be examined.”** Standard projected
+gradient optimization, BPDA, EOT, preprocessing, voting, abstention, and
+consistency are evaluated under matched datasets and metrics. Adaptive attacks
+prevent us from reporting a defense only against an attacker that did not know
+the defense existed.
 
-The baseline is designed for one L40S 48 GB GPU, 8 CPU cores, 32 GB system RAM,
-and up to 4 hours per production worker. All project GPU jobs use L40S so model
-settings and hardware remain consistent between workers.
+**“Open-source VLMs may memorize public data.”** The independently collected
+100-receipt external set is never used to select public examples. Transfer to a
+second model and the second Donut architecture provide additional evidence that
+the findings concern model behavior rather than only one public benchmark.
 
-## Baseline smoke test
+## Remaining work
 
-Only `user1` runs the first smoke test. Request an interactive L40S from a CARC
-login node:
+1. Run and strictly merge both 879-record adaptive Qwen studies.
+2. Compare them using `midterm/10_adaptive_defense_attack.ipynb`.
+3. Finish and freeze the 100-receipt external manifest.
+4. Run Qwen and Donut clean baselines and attacks on the external set.
+5. Complete Donut public attacks and the black-box transfer study.
+6. Design one final defense from the observed adaptive failure pattern.
+7. Evaluate that defense on clean, standard, adaptive, transfer, and external
+   examples before making a final claim.
 
-For an unattended run that survives closing the laptop, submit the smoke test
-as an L40S Slurm batch job:
-
-```bash
-bash scripts/submit_smoke_baseline.sh 02:00:00
-```
-
-The command prints a job ID and log paths, then it is safe to disconnect. Check
-the result later with `squeue`, `sacct`, and the saved logs. Do not keep an
-interactive `salloc` request queued at the same time.
-
-For an attended interactive run instead:
-
-```bash
-salloc --account=yzhao010_1531 --partition=gpu \
-  --nodes=1 --ntasks=1 --cpus-per-task=8 \
-  --mem=32G --time=02:00:00 --gpus-per-task=l40s:1
-srun --pty bash -l
-cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
-source scripts/activate_paperwork.sh
-export PYTHONPATH="$PWD/src"
-nvidia-smi
-python scripts/smoke_baseline.py --config configs/baseline/smoke.json
-```
-
-The smoke test runs two documents from each dataset: 6 Qwen predictions and 4
-Donut predictions. Every prediction is repeated for determinism. Inspect:
+## Repository map
 
 ```text
-outputs/baseline/baseline_smoke_v1/merged/predictions.csv
-outputs/baseline/baseline_smoke_v1/merged/failures.csv
-outputs/baseline/baseline_smoke_v1/merged/summary.json
+annotations/   human labels and audit material
+configs/       tracked experiment templates and frozen method settings
+data/          local datasets and processed manifests; not stored in Git
+docs/          operational runbook, project plans, and experiment contracts
+midterm/       CPU-only report tables and high-quality figures
+notebooks/     data auditing and qualitative result inspection
+outputs/       checkpoints, records, images, and strict merges; ignored by Git
+scripts/       preparation, validation, submission, status, and merge tools
+src/           models, attacks, defenses, stages, and shared contracts
+tests/         CPU contract and regression tests
 ```
 
-Do not start production if there is an inference failure, a nondeterministic
-response, repeated empty output, an unexpected page count, or a GPU memory
-error. Exit twice when finished to release the interactive allocation.
-
-## Five-person production baseline
-
-After the smoke output is reviewed, each teammate submits exactly one worker
-from the normal CARC login node. Do **not** request an interactive GPU first;
-the launcher submits the resource request itself.
-
-```bash
-bash scripts/submit_stage.sh baseline user1
-bash scripts/submit_stage.sh baseline user2
-bash scripts/submit_stage.sh baseline user3
-bash scripts/submit_stage.sh baseline user4
-bash scripts/submit_stage.sh baseline user5
-```
-
-The commands may run concurrently. Each worker receives a disjoint document
-shard, writes an atomic record after each inference, and safely resumes after a
-timeout. The fifth completed worker triggers the strict merge automatically.
-The merge can also be checked from a CPU login node:
-
-```bash
-python scripts/merge_baseline.py --config configs/baseline/active.json
-```
-
-Production is accepted only when the merged summary reports exactly 527 rows
-and all five workers used the same config hash and Git commit.
-
-## Rules that protect the experiment
-
-- Do not edit `configs/baseline/active.json` while jobs are queued or running.
-- Use a new `run_id` whenever code-independent experiment settings change.
-- Do not inspect the test split until the validation prompt and settings are frozen.
-- Do not commit `data/`, `.cache/`, `outputs/`, logs, or model weights.
-- Analysis notebooks read saved outputs; they do not rerun GPU inference.
+For execution and recovery procedures, use
+[`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md). For the report-facing
+figures and tables, start with [`midterm/README.md`](midterm/README.md).

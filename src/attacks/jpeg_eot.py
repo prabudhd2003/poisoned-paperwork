@@ -58,13 +58,98 @@ def quality_schedule(
     return tuple(rng.sample(values, int(samples)))
 
 
-def view_schedule(count: int, samples: int, *, seed: int, step: int) -> tuple[int, ...]:
-    """Deterministically sample indices from the frozen adaptive-view set."""
+def view_schedule(
+    count: int,
+    samples: int,
+    *,
+    seed: int,
+    step: int,
+    weights: Sequence[float] | None = None,
+) -> tuple[int, ...]:
+    """Deterministically sample unique adaptive views, optionally by hardness."""
     if count < 1 or not 1 <= int(samples) <= count:
         raise ValueError("adaptive view sample count is invalid")
     digest = hashlib.sha256(f"{seed}|{step}|defense-eot".encode()).digest()
     rng = random.Random(int.from_bytes(digest[:8], "big"))
-    return tuple(rng.sample(range(count), int(samples)))
+    if weights is None:
+        return tuple(rng.sample(range(count), int(samples)))
+    probabilities = [float(value) for value in weights]
+    if len(probabilities) != count or any(
+        not np.isfinite(value) or value <= 0 for value in probabilities
+    ):
+        raise ValueError("hard-view weights must be finite and positive")
+    available = list(range(count))
+    selected = []
+    for _ in range(int(samples)):
+        total = sum(probabilities[index] for index in available)
+        threshold = rng.random() * total
+        cumulative = 0.0
+        choice = available[-1]
+        for index in available:
+            cumulative += probabilities[index]
+            if cumulative >= threshold:
+                choice = index
+                break
+        selected.append(choice)
+        available.remove(choice)
+    return tuple(selected)
+
+
+def hard_view_weights(
+    losses: Sequence[float], *, temperature: float, floor: float
+) -> list[float]:
+    """Convert per-view target losses into stable worst-view sampling weights."""
+    values = np.asarray(losses, dtype=np.float64)
+    if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
+        raise ValueError("hard-view losses must be a nonempty finite vector")
+    if temperature <= 0 or floor < 0 or floor * len(values) >= 1:
+        raise ValueError("invalid hard-view temperature or probability floor")
+    logits = (values - values.max()) / float(temperature)
+    probabilities = np.exp(logits)
+    probabilities /= probabilities.sum()
+    probabilities = probabilities * (1 - floor * len(values)) + floor
+    probabilities /= probabilities.sum()
+    return probabilities.tolist()
+
+
+def low_frequency_component(tensor: torch.Tensor, cutoff: float) -> torch.Tensor:
+    """Return a smooth FFT low-pass component with the original tensor shape."""
+    if tensor.ndim != 3 or not 0 < float(cutoff) <= 1:
+        raise ValueError("low-frequency filtering expects [C,H,W] and cutoff in (0,1]")
+    work = tensor.float()
+    height, width = work.shape[-2:]
+    fy = torch.fft.fftfreq(height, device=work.device).reshape(-1, 1)
+    fx = torch.fft.rfftfreq(width, device=work.device).reshape(1, -1)
+    radius = torch.sqrt(fy.square() + fx.square()) / (2**-0.5)
+    mask = torch.exp(-((radius / float(cutoff)).clamp_min(0) ** 4))
+    spectrum = torch.fft.rfft2(work, dim=(-2, -1))
+    filtered = torch.fft.irfft2(
+        spectrum * mask, s=(height, width), dim=(-2, -1)
+    )
+    return filtered.to(tensor.dtype)
+
+
+def frequency_aware_update(
+    image: torch.Tensor,
+    original: torch.Tensor,
+    gradient: torch.Tensor,
+    *,
+    alpha: float,
+    epsilon_255: int,
+    cutoff: float,
+    gradient_mix: float,
+    delta_mix: float,
+) -> torch.Tensor:
+    """Take one bounded update biased toward compression-stable frequencies."""
+    if not 0 <= gradient_mix <= 1 or not 0 <= delta_mix <= 1:
+        raise ValueError("frequency mixes must be in [0,1]")
+    low_gradient = low_frequency_component(gradient, cutoff)
+    direction = (1 - gradient_mix) * gradient + gradient_mix * low_gradient
+    candidate = image - float(alpha) * direction.sign()
+    delta = candidate - original
+    low_delta = low_frequency_component(delta, cutoff)
+    candidate = original + (1 - delta_mix) * delta + delta_mix * low_delta
+    return project_linf(candidate, original, epsilon_255, quantize=True)
 
 
 def _defense_seed(*parts: object) -> int:
@@ -118,9 +203,12 @@ def _eot_loss_and_gradients(
     samples: int,
     seed: int,
     step: int,
+    view_weights: Sequence[float] | None = None,
 ) -> tuple[float, float, list[torch.Tensor], tuple[int, ...]]:
     """Average defense-aware loss and page gradients without a joint graph."""
-    selected = view_schedule(len(views), samples, seed=seed, step=step)
+    selected = view_schedule(
+        len(views), samples, seed=seed, step=step, weights=view_weights
+    )
     gradients = [torch.zeros_like(image) for image in xs]
     losses: list[float] = []
     log_probabilities: list[float] = []
@@ -165,9 +253,9 @@ def _eot_loss_and_gradients(
 
 
 @torch.no_grad()
-def _eot_loss_value(
+def _all_view_statistics(
     objectives: Sequence[Objective], xs: Sequence[torch.Tensor], views: Sequence[dict]
-) -> tuple[float, float]:
+) -> tuple[float, float, list[float]]:
     losses, log_probabilities = [], []
     for view in views:
         objective = objectives[int(view["prompt_index"])]
@@ -175,7 +263,14 @@ def _eot_loss_value(
         loss, log_probability = objective.loss(transformed)
         losses.append(float(loss))
         log_probabilities.append(float(log_probability))
-    return float(np.mean(losses)), float(np.mean(log_probabilities))
+    return float(np.mean(losses)), float(np.mean(log_probabilities)), losses
+
+
+def _eot_loss_value(
+    objectives: Sequence[Objective], xs: Sequence[torch.Tensor], views: Sequence[dict]
+) -> tuple[float, float]:
+    loss, log_probability, _ = _all_view_statistics(objectives, xs, views)
+    return loss, log_probability
 
 
 def _result_dict(result, target: str) -> dict[str, object]:
@@ -265,6 +360,10 @@ def attack(
     settings = config["attack"]
     views = resolved_training_views(config, record_id, len(pages))
     samples = int(settings["eot_samples_per_step"])
+    attack_method = str(settings.get("method", "uniform_multiview_eot"))
+    sampling_method = str(settings.get("view_sampling", "uniform"))
+    frequency = settings.get("frequency_aware", {})
+    frequency_enabled = bool(frequency.get("enabled", False))
     seed = int(config["seed"]) + int(key[:8], 16)
 
     contract = {
@@ -290,6 +389,7 @@ def attack(
     best_defense_loss = float("inf")
     best_defense_pages = None
     best_defense_step = 0
+    view_weights = [1.0 / len(views)] * len(views)
     start_step = 0
     logs: list[dict] = []
     prior_seconds = 0.0
@@ -314,6 +414,7 @@ def attack(
         best_defense_loss = float(extra.get("best_defense_loss", float("inf")))
         best_defense_pages = extra.get("best_defense_pages")
         best_defense_step = int(extra.get("best_defense_step", 0))
+        view_weights = [float(value) for value in extra.get("view_weights", view_weights)]
         start_step = int(state["completed_steps"])
         logs = list(extra["logs"])
         prior_seconds = float(extra.get("runtime_seconds", 0.0))
@@ -334,6 +435,7 @@ def attack(
             samples=samples,
             seed=seed,
             step=step,
+            view_weights=view_weights if sampling_method == "hard_view" else None,
         )
         norm = float(
             sum(gradient.float().square().sum() for gradient in gradients).sqrt()
@@ -345,16 +447,42 @@ def attack(
             best_pages = [image.detach().cpu() for image in xs]
             best_step = step - 1
         with torch.no_grad():
-            xs = [
-                project_linf(
-                    image - alpha * gradient.sign(), original, epsilon, quantize=True
-                ).detach().requires_grad_(True)
-                for image, original, gradient in zip(xs, clean, gradients)
-            ]
+            if frequency_enabled:
+                xs = [
+                    frequency_aware_update(
+                        image,
+                        original,
+                        gradient,
+                        alpha=alpha,
+                        epsilon_255=epsilon,
+                        cutoff=float(frequency["cutoff"]),
+                        gradient_mix=float(frequency["gradient_mix"]),
+                        delta_mix=float(frequency["delta_mix"]),
+                    ).detach().requires_grad_(True)
+                    for image, original, gradient in zip(xs, clean, gradients)
+                ]
+            else:
+                xs = [
+                    project_linf(
+                        image - alpha * gradient.sign(),
+                        original,
+                        epsilon,
+                        quantize=True,
+                    ).detach().requires_grad_(True)
+                    for image, original, gradient in zip(xs, clean, gradients)
+                ]
         final_step = step
 
         if step % checkpoint_interval == 0 or step == max_steps:
-            loss_now, logp_now = _eot_loss_value(objectives, xs, views)
+            loss_now, logp_now, view_losses = _all_view_statistics(
+                objectives, xs, views
+            )
+            if sampling_method == "hard_view":
+                view_weights = hard_view_weights(
+                    view_losses,
+                    temperature=float(settings["hard_view_temperature"]),
+                    floor=float(settings["hard_view_probability_floor"]),
+                )
             if loss_now < best_loss:
                 best_loss = loss_now
                 best_pages = [image.detach().cpu() for image in xs]
@@ -365,6 +493,8 @@ def attack(
                 "mean_target_log_probability": logp_now,
                 "sampled_view_indices": list(sampled),
                 "sampled_views": [views[index] for index in sampled],
+                "view_losses": view_losses,
+                "view_weights_next": view_weights,
                 "gradient_norm": norm,
                 "peak_gpu_memory_mb": torch.cuda.max_memory_allocated() / 2**20,
             }
@@ -418,6 +548,7 @@ def attack(
                     "best_defense_loss": best_defense_loss,
                     "best_defense_pages": best_defense_pages,
                     "best_defense_step": best_defense_step,
+                    "view_weights": view_weights,
                     "logs": logs,
                     "runtime_seconds": prior_seconds + time.perf_counter() - started,
                 },
@@ -498,5 +629,8 @@ def attack(
         ],
         "contract_hash": contract_hash,
         "training_views": views,
+        "attack_method": attack_method,
+        "view_sampling": sampling_method,
+        "frequency_aware": frequency,
         "bpda_method": "real_pillow_defense_forward_identity_backward",
     }

@@ -54,6 +54,40 @@ class JpegEotTests(unittest.TestCase):
         self.assertEqual(len(first), 2)
         self.assertEqual(len(set(first)), 2)
 
+    def test_hard_view_weights_emphasize_the_largest_loss(self):
+        from attacks.jpeg_eot import hard_view_weights, view_schedule
+
+        weights = hard_view_weights(
+            [0.2, 3.0, 0.5], temperature=0.75, floor=0.01
+        )
+        self.assertAlmostEqual(sum(weights), 1.0)
+        self.assertGreater(weights[1], weights[0])
+        self.assertGreater(weights[1], weights[2])
+        first = view_schedule(3, 2, seed=566, step=7, weights=weights)
+        second = view_schedule(3, 2, seed=566, step=7, weights=weights)
+        self.assertEqual(first, second)
+
+    def test_frequency_update_is_bounded_and_quantized(self):
+        from attacks.jpeg_eot import frequency_aware_update, low_frequency_component
+
+        original = torch.full((3, 24, 20), 0.5)
+        checkerboard = torch.arange(24).reshape(-1, 1) + torch.arange(20)
+        gradient = ((checkerboard % 2) * 2 - 1).float().repeat(3, 1, 1)
+        low = low_frequency_component(gradient, 0.25)
+        self.assertLess(float(low.abs().mean()), float(gradient.abs().mean()))
+        updated = frequency_aware_update(
+            original,
+            original,
+            gradient,
+            alpha=4 / 255,
+            epsilon_255=8,
+            cutoff=0.25,
+            gradient_mix=0.75,
+            delta_mix=0.5,
+        )
+        self.assertLessEqual(float((updated - original).abs().max() * 255), 8.0001)
+        torch.testing.assert_close(updated * 255, torch.round(updated * 255))
+
     def test_exact_resize_vote_views_are_reproducible(self):
         from attacks.jpeg_eot import resolved_training_views
 
@@ -80,6 +114,20 @@ class JpegEotTests(unittest.TestCase):
         transforms = {view["transform"] for view in config["attack"]["training_views"]}
         self.assertTrue({"jpeg_q85", "resize_0.85", "blur_0.5"}.issubset(transforms))
         self.assertEqual(config["attack"]["evaluation_interval"] % config["attack"]["checkpoint_interval"], 0)
+
+    def test_frequency_hardview_full_config_is_valid(self):
+        from stages.jpeg_eot_attack import validate_config
+
+        config = json.loads(
+            (ROOT / "configs/jpeg_eot_attack/public_frequency_hardview.json").read_text()
+        )
+        config["ready_for_production"] = True
+        validate_config(config)
+        self.assertEqual(
+            config["attack"]["method"], "frequency_hardview_minimax_eot"
+        )
+        self.assertEqual(config["attack"]["view_sampling"], "hard_view")
+        self.assertTrue(config["attack"]["frequency_aware"]["enabled"])
 
     def test_epsilon_two_cannot_enter_full_study_silently(self):
         from stages.jpeg_eot_attack import validate_config
