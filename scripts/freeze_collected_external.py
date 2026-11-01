@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create the immutable 100-receipt external-test manifest and freeze config hashes."""
+"""Create the immutable 114-receipt external-test manifest and freeze config hashes."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--images", type=Path, default=ROOT / "collected receipts")
     parser.add_argument("--labels", type=Path, default=ROOT / "annotations/collected_receipt_labels.csv")
-    parser.add_argument("--expected", type=int, default=100)
+    parser.add_argument("--expected", type=int, default=114)
     parser.add_argument("--update-configs", action="store_true")
     return parser.parse_args()
 

@@ -1,4 +1,4 @@
-# CARC terminal workflow from 100 receipts to final results
+# CARC terminal workflow from 114 receipts to final results
 
 All model inference, attacks, transformations, and defenses run from the CARC
 terminal on L40S GPUs. Notebooks are read-only analysis artifacts and are never
@@ -114,14 +114,14 @@ change another team member's private directory. Copy only readable artifacts
 into the main repository output tree, verify record/image counts and hashes,
 and freeze the copied source path in the runtime config.
 
-## 1. Freeze the 100 collected PNG receipts
+## 1. Freeze the 114 collected PNG receipts
 
 The raw files belong in `collected receipts/`; labels belong in
-`annotations/collected_receipt_labels.csv`. There must be exactly 100 unique
+`annotations/collected_receipt_labels.csv`. There must be exactly 114 unique
 rows with `status=verified`. Inputs must be PNG.
 
 ```bash
-python scripts/freeze_collected_external.py --expected 100
+python scripts/freeze_collected_external.py --expected 114
 ```
 
 This creates the immutable processed PNGs, SHA256 manifest, decimal clean
@@ -250,7 +250,7 @@ selective visual multi-view consistency, and the project-specific cross-view /
 cross-prompt semantic-consistency defense. The already saved official Qwen
 predictions are the no-defense control; they are not recomputed as a fifth
 "defense." The same frozen transformations, prompts, voting thresholds, and
-metrics will later be applied to the 100 collected receipts.
+metrics will later be applied to the 114 collected receipts.
 
 Primary reporting includes post-defense ASR over every attempt and recovery
 rate over attacks that originally achieved their exact target. Clean accuracy,
