@@ -512,8 +512,8 @@ def run_attack_report(
 
 def run_defense_report(
     run_candidates: Iterable[str | Path] = (
-        "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/defenses/defenses_validation_v1",
-        "outputs/defenses/defenses_validation_v1",
+        "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/defenses/defenses_qwen_public_final_v1",
+        "outputs/defenses/defenses_qwen_public_final_v1",
     ),
     env_var: str = "PP_DEFENSE_RUN_DIR",
 ):
@@ -622,6 +622,104 @@ def run_defense_report(
         adaptive_figure.tight_layout()
         save_figure(adaptive_figure, "adaptive_defense_results")
     return records, summary, source_control, recovery, adaptive_summary
+
+
+def run_adaptive_defense_attack_report(
+    run_candidates: Iterable[str | Path] = (
+        "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1",
+        "outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1",
+    ),
+    env_var: str = "PP_ADAPTIVE_DEFENSE_ATTACK_RUN_DIR",
+):
+    """Report the full adaptive EOT/BPDA attack against all four defenses."""
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    from IPython.display import display
+    from matplotlib.ticker import PercentFormatter
+
+    run_dir = resolve_run_dir(run_candidates, env_var)
+    if run_dir is None:
+        print(
+            "Adaptive defense-aware results are not available yet. "
+            f"Rerun after completion, or export {env_var}=/absolute/run/path"
+        )
+        return None
+    path = run_dir / "merged/records.parquet"
+    if path.is_file():
+        records = pd.read_parquet(path)
+    else:
+        csv = run_dir / "merged/records.csv"
+        if not csv.is_file():
+            print(f"No merged adaptive records found under {run_dir}")
+            return None
+        records = pd.read_csv(csv)
+
+    outcomes = {
+        "jpeg": "primary_jpeg_success",
+        "resize_vote": "resize_vote_success",
+        "selective_multiview": "selective_multiview_success",
+        "semantic_consistency": "semantic_consistency_success",
+        "all_four": "all_defenses_success",
+    }
+    rows = []
+    for defense_id, column in outcomes.items():
+        if column not in records:
+            continue
+        view = records[[
+            "record_id", "dataset_name", "epsilon_255", "lpips", "ssim",
+            "runtime_seconds", column,
+        ]].copy()
+        view["defense_id"] = defense_id
+        view["target_success"] = view[column].astype(bool)
+        rows.append(view)
+    if not rows:
+        print("Adaptive records do not contain defense outcome fields.")
+        return None
+    long = pd.concat(rows, ignore_index=True)
+    summary = (
+        long.groupby(["dataset_name", "epsilon_255", "defense_id"], dropna=False)
+        .agg(
+            trials=("record_id", "size"),
+            successes=("target_success", "sum"),
+            adaptive_asr=("target_success", "mean"),
+            median_lpips=("lpips", "median"),
+            median_ssim=("ssim", "median"),
+            median_runtime_seconds=("runtime_seconds", "median"),
+        )
+        .reset_index()
+    )
+    display(summary.style.format({
+        "adaptive_asr": "{:.1%}", "median_lpips": "{:.3f}",
+        "median_ssim": "{:.3f}", "median_runtime_seconds": "{:.1f}",
+    }))
+    export_table(summary, "adaptive_multidefense_results")
+
+    setup_style()
+    datasets = sorted(summary.dataset_name.unique())
+    figure, axes = plt.subplots(1, len(datasets), figsize=(6 * len(datasets), 5), squeeze=False)
+    for axis, dataset in zip(axes.flat, datasets):
+        selected = summary[summary.dataset_name.eq(dataset)]
+        for defense_id, group in selected.groupby("defense_id"):
+            axis.plot(
+                group.epsilon_255, group.adaptive_asr,
+                marker="o", linewidth=2, label=defense_id,
+            )
+        axis.set(
+            title=str(dataset), xlabel="Perturbation budget ε",
+            ylabel="Adaptive targeted ASR", ylim=(-0.04, 1.04),
+        )
+        axis.yaxis.set_major_formatter(PercentFormatter(1.0))
+    axes.flat[-1].legend(loc="best", fontsize=8)
+    figure.suptitle("Defense-aware EOT/BPDA attack success", fontsize=16)
+    figure.tight_layout()
+    save_figure(figure, "adaptive_multidefense_results")
+    qualitative = normalize_attack_records(records, run_dir)
+    qualitative["success"] = records["all_defenses_success"].fillna(False).astype(bool)
+    show_qualitative_example(
+        qualitative, preferred_epsilon=16, success=True,
+        stem="adaptive_multidefense_successful_example",
+    )
+    return records, summary
 
 
 def render_authoritative_overview():

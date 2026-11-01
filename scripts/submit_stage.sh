@@ -60,9 +60,11 @@ case "$STAGE" in
     GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
   defenses)
     GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
+  jpeg_eot_attack)
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
   *)
     echo "Unknown stage '$STAGE'." >&2
-    echo "Choose: baseline, donut_attack, qwen_attack, transfer_robustness, eot_patch, defenses" >&2
+    echo "Choose: baseline, donut_attack, qwen_attack, transfer_robustness, eot_patch, defenses, jpeg_eot_attack" >&2
     exit 2
     ;;
 esac
@@ -239,15 +241,17 @@ fi
   python scripts/preflight_stage.py --stage "$STAGE" --config "$CONFIG_PATH"
 )
 
-if [[ "$STAGE" == "qwen_attack" ]]; then
+if [[ "$STAGE" == "qwen_attack" || "$STAGE" == "jpeg_eot_attack" ]]; then
   (
     cd "$REPO_ROOT"
     source scripts/activate_paperwork.sh
     export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
     python - <<'PY'
 import sys
+import lpips
 import numpy
 import pandas
+import PIL
 import torch
 import transformers
 
@@ -262,12 +266,15 @@ print(
     f"transformers={transformers.__version__}",
     f"pandas={pandas.__version__}",
     f"numpy={numpy.__version__}",
+    f"pillow={PIL.__version__}",
+    f"lpips={getattr(lpips, '__version__', 'available')}",
 )
 PY
-    if [[ "$TRACK" != "collected_receipts" ]]; then
+    if [[ "$STAGE" == "qwen_attack" && "$TRACK" != "collected_receipts" ]]; then
       python scripts/check_qwen_processor_parity.py --config "$CONFIG_PATH"
     fi
-    python - "$CONFIG_PATH" "$REPO_ROOT" <<'PY'
+    if [[ "$STAGE" == "qwen_attack" ]]; then
+      python - "$CONFIG_PATH" "$REPO_ROOT" <<'PY'
 import importlib
 import json
 from pathlib import Path
@@ -286,6 +293,7 @@ if preflight is None:
 preflight(config, repo_root)
 print("QWEN PRODUCTION PREFLIGHT PASSED")
 PY
+    fi
   )
 fi
 

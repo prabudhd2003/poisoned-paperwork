@@ -190,8 +190,19 @@ def build() -> None:
     )
     (HERE / "09_report_figures.ipynb").write_text(json.dumps(report, indent=1) + "\n")
 
+    adaptive = notebook(
+        [
+            markdown("# Full adaptive attack against all defenses\n\n" + INTRO + "\n\nThis notebook analyzes the full 293-document, three-epsilon multi-defense EOT/BPDA run. The saved artifact remains a PNG; success is evaluated separately after JPEG, resize voting, selective multi-view voting, and cross-view/cross-prompt semantic consistency."),
+            code("from pathlib import Path\nimport sys\nREPO_ROOT = next(path for path in [Path.cwd(), *Path.cwd().parents] if (path / 'midterm' / 'reporting.py').is_file())\nif str(REPO_ROOT) not in sys.path:\n    sys.path.insert(0, str(REPO_ROOT))\nfrom midterm.reporting import run_adaptive_defense_attack_report"),
+            markdown("## Adaptive robustness table and figure\n\nEach denominator contains every clean-correct document in that dataset at that ε. `all_four` is the strict intersection: the same saved PNG reaches the target after every defense."),
+            code("adaptive_result = run_adaptive_defense_attack_report()"),
+            markdown("## Interpretation checklist\n\nCompare these adaptive ASRs with the earlier non-adaptive post-defense ASRs. A rise demonstrates that the attacker adapted to the defense; any remaining gap quantifies residual robustness. Report LPIPS and SSIM beside ASR, and avoid claiming that any attack is guaranteed to defeat every input."),
+        ]
+    )
+    (HERE / "10_adaptive_defense_attack.ipynb").write_text(json.dumps(adaptive, indent=1) + "\n")
+
 
 if __name__ == "__main__":
     build()
-    print(f"Wrote 10 notebooks under {HERE}")
+    print(f"Wrote 11 notebooks under {HERE}")
 
