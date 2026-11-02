@@ -8,6 +8,20 @@ set -euo pipefail
 : "${PP_REPO_ROOT:?PP_REPO_ROOT is required}"
 : "${PP_STAGE:?PP_STAGE is required}"
 : "${PP_CONFIG:?PP_CONFIG is required}"
+
+if [[ "${PP_ARRAY_MODE:-0}" == "1" ]]; then
+  : "${SLURM_ARRAY_TASK_ID:?array submission requires SLURM_ARRAY_TASK_ID}"
+  case "$SLURM_ARRAY_TASK_ID" in
+    0) PP_USER_ID="user1"; PP_WORKER_ID=0 ;;
+    1) PP_USER_ID="user2"; PP_WORKER_ID=1 ;;
+    2) PP_USER_ID="user3"; PP_WORKER_ID=2 ;;
+    3) PP_USER_ID="user4"; PP_WORKER_ID=3 ;;
+    4) PP_USER_ID="user5"; PP_WORKER_ID=4 ;;
+    *) echo "Invalid worker array index: $SLURM_ARRAY_TASK_ID" >&2; exit 2 ;;
+  esac
+  export PP_USER_ID PP_WORKER_ID
+fi
+
 : "${PP_USER_ID:?PP_USER_ID is required}"
 : "${PP_WORKER_ID:?PP_WORKER_ID is required}"
 : "${PP_NUM_WORKERS:?PP_NUM_WORKERS is required}"

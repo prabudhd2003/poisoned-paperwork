@@ -37,6 +37,17 @@ The status must be clean before a job is submitted. Every command below is
 restart-safe: submitting the same user/config again skips completed JSON records
 and continues its assigned shard.
 
+Production stages may be submitted as one five-worker Slurm array instead of
+five unrelated jobs. Use `all` in place of a user ID:
+
+```bash
+bash scripts/submit_stage.sh STAGE all CONFIG
+```
+
+The scheduler still runs five independently restartable worker shards, but the
+queue groups them under one array job ID. Individual `user1` through `user5`
+submission remains available when resuming only one failed or timed-out shard.
+
 Verify the exact environment before a production submission:
 
 ```bash
