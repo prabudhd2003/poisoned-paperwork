@@ -143,6 +143,7 @@ def load_attack_records(run_dir: str | Path):
 
     run_dir = Path(run_dir)
     merged_names = (
+        "merged/attacks_for_defenses.parquet",
         "merged/attacks.parquet",
         "merged/records.parquet",
         "merged/results.parquet",
@@ -516,6 +517,8 @@ def run_defense_report(
         "outputs/defenses/defenses_qwen_public_final_v1",
     ),
     env_var: str = "PP_DEFENSE_RUN_DIR",
+    artifact_stem: str = "qwen_defense",
+    title: str = "Qwen defense effectiveness, utility, and cost",
 ):
     """Analyze future non-adaptive and adaptive defense results."""
     import matplotlib.pyplot as plt
@@ -550,7 +553,7 @@ def run_defense_report(
         .reset_index()
     )
     display(summary.style.format({"clean_accuracy": "{:.1%}", "target_asr": "{:.1%}", "abstention": "{:.1%}", "agreement": "{:.1%}", "extra_passes": "{:.2f}", "median_runtime_seconds": "{:.1f}"}))
-    export_table(summary, "defense_results")
+    export_table(summary, f"{artifact_stem}_results")
 
     source_control = records.loc[
         records["example_type"].eq("non_adaptive_attack")
@@ -562,7 +565,7 @@ def run_defense_report(
         original_asr=("source_attack_success", "mean"),
     ).reset_index()
     display(source_control.style.format({"original_asr": "{:.1%}"}))
-    export_table(source_control, "saved_no_defense_control")
+    export_table(source_control, f"{artifact_stem}_no_defense_control")
 
     recovery = records.loc[
         records["example_type"].eq("non_adaptive_attack")
@@ -577,7 +580,7 @@ def run_defense_report(
     if not recovery.empty:
         recovery["recovery_rate"] = 1 - recovery["remaining_target_success"] / recovery["originally_successful"]
         display(recovery.style.format({"recovery_rate": "{:.1%}", "abstention": "{:.1%}"}))
-        export_table(recovery, "successful_attack_recovery")
+        export_table(recovery, f"{artifact_stem}_successful_attack_recovery")
 
     nonadaptive = summary[summary["example_type"].eq("non_adaptive_attack")].copy()
     if nonadaptive.empty:
@@ -600,9 +603,9 @@ def run_defense_report(
         for bar, value in zip(bars, nonadaptive[column]):
             label = f"{value:.1%}" if percentage else f"{value:.2f}"
             axis.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), label, ha="center", va="bottom", fontsize=9)
-    figure.suptitle("Defense effectiveness, utility, and cost", fontsize=16)
+    figure.suptitle(title, fontsize=16)
     figure.tight_layout()
-    save_figure(figure, "defense_overview")
+    save_figure(figure, f"{artifact_stem}_overview")
 
     adaptive = records[records["example_type"].eq("adaptive_attack")].copy()
     adaptive_summary = None
@@ -613,14 +616,14 @@ def run_defense_report(
             .reset_index()
         )
         display(adaptive_summary.style.format({"adaptive_asr": "{:.1%}", "abstention": "{:.1%}", "agreement": "{:.1%}"}))
-        export_table(adaptive_summary, "adaptive_defense_results")
+        export_table(adaptive_summary, f"{artifact_stem}_adaptive_results")
         adaptive_figure, axis = plt.subplots(figsize=(8, 5))
         for defense, group in adaptive_summary.groupby("defense_id"):
             axis.plot(group["epsilon_255"], group["adaptive_asr"], marker="o", lw=2, label=defense)
         axis.set(title="Adaptive attack success against defenses", xlabel="Perturbation budget ε", ylabel="Adaptive targeted ASR", ylim=(-0.04, 1.04))
         axis.yaxis.set_major_formatter(PercentFormatter(1.0)); axis.legend()
         adaptive_figure.tight_layout()
-        save_figure(adaptive_figure, "adaptive_defense_results")
+        save_figure(adaptive_figure, f"{artifact_stem}_adaptive_results")
     return records, summary, source_control, recovery, adaptive_summary
 
 
@@ -731,7 +734,6 @@ def render_authoritative_overview():
     from matplotlib.ticker import PercentFormatter
 
     main = Path("/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork")
-    donut = Path("/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree")
     baseline_dir = resolve_run_dir(
         [main / "outputs/baseline/baseline_validation_v1", "outputs/baseline/baseline_validation_v1"],
         "PP_BASELINE_RUN_DIR",
@@ -746,15 +748,31 @@ def render_authoritative_overview():
             [Path("/project2/yzhao010_1531/qwen-receipt-runs/qwen_attack/qwen_receipt_validation_v1"), "outputs/qwen_attack/qwen_receipt_validation_v1"],
         ),
         ("Qwen", [main / "outputs/qwen_attack/qwen_resume_validation_v1", "outputs/qwen_attack/qwen_resume_validation_v1"]),
-        ("Donut", [donut / "outputs/donut_attack/donut_paper_full_validation_v1"]),
-        ("Donut", [donut / "outputs/donut_attack/donut_paper_eps8_16_20_v1"]),
+        (
+            "Donut",
+            [
+                "outputs/imported/donut_public_validation/donut_paper_full_eps2_4_validation_v1",
+                "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-eps2-4-worktree/outputs/donut_attack/donut_paper_full_eps2_4_validation_v1",
+            ],
+        ),
+        (
+            "Donut",
+            [
+                "outputs/imported/donut_public_validation/donut_paper_full_eps8_16_validation_v1",
+                "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_eps8_16_validation_v1",
+            ],
+        ),
     ]
     attack_frames = []
+    seen_runs = set()
     for model, candidates in specs:
         run_dir = resolve_run_dir(candidates)
         if run_dir is None:
             print(f"Skipping unavailable {model} run: {candidates[0]}")
             continue
+        if run_dir in seen_runs:
+            continue
+        seen_runs.add(run_dir)
         frame = load_attack_records(run_dir)
         frame["model"] = model
         attack_frames.append(frame)

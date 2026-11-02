@@ -17,7 +17,7 @@ CPU-only, reads completed result files, displays report tables, and exports
 8. `07_donut_collected_receipts.ipynb` — Donut × team-collected receipts.
 9. `08_defense_results.ipynb` — future-ready defense and adaptive-attack analysis.
 10. `09_report_figures.ipynb` — regenerates the cross-experiment report figures.
-11. `10_adaptive_defense_attack.ipynb` — matched full-run comparison of uniform EOT/BPDA and frequency-aware hard-view EOT/BPDA against all four defenses.
+11. `10_adaptive_defense_attack.ipynb` — matched Qwen/Donut comparison of uniform EOT/BPDA and frequency-aware hard-view EOT/BPDA against all four defenses.
 
 The notebooks use these authoritative CARC result roots: the main project for
 clean baselines and Qwen resumes, the shared `qwen-receipt-runs` directory for

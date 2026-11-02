@@ -1,12 +1,15 @@
+import json
 import random
 import copy
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import torch
+from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,10 +22,61 @@ from attacks.donut import (
     targeted_image_attack,
     targeted_token_loss,
 )
-from models.donut import differentiable_donut_preprocess
+from models.donut import DonutAdaptiveObjective, DonutSettings, differentiable_donut_preprocess
 
 
 class DonutAttackPrimitiveTests(unittest.TestCase):
+    def test_adaptive_objective_has_exact_forward_and_identity_gradient(self):
+        class Processor:
+            def __call__(self, *, images, return_tensors):
+                self.last = torch.full((1, 3, 4, 5), 0.25)
+                return {"pixel_values": self.last}
+
+        wrapper = SimpleNamespace(
+            device=torch.device("cpu"),
+            dtype=torch.float32,
+            settings=DonutSettings(
+                height=4,
+                width=5,
+                image_mean=(0.0, 0.0, 0.0),
+                image_std=(1.0, 1.0, 1.0),
+                align_long_axis=False,
+            ),
+            processor=Processor(),
+        )
+        wrapper.prompt = lambda question: f"prompt:{question}"
+        wrapper._token_ids = lambda text: torch.tensor([[1, 2]], dtype=torch.long)
+        wrapper.preprocess_for_attack = lambda image: image.unsqueeze(0)
+        page = Image.new("RGB", (5, 4), color=(10, 20, 30))
+        objective = DonutAdaptiveObjective(
+            wrapper,
+            [page],
+            "question",
+            "target",
+            {"max": 1e-6, "mean": 1e-8, "surrogate_mean": 1.0},
+            loss_type="paper_margin",
+        )
+        image = torch.zeros(3, 4, 5, requires_grad=True)
+        pixels = objective.pixels([image])
+        torch.testing.assert_close(pixels, torch.full_like(pixels, 0.25))
+        pixels.sum().backward()
+        torch.testing.assert_close(image.grad, torch.ones_like(image))
+        stats = objective.parity([image.detach()])
+        self.assertEqual(stats["processor_max_abs_difference"], 0.0)
+
+    def test_donut_public_defense_config_matches_qwen_grid(self):
+        from stages.defenses import validate_config
+
+        config = json.loads(
+            (REPO_ROOT / "configs/defenses/donut_public_final.json").read_text()
+        )
+        config["ready_for_production"] = True
+        validate_config(config)
+        self.assertEqual(config["model_key"], "donut")
+        self.assertEqual(config["attack_epsilons_255"], [4, 8, 16])
+        self.assertNotIn(2, config["attack_epsilons_255"])
+        self.assertNotIn(32, config["attack_epsilons_255"])
+
     def test_projection_enforces_pixel_space_bound_and_domain(self):
         clean = torch.tensor([[[0.0, 0.5, 1.0]]]).repeat(3, 1, 1)
         candidate = torch.tensor([[[-1.0, 0.9, 2.0]]]).repeat(3, 1, 1)

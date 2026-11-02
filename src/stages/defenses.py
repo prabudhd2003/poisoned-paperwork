@@ -50,6 +50,24 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("defense config requires stage=defenses")
     if config.get("ready_for_production") is not True:
         raise RuntimeError("defense run is gated until all source hashes and validation choices are frozen")
+    model_key = config.get("model_key", "qwen")
+    if model_key not in {"qwen", "donut"}:
+        raise ValueError("defense model_key must be qwen or donut")
+    expected_models = {
+        "qwen": (
+            "Qwen/Qwen2.5-VL-3B-Instruct",
+            "66285546d2b821cf421d4f5eb2576359d3770cd3",
+        ),
+        "donut": (
+            "naver-clova-ix/donut-base-finetuned-docvqa",
+            "b19d2e332684b0e2d35d9144ce34047767335cf8",
+        ),
+    }
+    model_id, revision = expected_models[model_key]
+    if config.get("model", {}).get("model_id") != model_id:
+        raise ValueError(f"defense config does not use pinned {model_key} model")
+    if config.get("model", {}).get("revision") != revision:
+        raise ValueError(f"defense config does not use pinned {model_key} revision")
     if tuple(config.get("defense_ids", ())) != DEFENSE_IDS:
         raise ValueError(f"defense_ids must equal {list(DEFENSE_IDS)}")
     settings = config.get("defense", {})
@@ -210,12 +228,21 @@ def _load_attacked_pages(row, root: Path) -> list[Image.Image]:
         paths = [str(row.image_path)]
     source_root = Path(str(row.source_root))
     result = []
+    resolved = []
     for stored in paths:
         path = _resolve_image(stored, root, source_root)
+        resolved.append(path)
         with Image.open(path) as source:
             result.append(source.convert("RGB").copy())
     if not result:
         raise RuntimeError(f"attack record has no resolvable images: {row.record_id}")
+    expected_hash = row.get("attacked_image_sha256")
+    if (
+        isinstance(expected_hash, str)
+        and expected_hash
+        and (len(resolved) != 1 or sha256_file(resolved[0]) != expected_hash)
+    ):
+        raise RuntimeError(f"attacked PNG hash mismatch: {row.record_id}")
     return result
 
 
@@ -293,12 +320,25 @@ def preflight(config: dict[str, Any], root: Path) -> None:
     attacks = _load_attack_sources(root, config)
     documents = attacks.record_id.nunique()
     datasets = sorted(attacks.dataset_name.unique())
+    expected_documents = config.get("expected_documents_by_dataset")
+    if expected_documents is not None:
+        observed = attacks.groupby("dataset_name").record_id.nunique().to_dict()
+        if observed != expected_documents:
+            raise RuntimeError(
+                f"defense document counts differ: {observed} != {expected_documents}"
+            )
+    expected_attacks = config.get("expected_attack_records")
+    if expected_attacks is not None and len(attacks) != int(expected_attacks):
+        raise RuntimeError(
+            f"defense attack count differs: {len(attacks)} != {expected_attacks}"
+        )
     print(f"DEFENSE PREFLIGHT PASSED: {documents} documents, {len(attacks)} attacks, {datasets}")
 
 
 def run(config, config_path, user_id, worker_id, num_workers):
     import pandas as pd
     import torch
+    from models.donut import DonutDocVQA
     from models.qwen import QwenVL
 
     validate_config(config)
@@ -324,13 +364,21 @@ def run(config, config_path, user_id, worker_id, num_workers):
     if adaptive_settings.get("enabled") and not adaptive_ids:
         raise RuntimeError("adaptive defense evaluation requires a collected-receipt attack source")
     settings = config["model"]
-    wrapper = QwenVL(
-        device=torch.device("cuda"), model_id=settings["model_id"],
-        revision=settings["revision"], precision=settings.get("precision", "bfloat16"),
-        min_pixels=int(settings.get("min_pixels", 200704)),
-        max_pixels=int(settings.get("max_pixels", 1003520)),
-        max_new_tokens=int(settings.get("max_new_tokens", 32)),
-    )
+    model_key = config.get("model_key", "qwen")
+    if model_key == "qwen":
+        wrapper = QwenVL(
+            device=torch.device("cuda"), model_id=settings["model_id"],
+            revision=settings["revision"], precision=settings.get("precision", "bfloat16"),
+            min_pixels=int(settings.get("min_pixels", 200704)),
+            max_pixels=int(settings.get("max_pixels", 1003520)),
+            max_new_tokens=int(settings.get("max_new_tokens", 32)),
+        )
+    else:
+        wrapper = DonutDocVQA(
+            device=torch.device("cuda"), model_id=settings["model_id"],
+            revision=settings["revision"], precision=settings.get("precision", "float32"),
+            max_length=int(settings.get("max_length", 64)),
+        )
     expected = 0
     audit_limit = int(config.get("audit_documents_per_worker", 3))
     audit_ids = set(ids[:audit_limit])

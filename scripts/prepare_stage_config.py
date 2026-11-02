@@ -22,8 +22,11 @@ TEMPLATES = {
     "transfer": "configs/transfer_robustness/active.json",
     "defenses": "configs/defenses/active.json",
     "defenses_public": "configs/defenses/qwen_public_final.json",
+    "defenses_donut_public": "configs/defenses/donut_public_final.json",
     "jpeg_eot": "configs/jpeg_eot_attack/public_full.json",
     "jpeg_eot_hardview": "configs/jpeg_eot_attack/public_frequency_hardview.json",
+    "jpeg_eot_donut": "configs/jpeg_eot_attack/donut_public_full.json",
+    "jpeg_eot_donut_hardview": "configs/jpeg_eot_attack/donut_public_frequency_hardview.json",
 }
 
 
@@ -56,8 +59,9 @@ def main():
         config["baseline_predictions"] = relative_or_absolute(baseline)
         config["baseline_predictions_sha256"] = sha256_file(baseline)
     if args.stage in {
-        "transfer", "defenses", "defenses_public", "jpeg_eot",
-        "jpeg_eot_hardview",
+        "transfer", "defenses", "defenses_public", "defenses_donut_public",
+        "jpeg_eot", "jpeg_eot_hardview", "jpeg_eot_donut",
+        "jpeg_eot_donut_hardview",
     }:
         if not args.source:
             raise SystemExit("provide every frozen attack table as --source NAME=PATH")
