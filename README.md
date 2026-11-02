@@ -12,6 +12,45 @@ the highest degree stated in a resume. Together they test numerical extraction
 and semantic document classification across two model families, public data,
 and a prospectively collected external dataset.
 
+## The project in one picture
+
+```mermaid
+flowchart LR
+    A[Clean receipt or resume] --> B[Document VLM]
+    B --> C[Correct answer]
+    A --> D[Bounded pixel optimization]
+    D --> E[Adversarial PNG<br/>visually similar to the clean page]
+    E --> F[Same document VLM]
+    F --> G[Attacker-chosen wrong answer]
+    E --> H[JPEG, resize, voting,<br/>prompt and view consistency]
+    H --> I{Does the target survive?}
+    I -->|No| J[Defense recovers or abstains]
+    I -->|Yes| K[Adaptive attack succeeds]
+    K --> L[Evidence for designing<br/>a stronger final defense]
+```
+
+The core risk is simple: the visible words and numbers do not need to change
+for the machine's answer to change. The scientific challenge is harder. We
+must show that the wrong answer is **specific**, the pixel change is
+**bounded**, the saved file still works after reopening, the effect is not
+limited to one public dataset or one architecture, and any proposed defense is
+tested against an attacker who knows it exists.
+
+### What has been established so far
+
+- Targeted attacks work on Qwen and Donut, but their effectiveness depends
+  strongly on model, task, and pixel budget.
+- Qwen reaches 89.6–91.1% targeted success on the two public receipt datasets
+  at ε = 16, while the harder resume task reaches 23.0%.
+- Donut reaches 81.8% combined public-receipt success at ε = 16 on its own
+  clean-correct set.
+- A complete 4,688-record Qwen defense study found that simple JPEG and resize
+  baselines currently outperform the more elaborate consistency ensembles
+  against the original, non-adaptive attack.
+- That is not the final robustness claim: two defense-aware attacks are the
+  next test, followed by a new defense designed from their measured failure
+  modes.
+
 > **Required reading for contributors and coding agents:** read
 > [`AGENTS.md`](AGENTS.md) and
 > [`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md) before changing
@@ -37,6 +76,51 @@ The project therefore measures an attack–defense trade-off:
 5. Can an informed attacker adapt to those defenses?
 6. Do conclusions hold on newly collected receipts and another model?
 
+### Who should care?
+
+This problem matters anywhere an image becomes a structured decision:
+
+- **Expense and accounts-payable systems:** a wrong extracted total can alter
+  reimbursement, payment, or fraud-screening workflows.
+- **Hiring and admissions systems:** a changed degree prediction can affect
+  filtering or ranking even though the resume still looks unchanged.
+- **Banks, insurers, and public agencies:** invoices, claims, applications, and
+  identity documents increasingly pass through automated document pipelines.
+- **Model and platform developers:** high clean benchmark accuracy does not
+  imply adversarial reliability, especially when an attacker controls the
+  uploaded image.
+- **Auditors and security teams:** a useful defense must preserve clean
+  accuracy, expose uncertainty, and survive an informed attacker—not merely
+  lower attack success by rejecting everything.
+
+Recent studies have found that large multimodal models remain vulnerable to
+visual adversarial inputs, including targeted and transferable attacks
+[^cui2024] [^vqattack2024]. Very recent document-specific work also shows that
+model-aware visual perturbations can substantially degrade end-to-end document
+VLMs while preserving legible source content [^arawm2026]. Poisoned Paperwork
+focuses this broader problem on exact, high-consequence document fields and an
+explicit attack–defense arms race.
+
+### What success would mean
+
+If the project succeeds, it will provide more than a demonstration that neural
+networks react to perturbed pixels. It will provide:
+
+1. a reproducible robustness benchmark spanning public and newly collected
+   documents;
+2. a matched comparison between a general instruction VLM and a
+   document-specialized encoder–decoder;
+3. evidence about which inexpensive defenses help before and after adaptive
+   attack;
+4. evidence about whether attacks transfer to a model that supplied no
+   gradients; and
+5. a new defense whose design is motivated by observed failure modes and whose
+   clean utility, robustness, abstention, and cost are all measured.
+
+Success would **not** prove that every document model or real deployment is
+unsafe, nor would low transfer prove safety. It would establish a controlled,
+auditable failure mode and a stronger way to evaluate candidate mitigations.
+
 ## Tasks, datasets, and models
 
 ### Receipt-total extraction
@@ -44,8 +128,10 @@ The project therefore measures an attack–defense trade-off:
 The model receives a receipt image and must return only its final transaction
 total. Public experiments use:
 
-- **SROIE**, with 123 clean-correct Qwen validation documents out of 126;
-- **CORD v2**, with 96 clean-correct Qwen validation documents out of 100.
+- **SROIE** [^sroie], with 123 clean-correct Qwen validation documents out of
+  126;
+- **CORD v2** [^cord], with 96 clean-correct Qwen validation documents out of
+  100.
 
 The targeted public-receipt attack asks the model to return a frozen incorrect
 amount equal to ten times the canonical clean total. Exact decimal handling is
@@ -76,6 +162,24 @@ one denominator.
   baselines and targeted attacks.
 - A separate vision-language model is used for black-box transfer evaluation;
   it never supplies gradients to the source attack.
+
+Qwen2.5-VL was designed for native-resolution visual understanding and
+document parsing [^qwen2025]. Donut was designed as an OCR-free document
+understanding transformer [^donut2022]. Their different processing and
+generation paths make agreement between them much more informative than two
+runs of the same architecture.
+
+```mermaid
+flowchart TB
+    D[Same document task and external threat model]
+    D --> Q[Qwen2.5-VL<br/>general instruction VLM<br/>dynamic visual tokens + language model]
+    D --> N[Donut<br/>document-specialized model<br/>vision encoder + text decoder]
+    Q --> QA[Qwen-specific gradients<br/>Qwen adversarial PNG]
+    N --> NA[Donut-specific gradients<br/>Donut adversarial PNG]
+    QA --> T[Third model<br/>black-box transfer only]
+    NA --> T
+    T --> X{Does the unchanged PNG<br/>transfer across architectures?}
+```
 
 Using both Qwen and Donut is essential to the scientific question rather than
 an attempt to repeat the same experiment twice. Qwen is a modern instruction-
@@ -114,6 +218,11 @@ families. Transfer success is stronger evidence of a systematic document-AI
 failure; low transfer is still informative because it shows that the attack is
 primarily source-model-specific.
 
+This separation follows the motivation of transfer-focused VQA attacks, which
+ask whether adversarial behavior learned on one multimodal model carries to
+another [^vqattack2024]. Our transfer model is therefore not allowed to become
+another optimization oracle.
+
 The third-model test also strengthens the response to the memorization concern.
 A public example answered correctly by one open model could reflect exposure
 during pretraining, but a prospectively generated perturbation that transfers
@@ -123,6 +232,33 @@ memorized answer. This evidence is combined with the independently collected
 treated as definitive proof against memorization.
 
 ## Experimental contract
+
+### Threat model
+
+| Question | Frozen answer in this project |
+|---|---|
+| What can the attacker change? | RGB pixels of the submitted document image |
+| What must remain unchanged? | The task question, semantic document content, dimensions, and file role |
+| What does the attacker know? | White-box model and preprocessing for source attacks; completed defenses for adaptive attacks |
+| What is the goal? | An exact attacker-selected total or degree label, not merely any error |
+| How large may the change be? | An `L∞` budget of ε/255 per channel, principally ε ∈ {2, 4, 8, 16} |
+| What artifact is evaluated? | A quantized RGB PNG saved to disk and reopened |
+| What counts as success? | The reopened PNG produces the exact normalized target |
+| What is outside the present claim? | Physical printing/re-photography, arbitrary proprietary APIs, and unrestricted semantic document edits |
+
+For a clean image `x`, target answer `yₜ`, model `f`, and target loss `L`,
+the standard attack approximately solves:
+
+```text
+minimize    L(f(x′), yₜ)
+subject to  ‖x′ − x‖∞ ≤ ε/255  and  x′ ∈ [0,1]ᵈ
+```
+
+The adaptive version optimizes the expected target loss over a frozen set of
+real image transformations and equivalent prompts. This follows the robust
+optimization view of projected attacks [^madry2018] and the EOT/BPDA principles
+used to evaluate transformed or non-differentiable defenses
+[^eot2018] [^bpda2018].
 
 Attacks are evaluated only on documents the relevant model originally answered
 correctly. This conditional denominator prevents ordinary model errors from
@@ -152,6 +288,23 @@ and strict merged-result validation.
 The attacks deliberately form a sequence rather than a collection of unrelated
 demos.
 
+```mermaid
+flowchart LR
+    S[Standard targeted attack<br/>one model + one preprocessing path]
+    S --> B[Baseline defenses<br/>JPEG, resize, visual voting,<br/>semantic consistency]
+    B --> U[Uniform EOT/BPDA<br/>optimize across all known views]
+    U --> H[Frequency-aware hard-view EOT<br/>focus on the hardest view and<br/>compression-stable structure]
+    H --> R[Final defense research<br/>design from observed failures]
+    R --> A[Adaptive re-evaluation<br/>clean + public + external + transfer]
+```
+
+| Attack | What it is trying to learn | Why it is needed |
+|---|---|---|
+| Standard targeted attack | A bounded image that makes one source model emit one exact wrong answer | Establishes the basic vulnerability and the ε–success curve |
+| Uniform EOT/BPDA | One image that remains targeted across known image and prompt transformations | Tests whether baseline defenses only remove fragile perturbations |
+| Frequency-aware hard-view EOT | Perturbations biased toward transform-stable frequencies while emphasizing the currently hardest view | Tests a stronger attacker against JPEG, resizing, and consistency ensembles |
+| Black-box transfer | No new optimization—the same saved PNG is evaluated on an unseen model | Separates source-model overfitting from cross-architecture vulnerability |
+
 ### 1. Standard targeted full-page attack
 
 The first attack uses teacher-forced targeted cross-entropy and projected
@@ -164,6 +317,11 @@ After every update, the image is projected into the ε-bounded RGB region and
 quantized. Checkpoints retain the lowest-loss and verified successful
 candidates. The final result is accepted only after the saved PNG is reloaded
 and produces the exact target.
+
+This is a targeted form of projected first-order optimization rather than an
+untargeted “make the model wrong somehow” attack. Exact targets make the claim
+stronger and easier to audit: predicting `17.20` instead of the chosen
+`172.00` does not count as success.
 
 ### 2. Uniform multi-view EOT/BPDA attack
 
@@ -182,6 +340,13 @@ run in the forward pass and an identity straight-through approximation supplies
 the transformation gradient. Every twenty steps, the saved PNG is tested
 against the exact four defense protocols. Candidate selection first maximizes
 the number of defenses defeated and then uses target loss as the tie-breaker.
+
+EOT means that the optimizer does not bet everything on one rendering of the
+page. BPDA means that the forward pass still uses the real, possibly
+non-differentiable transformation, while the backward pass uses a documented
+gradient approximation. This distinction is important because evaluating a
+randomized or preprocessing defense with a naive gradient can create a false
+sense of security [^bpda2018] [^randomtransforms2022].
 
 This full run contains all 293 public clean-correct documents at ε = 4, 8, and
 16, for 879 adaptive attacks. ε = 2 remains the completed negative control from
@@ -220,6 +385,29 @@ study contains 4,688 records with zero logged failures:
 - 293 documents × 4 clean-defense evaluations = 1,172;
 - 293 documents × 3 ε values × 4 attack-defense evaluations = 3,516.
 
+```mermaid
+flowchart TB
+    P[Submitted document] --> J[JPEG Q85<br/>remove fragile high-frequency signal]
+    P --> R[Resize vote<br/>five deterministic scale views]
+    P --> V[Visual consistency<br/>identity + JPEG + resize + blur + brightness]
+    P --> C[Cross-view and cross-prompt consistency<br/>five paired visual/semantic views]
+    J --> O1[One normalized answer]
+    R --> O2[Majority answer or disagreement]
+    V --> O3[Majority answer or abstain]
+    C --> O4[Majority answer or abstain]
+    O1 --> M[Measure clean utility, defended ASR,<br/>coverage, abstention, agreement, cost]
+    O2 --> M
+    O3 --> M
+    O4 --> M
+```
+
+| Defense | Intended mechanism | Main advantage | Main risk |
+|---|---|---|---|
+| JPEG Q85 | Quantization suppresses perturbation components that do not survive compression | One model call; strong current baseline | An adaptive attacker can optimize through JPEG |
+| Resize voting | A target must survive several resampling paths | Adds diversity with simple operations | More calls; correlated views can still fail together |
+| Selective visual multi-view | Requires agreement across ordinary visual changes | Can abstain on unstable documents | Abstention can hide poor utility if not reported |
+| Cross-view/cross-prompt consistency | Requires stability across both pixels and wording | Tests visual and semantic overfitting jointly | Highest inference cost; agreement is not proof of correctness |
+
 ### JPEG Q85
 
 The page is recompressed using real JPEG quality 85 with fixed chroma handling,
@@ -252,6 +440,15 @@ or one visual preprocessing path.
 These are initially **non-adaptive defenses** because the standard attack did
 not know which defense would be applied. Both full adaptive attack runs then
 evaluate the same defenses under a stronger white-box threat model.
+
+No defense is called “best” from attack success alone. A defense that always
+abstains would have zero released targeted answers but would also be useless.
+The comparison therefore reports clean accuracy, coverage, abstention,
+agreement, entropy, model calls, and runtime alongside defended ASR. Recent
+training-free VLM defense research similarly explores prompt decomposition and
+aggregation as robustness signals [^pda2026], while certified multimodal work
+shows a different, guarantee-oriented direction beyond empirical preprocessing
+[^mmcert2024].
 
 ## Current results
 
@@ -333,6 +530,34 @@ also degrades more strongly. The project therefore reports ASR together with
 LPIPS, SSIM, and native-resolution visual examples rather than treating the
 largest ASR as automatically best.
 
+### What the evidence means today
+
+```mermaid
+flowchart TD
+    A[High clean accuracy] --> B[Attack pool is meaningful]
+    B --> C[Targeted success rises with ε]
+    C --> D[The vulnerability is real but budget-dependent]
+    D --> E[Qwen and Donut differ substantially]
+    E --> F[Architecture matters]
+    D --> G[JPEG and resize reduce standard Qwen ASR]
+    G --> H[Preprocessing helps against the original attacker]
+    H --> I[Adaptive attacks still required]
+    I --> J[Only then can we design and test the final defense]
+```
+
+The current evidence supports four claims and leaves four questions open:
+
+| Supported now | Still to be answered |
+|---|---|
+| Exact targeted manipulation is possible on both model families | How much of the defense gain survives full adaptive attack? |
+| Attackability depends on task, model, and ε | Do the same trends hold on all 114 collected receipts? |
+| Simple preprocessing can strongly reduce the original Qwen attack | Which attacks transfer unchanged to the third model? |
+| More elaborate ensembles are not automatically stronger | Can a new defense beat JPEG/resize without sacrificing clean utility or cost? |
+
+The result is therefore neither “the models are completely broken” nor “JPEG
+solves the problem.” It is a measured robustness curve followed by an
+unfinished adaptive test.
+
 ## Execution status as of November 1, 2026
 
 Completed and validated:
@@ -370,6 +595,12 @@ workers are submitted.
 
 ## How the results guide the final defense
 
+The project explicitly aims to propose a **novel, strongest-performing final
+defense** for this threat model—not merely rename one of the four baselines.
+Novelty alone is not enough: the final method must outperform the strongest
+existing baseline under adaptive attack while preserving useful clean
+coverage, visual fidelity, reproducibility, and reasonable inference cost.
+
 The project will not invent the final defense before observing the adaptive
 failure modes. After both adaptive runs finish, we will compare, for each
 dataset and ε:
@@ -389,6 +620,58 @@ those transformations. Any proposed defense must then be evaluated on clean
 documents, the original attacks, both adaptive attacks, and the external
 receipts. This produces an evidence-driven attack–defense arms race rather than
 a defense selected because it sounds sophisticated.
+
+### Candidate design space for the final defense
+
+```mermaid
+flowchart LR
+    X[Input document] --> A[Cheap stability probe<br/>JPEG + resize + prompt variants]
+    A --> B{Stable and confident?}
+    B -->|Yes| C[Release consensus answer]
+    B -->|No| D[Targeted second-stage verification]
+    D --> E[Region-aware reading<br/>or independent OCR/evidence path]
+    E --> F{Evidence agrees?}
+    F -->|Yes| C
+    F -->|No| G[Calibrated abstention<br/>and human review]
+```
+
+This is a research direction, not a claimed completed method. Depending on the
+adaptive results, the final design may combine:
+
+- **conditional computation:** inexpensive checks for easy/stable documents
+  and stronger verification only for suspicious ones;
+- **evidence localization:** require the answer to be supported by a coherent
+  document region instead of trusting only the generated token;
+- **heterogeneous agreement:** compare a VLM answer with an OCR or differently
+  structured document model so every view does not share one failure mode;
+- **adaptive view selection:** choose transformations that exposed the largest
+  attack instability rather than using a fixed ensemble blindly;
+- **calibrated abstention:** reject only when measured disagreement exceeds a
+  threshold chosen on clean validation data; and
+- **attack-aware training or reconstruction:** considered only if the
+  training-free methods remain insufficient and the compute/clean-accuracy
+  cost can be measured fairly.
+
+The final defense will be compared with JPEG Q85 and resize voting, not only
+with “no defense.” It must be evaluated on standard attacks, both adaptive
+attacks, clean inputs, external receipts, and transfer examples. A method that
+wins only against the attack used to design it will not be presented as a
+general defense.
+
+### Questions that can deepen the project
+
+1. Which spatial frequencies and document regions carry successful targeted
+   perturbations for totals versus degrees?
+2. Are successful attacks tied to the printed answer region, or distributed
+   across layout and background pixels?
+3. Does cross-model transfer correlate with LPIPS, SSIM, frequency content, or
+   agreement across prompts?
+4. Can a detector identify attacks without learning the exact perturbations
+   used during evaluation?
+5. Can the final defense produce a useful risk score rather than only a hard
+   answer/abstain decision?
+6. How much robustness is gained per additional model call and per second of
+   latency?
 
 ## Response to the proposal feedback
 
@@ -430,6 +713,38 @@ the findings concern model behavior rather than only one public benchmark.
 7. Design one final defense from the measured adaptive failure pattern.
 8. Evaluate that defense on clean, standard, adaptive, transfer, and external
    examples before making a final claim.
+
+## Selected literature
+
+These references motivate the models, threat model, adaptive evaluation, and
+future defense directions. They do not substitute for this repository's frozen
+experimental evidence.
+
+[^qwen2025]: Bai et al., [“Qwen2.5-VL Technical Report”](https://arxiv.org/abs/2502.13923), 2025.
+
+[^donut2022]: Kim et al., [“OCR-free Document Understanding Transformer”](https://arxiv.org/abs/2111.15664), ECCV 2022.
+
+[^sroie]: Huang et al., [“ICDAR2019 Competition on Scanned Receipt OCR and Information Extraction”](https://arxiv.org/abs/2103.10213), ICDAR 2019.
+
+[^cord]: Park et al., [“CORD: A Consolidated Receipt Dataset for Post-OCR Parsing”](https://openreview.net/pdf?id=SJl3z659UH), NeurIPS Document Intelligence Workshop 2019.
+
+[^madry2018]: Madry et al., [“Towards Deep Learning Models Resistant to Adversarial Attacks”](https://arxiv.org/abs/1706.06083), ICLR 2018.
+
+[^eot2018]: Athalye et al., [“Synthesizing Robust Adversarial Examples”](https://proceedings.mlr.press/v80/athalye18b.html), ICML 2018.
+
+[^bpda2018]: Athalye, Carlini, and Wagner, [“Obfuscated Gradients Give a False Sense of Security”](https://proceedings.mlr.press/v80/athalye18a.html), ICML 2018.
+
+[^randomtransforms2022]: Sitawarin, Golan-Strieb, and Wagner, [“Demystifying the Adversarial Robustness of Random Transformation Defenses”](https://proceedings.mlr.press/v162/sitawarin22a.html), ICML 2022.
+
+[^cui2024]: Cui et al., [“On the Robustness of Large Multimodal Models Against Image Adversarial Attacks”](https://openaccess.thecvf.com/content/CVPR2024/html/Cui_On_the_Robustness_of_Large_Multimodal_Models_Against_Image_Adversarial_CVPR_2024_paper.html), CVPR 2024.
+
+[^vqattack2024]: Yin et al., [“VQAttack: Transferable Adversarial Attacks on Visual Question Answering via Pre-trained Models”](https://arxiv.org/abs/2402.11083), 2024.
+
+[^arawm2026]: Han et al., [“Visually Legible but Adversarial: Watermark-Constrained Attacks on End-to-End VLMs for Document Understanding”](https://arxiv.org/abs/2610.15728), 2026 preprint.
+
+[^pda2026]: Xu, Luo, and Liu, [“PDA: Text-Augmented Defense Framework for Robust Vision-Language Models against Adversarial Image Attacks”](https://arxiv.org/abs/2604.01010), 2026 preprint.
+
+[^mmcert2024]: Wang et al., [“MMCert: Provable Defense against Adversarial Attacks to Multi-modal Models”](https://openaccess.thecvf.com/content/CVPR2024/html/Wang_MMCert_Provable_Defense_against_Adversarial_Attacks_to_Multi-modal_Models_CVPR_2024_paper.html), CVPR 2024.
 
 ## Repository map
 
