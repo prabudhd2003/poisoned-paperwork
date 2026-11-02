@@ -1,4 +1,4 @@
-"""Full public-dataset multi-defense EOT/BPDA experiment for Qwen."""
+"""Full public-dataset multi-defense EOT/BPDA experiment for Qwen or Donut."""
 
 from __future__ import annotations
 
@@ -13,12 +13,27 @@ from experiment_utils import (
     repo_root_from_config,
     write_worker_complete,
 )
-from models.qwen import DEFAULT_MODEL_ID, DEFAULT_REVISION
+from models.donut import (
+    DEFAULT_MODEL_ID as DONUT_MODEL_ID,
+    DEFAULT_REVISION as DONUT_REVISION,
+)
+from models.qwen import DEFAULT_MODEL_ID as QWEN_MODEL_ID, DEFAULT_REVISION as QWEN_REVISION
 
 
-DATASETS = ("cord_v2", "resume_parsing_vision", "sroie")
-EXPECTED_DOCUMENTS = {"cord_v2": 96, "resume_parsing_vision": 74, "sroie": 123}
+QWEN_DATASETS = ("cord_v2", "resume_parsing_vision", "sroie")
+QWEN_DOCUMENTS = {"cord_v2": 96, "resume_parsing_vision": 74, "sroie": 123}
+DONUT_DATASETS = ("cord_v2", "sroie")
+DONUT_DOCUMENTS = {"cord_v2": 75, "sroie": 46}
 EPSILONS = [4, 8, 16]
+
+
+def _protocol(config: dict[str, Any]):
+    model_key = str(config.get("model_key", "qwen"))
+    if model_key == "qwen":
+        return model_key, QWEN_DATASETS, QWEN_DOCUMENTS, QWEN_MODEL_ID, QWEN_REVISION
+    if model_key == "donut":
+        return model_key, DONUT_DATASETS, DONUT_DOCUMENTS, DONUT_MODEL_ID, DONUT_REVISION
+    raise ValueError("adaptive attack model_key must be qwen or donut")
 
 
 def validate_config(config: dict[str, Any]) -> None:
@@ -26,22 +41,24 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("JPEG-EOT config requires stage=jpeg_eot_attack")
     if config.get("ready_for_production") is not True:
         raise RuntimeError("JPEG-EOT run is gated until source hashes are frozen")
-    if tuple(config.get("datasets", ())) != DATASETS:
-        raise ValueError(f"datasets must equal {list(DATASETS)}")
-    if config.get("model", {}).get("model_id") != DEFAULT_MODEL_ID:
-        raise ValueError("JPEG-EOT requires the pinned Qwen model")
-    if config.get("model", {}).get("revision") != DEFAULT_REVISION:
-        raise ValueError("JPEG-EOT requires the pinned Qwen revision")
-    if config.get("expected_documents_by_dataset") != EXPECTED_DOCUMENTS:
-        raise ValueError(f"expected document counts must equal {EXPECTED_DOCUMENTS}")
+    model_key, datasets, expected_documents, model_id, revision = _protocol(config)
+    if tuple(config.get("datasets", ())) != datasets:
+        raise ValueError(f"datasets must equal {list(datasets)}")
+    if config.get("model", {}).get("model_id") != model_id:
+        raise ValueError(f"adaptive attack requires the pinned {model_key} model")
+    if config.get("model", {}).get("revision") != revision:
+        raise ValueError(f"adaptive attack requires the pinned {model_key} revision")
+    if config.get("expected_documents_by_dataset") != expected_documents:
+        raise ValueError(f"expected document counts must equal {expected_documents}")
     attack = config.get("attack", {})
     method = attack.get("method")
     if method not in {"uniform_multiview_eot", "frequency_hardview_minimax_eot"}:
         raise ValueError("unknown adaptive attack method")
-    expected_track = {
+    base_track = {
         "uniform_multiview_eot": "uniform_eot",
         "frequency_hardview_minimax_eot": "hardview_eot",
     }[method]
+    expected_track = base_track if model_key == "qwen" else f"donut_{base_track}"
     if config.get("track") != expected_track:
         raise ValueError(f"adaptive attack track must equal {expected_track}")
     sampling = attack.get("view_sampling")
@@ -100,7 +117,8 @@ def validate_config(config: dict[str, Any]) -> None:
         if temperature <= 0 or not 0 <= floor < 1 / len(views):
             raise ValueError("hard-view temperature or probability floor is invalid")
     prompts = config.get("semantic_prompts", {})
-    if any(len(prompts.get(task, [])) != 5 for task in ("receipt", "resume")):
+    tasks = ("receipt", "resume") if model_key == "qwen" else ("receipt",)
+    if any(len(prompts.get(task, [])) != 5 for task in tasks):
         raise ValueError("five frozen semantic prompts are required per task")
     defense = config.get("defense", {})
     if defense.get("semantic_transforms") != [
@@ -135,17 +153,23 @@ def _load_plan(root: Path, config: dict[str, Any]):
     combined = pd.concat(frames, ignore_index=True, sort=False)
     required = {
         "record_id", "dataset_name", "experiment_split", "clean_target",
-        "attack_target", "prompt_text", "status", "epsilon_255",
+        "attack_target", "prompt_text", "status", "epsilon_255", "model_id",
+        "model_revision",
     }
     missing = sorted(required - set(combined.columns))
     if missing:
         raise ValueError(f"JPEG-EOT source tables are missing: {missing}")
+    _, datasets, expected_documents, model_id, revision = _protocol(config)
     combined = combined.loc[
-        combined.status.eq("complete") & combined.dataset_name.isin(DATASETS)
+        combined.status.eq("complete") & combined.dataset_name.isin(datasets)
     ].copy()
+    if set(combined.model_id.astype(str)) != {model_id}:
+        raise RuntimeError("adaptive source model ID differs from the pinned model")
+    if set(combined.model_revision.astype(str)) != {revision}:
+        raise RuntimeError("adaptive source revision differs from the pinned model")
     observed = combined.groupby("dataset_name").record_id.nunique().to_dict()
-    if observed != EXPECTED_DOCUMENTS:
-        raise RuntimeError(f"source document counts differ: {observed} != {EXPECTED_DOCUMENTS}")
+    if observed != expected_documents:
+        raise RuntimeError(f"source document counts differ: {observed} != {expected_documents}")
     for record_id, group in combined.groupby("record_id"):
         for field in (
             "dataset_name", "experiment_split", "clean_target", "attack_target",
@@ -218,6 +242,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
     import torch
 
     from attacks.jpeg_eot import attack
+    from models.donut import DonutDocVQA
     from models.qwen import QwenVL
     from stages.defenses import _load_clean_pages, _normalizer
 
@@ -239,15 +264,25 @@ def run(config, config_path, user_id, worker_id, num_workers):
     )
     pages_by_id = _load_clean_pages(root, config, {record_id: splits[record_id] for record_id in ids})
     model = config["model"]
-    wrapper = QwenVL(
-        device=torch.device("cuda"),
-        model_id=model["model_id"],
-        revision=model["revision"],
-        precision=model.get("precision", "bfloat16"),
-        min_pixels=int(model.get("min_pixels", 200704)),
-        max_pixels=int(model.get("max_pixels", 1003520)),
-        max_new_tokens=int(model.get("max_new_tokens", 32)),
-    )
+    model_key, _, _, _, _ = _protocol(config)
+    if model_key == "qwen":
+        wrapper = QwenVL(
+            device=torch.device("cuda"),
+            model_id=model["model_id"],
+            revision=model["revision"],
+            precision=model.get("precision", "bfloat16"),
+            min_pixels=int(model.get("min_pixels", 200704)),
+            max_pixels=int(model.get("max_pixels", 1003520)),
+            max_new_tokens=int(model.get("max_new_tokens", 32)),
+        )
+    else:
+        wrapper = DonutDocVQA(
+            device=torch.device("cuda"),
+            model_id=model["model_id"],
+            revision=model["revision"],
+            precision=model.get("precision", "float32"),
+            max_length=int(model.get("max_length", 64)),
+        )
     metric = lpips.LPIPS(net="alex").to(wrapper.device).eval()
     metric.requires_grad_(False)
     expected = 0
@@ -292,7 +327,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
                     **result,
                     "dataset_name": str(row["dataset_name"]),
                     "experiment_split": str(row["experiment_split"]),
-                    "model_key": "qwen",
+                    "model_key": model_key,
                     "model_id": wrapper.model_id,
                     "model_revision": wrapper.revision,
                     "clean_target": str(row["clean_target"]),

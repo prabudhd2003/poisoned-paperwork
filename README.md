@@ -77,6 +77,51 @@ one denominator.
 - A separate vision-language model is used for black-box transfer evaluation;
   it never supplies gradients to the source attack.
 
+Using both Qwen and Donut is essential to the scientific question rather than
+an attempt to repeat the same experiment twice. Qwen is a modern instruction-
+tuned vision-language model: it converts visual content into tokens and
+answers a natural-language question with a large autoregressive language
+model. Its behavior can depend strongly on prompt wording, multi-page context,
+and the model's broad pretraining. Donut is a document-specialized encoder-
+decoder model: its visual encoder maps the document into features and its text
+decoder produces the answer under a DocVQA task format. It uses a different
+image processor, tokenization path, decoder, parameter scale, and training
+history.
+
+That architectural separation lets the project distinguish two very different
+claims:
+
+1. **Model-specific vulnerability:** an attack may exploit Qwen's visual-token
+   or prompt pathway but fail on Donut.
+2. **Document-model vulnerability:** similar attack/defense trends across both
+   architectures suggest a broader weakness in neural document understanding,
+   not an isolated implementation quirk.
+
+The comparison is deliberately matched. Each model is attacked only on its own
+clean-correct documents, uses the same task target, pixel-space budgets,
+saved-PNG verification, perceptual metrics, four defenses, and adaptive-method
+families. We do not force the models to share an optimizer or internal loss
+when their architectures require different differentiable objectives; instead,
+we hold the external threat model and evaluation contract constant.
+
+The third model has a different role. It is a **black-box transfer evaluator**,
+not another white-box source model. Adversarial PNGs are created using Qwen or
+Donut gradients and then shown unchanged to the third model. No gradients,
+logits, or tuning feedback from that model are allowed during attack creation.
+This answers whether the perturbation merely overfits one model's internal
+decision surface or captures visual structure that generalizes across model
+families. Transfer success is stronger evidence of a systematic document-AI
+failure; low transfer is still informative because it shows that the attack is
+primarily source-model-specific.
+
+The third-model test also strengthens the response to the memorization concern.
+A public example answered correctly by one open model could reflect exposure
+during pretraining, but a prospectively generated perturbation that transfers
+to a separately trained model is harder to explain as simple retrieval of a
+memorized answer. This evidence is combined with the independently collected
+114-receipt external set; neither transfer alone nor external data alone is
+treated as definitive proof against memorization.
+
 ## Experimental contract
 
 Attacks are evaluated only on documents the relevant model originally answered
@@ -258,6 +303,71 @@ The table does not yet establish robustness against an informed attacker.
 Uniform EOT and frequency-aware hard-view EOT are designed to measure how much
 of each reduction survives after the attacker adapts.
 
+### Standard targeted Donut attack
+
+Khalid's full public Donut study has now passed the cross-run audit. All five
+epsilon settings use the identical 121 Donut-clean-correct receipts (75 CORD
+v2 and 46 SROIE), the pinned Donut revision, the same 10× target policy,
+100-step Adam optimization with the paper-margin loss, per-step quantization,
+and saved/reloaded PNG verification. The three epsilon-split runs contain 605
+records in total, with no logged failures and no Donut implementation changes
+between their recorded Git commits.
+
+| Dataset | ε=2 | ε=4 | ε=8 | ε=16 | ε=32 stress test |
+|---|---:|---:|---:|---:|---:|
+| CORD v2 | 6/75 (8.0%) | 12/75 (16.0%) | 38/75 (50.7%) | 70/75 (93.3%) | 73/75 (97.3%) |
+| SROIE | 1/46 (2.2%) | 5/46 (10.9%) | 12/46 (26.1%) | 29/46 (63.0%) | 42/46 (91.3%) |
+| Combined | 7/121 (5.8%) | 17/121 (14.0%) | 50/121 (41.3%) | 99/121 (81.8%) | 115/121 (95.0%) |
+
+The primary matched Qwen/Donut protocol reports the standard attack at ε = 2,
+4, 8, and 16. Defenses and adaptive attacks use ε = 4, 8, and 16 for both
+models. This preserves an identical comparison grid; the nonzero Donut ε = 2
+result remains visible in the standard-attack table rather than being erased.
+Donut ε = 32 is retained only as a clearly labeled high-budget stress test and
+is excluded from the matched defense and adaptive analyses. Its lower SSIM and
+higher LPIPS make it inappropriate to mix with the main bounded comparison.
+
+These results establish a useful architectural contrast. Donut is much more
+vulnerable than Qwen on public receipts at ε = 16, but its perceptual quality
+also degrades more strongly. The project therefore reports ASR together with
+LPIPS, SSIM, and native-resolution visual examples rather than treating the
+largest ASR as automatically best.
+
+## Execution status as of November 1, 2026
+
+Completed and validated:
+
+- Qwen clean baselines and standard attacks on CORD v2, SROIE, and resumes;
+- the full 4,688-record Qwen non-adaptive defense evaluation;
+- Donut standard public attacks on the same CORD/SROIE task at ε = 2, 4, 8,
+  and 16, plus the separately archived ε = 32 stress test;
+- collection, annotation, PNG conversion, hashing, and freezing of 114 unique
+  external receipts.
+
+Submitted on CARC at the time of this update:
+
+- five combined Qwen/Donut clean-baseline workers for all 114 external
+  receipts;
+- five Qwen uniform multi-view EOT/BPDA workers;
+- five Qwen frequency-aware hard-view EOT/BPDA workers.
+
+Implemented and CPU-tested, but deliberately not yet submitted from the active
+CARC checkout:
+
+- an audited Donut-result importer that copies all 484 primary ε = 2/4/8/16
+  PNGs into the main project, verifies every hash, and excludes ε = 32 from
+  the primary source table;
+- the same four defenses for Donut, with clean utility, abstention, agreement,
+  cost, post-defense ASR, and recovery metrics;
+- full Donut uniform multi-view EOT/BPDA at ε = 4/8/16;
+- full Donut frequency-aware hard-view EOT/BPDA at ε = 4/8/16;
+- matched Qwen/Donut defense and adaptive-analysis notebook cells.
+
+The new Donut code will be pulled into CARC only after the currently submitted
+workers finish, preventing pending workers from starting on mixed Git commits.
+Every Donut GPU stage must still pass its CARC smoke test before the full five
+workers are submitted.
+
 ## How the results guide the final defense
 
 The project will not invent the final defense before observing the adaptive
@@ -308,13 +418,17 @@ the findings concern model behavior rather than only one public benchmark.
 
 ## Remaining work
 
-1. Run and strictly merge both 879-record adaptive Qwen studies.
-2. Compare them using `midterm/10_adaptive_defense_attack.ipynb`.
-3. Finish and freeze the 114-receipt external manifest.
-4. Run Qwen and Donut clean baselines and attacks on the external set.
-5. Complete Donut public attacks and the black-box transfer study.
-6. Design one final defense from the observed adaptive failure pattern.
-7. Evaluate that defense on clean, standard, adaptive, transfer, and external
+1. Finish and strictly merge both 879-record adaptive Qwen studies.
+2. Finish the 114-receipt Qwen/Donut baseline, then attack each model's own
+   clean-correct subset.
+3. Import the hash-verified Donut public PNGs and run the matched four-defense
+   evaluation at ε = 4/8/16.
+4. Smoke-test and run both 363-record adaptive Donut studies.
+5. Complete the black-box transfer and digital-robustness study.
+6. Compare Qwen and Donut using `midterm/08_defense_results.ipynb` and
+   `midterm/10_adaptive_defense_attack.ipynb`.
+7. Design one final defense from the measured adaptive failure pattern.
+8. Evaluate that defense on clean, standard, adaptive, transfer, and external
    examples before making a final claim.
 
 ## Repository map

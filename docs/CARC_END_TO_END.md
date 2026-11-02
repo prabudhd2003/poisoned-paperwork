@@ -408,6 +408,89 @@ python scripts/stage_status.py \
 After both strict merges exist, run
 `midterm/10_adaptive_defense_attack.ipynb` for the matched comparison.
 
+### 6e. Matched Donut defenses and adaptive attacks
+
+Do not pull the Donut implementation commit into a checkout that still has
+pending Qwen workers. Wait until those workers finish, then pull once and keep
+the checkout fixed for all Donut workers.
+
+The primary Donut standard-attack table contains epsilon 2, 4, 8, and 16.
+Defenses and adaptive attacks use epsilon 4, 8, and 16, exactly matching Qwen.
+The completed epsilon-32 Donut run is an archived high-budget stress test and
+must not enter these runtime configurations or primary denominators.
+
+Build the hash-verified Donut source table from Khalid's completed full runs:
+
+```bash
+python scripts/import_donut_public_results.py \
+  --source-run /project2/yzhao010_1531/csci_699_new_arch/kbali-donut-eps2-4-worktree/outputs/donut_attack/donut_paper_full_eps2_4_validation_v1 \
+  --source-run /project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_eps8_16_validation_v1 \
+  --output outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet
+```
+
+The importer requires 484 records over the identical 121 documents, copies all
+primary PNGs into `outputs/imported/donut_public_validation/images`, verifies
+every copied file against its recorded SHA256, freezes its main-project path,
+and records the epsilon-32 exclusion policy.
+
+Prepare the matched defense and adaptive runtime configs:
+
+```bash
+DONUT_SOURCE="$PWD/outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet"
+
+python scripts/prepare_stage_config.py defenses_donut_public \
+  --source donut_public="$DONUT_SOURCE" \
+  --output outputs/runtime_configs/defenses_donut_public_final_v1.json
+
+python scripts/prepare_stage_config.py jpeg_eot_donut \
+  --source donut_public="$DONUT_SOURCE" \
+  --output outputs/runtime_configs/donut_jpeg_eot_public_full_v1.json
+
+python scripts/prepare_stage_config.py jpeg_eot_donut_hardview \
+  --source donut_public="$DONUT_SOURCE" \
+  --output outputs/runtime_configs/donut_hardview_public_full_v1.json
+```
+
+Run all three CPU preflights. Before full submission, create reviewed smoke
+copies with a small document limit and confirm model loading, official-forward
+preprocessing parity, PNG bounds, defense evaluation, checkpoint restart, and
+strict merge. Do not bypass the smoke because the generic stages support both
+models but their processors and differentiable objectives are different.
+
+After the smoke passes, submit the full five-worker defense run:
+
+```bash
+for USER in user1 user2 user3 user4 user5; do
+  bash scripts/submit_stage.sh defenses "$USER" \
+    outputs/runtime_configs/defenses_donut_public_final_v1.json
+done
+```
+
+Then submit both adaptive methods:
+
+```bash
+for CONFIG in \
+  outputs/runtime_configs/donut_jpeg_eot_public_full_v1.json \
+  outputs/runtime_configs/donut_hardview_public_full_v1.json
+do
+  for USER in user1 user2 user3 user4 user5; do
+    bash scripts/submit_stage.sh jpeg_eot_attack "$USER" "$CONFIG"
+  done
+done
+```
+
+Status commands:
+
+```bash
+python scripts/stage_status.py defenses defenses_donut_public_final_v1
+python scripts/stage_status.py jpeg_eot_attack donut_jpeg_eot_public_full_v1
+python scripts/stage_status.py jpeg_eot_attack donut_frequency_hardview_public_full_v1
+```
+
+Use `midterm/08_defense_results.ipynb` for matched Qwen/Donut non-adaptive
+defenses and `midterm/10_adaptive_defense_attack.ipynb` for all four adaptive
+method/model combinations.
+
 ## 7. Analysis only (no GPU execution)
 
 After each strict merge exists, use these notebooks locally or through VS Code

@@ -1,0 +1,38 @@
+{
+  "stage": "jpeg_eot_attack",
+  "model_key": "donut",
+  "track": "donut_hardview_eot",
+  "run_id": "donut_frequency_hardview_public_full_v1",
+  "ready_for_production": false,
+  "seed": 566,
+  "require_clean_git": true,
+  "datasets": ["cord_v2", "sroie"],
+  "expected_documents_by_dataset": {"cord_v2": 75, "sroie": 46},
+  "document_limit_per_dataset": null,
+  "attack_sources": [{"name": "donut_public", "records": "outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet", "artifact_root": ".", "sha256": "REPLACE_WITH_SHA256"}],
+  "model": {"model_id": "naver-clova-ix/donut-base-finetuned-docvqa", "revision": "b19d2e332684b0e2d35d9144ce34047767335cf8", "precision": "float32", "max_length": 64},
+  "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.05},
+  "semantic_prompts": {
+    "receipt": [
+      "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+      "Return the grand total that the customer ultimately paid. Output only the numeric amount.",
+      "Identify the final payable amount on this receipt, excluding subtotal and individual tax lines. Return only the amount.",
+      "What amount is labeled as the receipt's total, balance due, or amount paid? Return only the numeric amount.",
+      "Read the complete receipt and provide its final transaction total. Output only the amount."
+    ]
+  },
+  "defense": {"defense_seed": 566, "jpeg_quality": 85, "resize_votes": 5, "multiview_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"], "multiview_minimum_votes": 3, "semantic_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"], "semantic_minimum_votes": 3},
+  "attack": {
+    "method": "frequency_hardview_minimax_eot", "view_sampling": "hard_view", "epsilons_255": [4, 8, 16], "max_steps": 100,
+    "step_size_255": {"4": 1.0, "8": 2.0, "16": 4.0}, "checkpoint_interval": 10, "evaluation_interval": 20,
+    "training_views": [
+      {"transform": "identity", "prompt_index": 0}, {"transform": "jpeg_q85", "prompt_index": 1}, {"transform": "resize_0.85", "prompt_index": 2}, {"transform": "blur_0.5", "prompt_index": 3}, {"transform": "brightness_0.95", "prompt_index": 4},
+      {"transform": "jpeg_q65", "prompt_index": 0}, {"transform": "jpeg_q75", "prompt_index": 0}, {"transform": "jpeg_q95", "prompt_index": 0}, {"transform": "resize_0.70", "prompt_index": 0}, {"transform": "resize_0.80", "prompt_index": 0}, {"transform": "resize_0.90", "prompt_index": 0}, {"transform": "resize_1.00", "prompt_index": 0}
+    ],
+    "include_exact_resize_vote_views": true, "eot_samples_per_step": 3,
+    "hard_view_temperature": 0.75, "hard_view_probability_floor": 0.01,
+    "frequency_aware": {"enabled": true, "cutoff": 0.25, "gradient_mix": 0.75, "delta_mix": 0.50},
+    "loss_type": "paper_margin", "optimizer": "frequency_aware_sign_pgd", "bpda": "real_pillow_defense_forward_identity_backward", "output_format": "png"
+  },
+  "notes": "Full matched Donut frequency-aware hard-view EOT/BPDA study at epsilon 4/8/16. Epsilon 2 stays in the standard attack table; epsilon 32 is excluded."
+}

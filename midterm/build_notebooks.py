@@ -96,24 +96,26 @@ DEFINITIONS = [
         "title": "Donut × SROIE results",
         "stem": "donut_sroie",
         "candidates": [
-            "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_validation_v1",
+            "outputs/imported/donut_public_validation",
+            "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_eps8_16_validation_v1",
         ],
-        "extra": [["/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_eps8_16_20_v1"]],
+        "extra": [],
         "env": "PP_DONUT_RUN_DIR",
         "dataset": "sroie",
-        "epsilon": 32,
+        "epsilon": 16,
     },
     {
         "file": "05_donut_cord.ipynb",
         "title": "Donut × CORD v2 results",
         "stem": "donut_cord",
         "candidates": [
-            "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_validation_v1",
+            "outputs/imported/donut_public_validation",
+            "/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_full_eps8_16_validation_v1",
         ],
-        "extra": [["/project2/yzhao010_1531/csci_699_new_arch/kbali-donut-worktree/outputs/donut_attack/donut_paper_eps8_16_20_v1"]],
+        "extra": [],
         "env": "PP_DONUT_RUN_DIR",
         "dataset": "cord",
-        "epsilon": 32,
+        "epsilon": 16,
     },
     {
         "file": "06_qwen_collected_receipts.ipynb",
@@ -174,7 +176,10 @@ def build() -> None:
         [
             markdown("# Defense results\n\n" + INTRO + "\n\nThis future-ready notebook analyzes effectiveness, retained clean utility, abstention, compute overhead, and adaptive-attack robustness. These dimensions are reported together so a defense cannot look good merely by rejecting everything."),
             code("from pathlib import Path\nimport sys\nREPO_ROOT = next(path for path in [Path.cwd(), *Path.cwd().parents] if (path / 'midterm' / 'reporting.py').is_file())\nif str(REPO_ROOT) not in sys.path:\n    sys.path.insert(0, str(REPO_ROOT))\nfrom midterm.reporting import run_defense_report"),
-            code("defense_result = run_defense_report()"),
+            markdown("## Qwen defenses"),
+            code("qwen_defense_result = run_defense_report()"),
+            markdown("## Donut defenses\n\nThis uses the identical four defenses and ε=4/8/16 grid. ε=2 remains in the standard attack table; ε=32 is outside the matched primary protocol."),
+            code("donut_defense_result = run_defense_report(\n    run_candidates=[\n        'outputs/defenses/defenses_donut_public_final_v1',\n    ],\n    env_var='PP_DONUT_DEFENSE_RUN_DIR',\n    artifact_stem='donut_defense',\n    title='Donut defense effectiveness, utility, and cost',\n)"),
             markdown("## Interpretation checklist\n\nA useful defense should lower targeted ASR without collapsing clean accuracy, excessive abstention, or prohibitive extra model calls. Adaptive attack results are the stronger test: they measure whether the defense still helps when the attacker knows it is present."),
         ]
     )
@@ -198,6 +203,8 @@ def build() -> None:
             code("uniform_result = run_adaptive_defense_attack_report(\n    artifact_stem='uniform_adaptive_eot',\n    title='Uniform multi-view EOT/BPDA',\n)"),
             markdown("## Frequency-aware hard-view attack\n\nThis method shifts sampling probability toward the highest-loss views and biases updates toward lower spatial frequencies that are more likely to survive JPEG and resizing."),
             code("hardview_result = run_adaptive_defense_attack_report(\n    run_candidates=[\n        '/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1',\n        'outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1',\n    ],\n    env_var='PP_HARDVIEW_ATTACK_RUN_DIR',\n    artifact_stem='frequency_hardview_eot',\n    title='Frequency-aware hard-view EOT/BPDA',\n)"),
+            markdown("## Matched Donut adaptive attacks\n\nDonut uses the same 121 clean-correct public receipts, ε=4/8/16 grid, visual transformations, prompts, defense evaluations, and two adaptive methods."),
+            code("donut_uniform_result = run_adaptive_defense_attack_report(\n    run_candidates=['outputs/jpeg_eot_attack/donut_jpeg_eot_public_full_v1'],\n    env_var='PP_DONUT_ADAPTIVE_RUN_DIR',\n    artifact_stem='donut_uniform_adaptive_eot',\n    title='Donut uniform multi-view EOT/BPDA',\n)\n\ndonut_hardview_result = run_adaptive_defense_attack_report(\n    run_candidates=['outputs/jpeg_eot_attack/donut_frequency_hardview_public_full_v1'],\n    env_var='PP_DONUT_HARDVIEW_RUN_DIR',\n    artifact_stem='donut_frequency_hardview_eot',\n    title='Donut frequency-aware hard-view EOT/BPDA',\n)"),
             markdown("## Direct method comparison\n\nRun this after both strict merges exist. The table compares the same datasets, ε values, and defenses under identical denominators."),
             code("import pandas as pd\nif uniform_result is not None and hardview_result is not None:\n    uniform_summary = uniform_result[1].assign(method='uniform_eot')\n    hardview_summary = hardview_result[1].assign(method='frequency_hardview')\n    adaptive_comparison = pd.concat([uniform_summary, hardview_summary], ignore_index=True)\n    display(adaptive_comparison.style.format({'adaptive_asr': '{:.1%}', 'median_lpips': '{:.3f}', 'median_ssim': '{:.3f}', 'median_runtime_seconds': '{:.1f}'}))\nelse:\n    print('Run both adaptive experiments before building the direct comparison.')"),
             markdown("## Interpretation checklist\n\nCompare both adaptive ASRs with the earlier non-adaptive post-defense ASRs. A rise demonstrates adaptation; any remaining gap quantifies residual robustness. The hard-view method is better only if it improves defended ASR without an unacceptable LPIPS/SSIM or runtime cost. Avoid claiming that either method is guaranteed to defeat every input."),

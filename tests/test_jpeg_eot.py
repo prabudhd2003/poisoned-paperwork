@@ -129,6 +129,25 @@ class JpegEotTests(unittest.TestCase):
         self.assertEqual(config["attack"]["view_sampling"], "hard_view")
         self.assertTrue(config["attack"]["frequency_aware"]["enabled"])
 
+    def test_matched_donut_adaptive_configs_are_valid(self):
+        from stages.jpeg_eot_attack import validate_config
+
+        for name, method, track in (
+            ("donut_public_full.json", "uniform_multiview_eot", "donut_uniform_eot"),
+            (
+                "donut_public_frequency_hardview.json",
+                "frequency_hardview_minimax_eot",
+                "donut_hardview_eot",
+            ),
+        ):
+            config = json.loads((ROOT / "configs/jpeg_eot_attack" / name).read_text())
+            config["ready_for_production"] = True
+            validate_config(config)
+            self.assertEqual(config["model_key"], "donut")
+            self.assertEqual(config["track"], track)
+            self.assertEqual(config["attack"]["method"], method)
+            self.assertEqual(config["attack"]["epsilons_255"], [4, 8, 16])
+
     def test_epsilon_two_cannot_enter_full_study_silently(self):
         from stages.jpeg_eot_attack import validate_config
 

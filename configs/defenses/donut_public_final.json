@@ -1,0 +1,53 @@
+{
+  "stage": "defenses",
+  "model_key": "donut",
+  "run_id": "defenses_donut_public_final_v1",
+  "ready_for_production": false,
+  "seed": 566,
+  "require_clean_git": true,
+  "study_documents_per_dataset": null,
+  "expected_documents_by_dataset": {"cord_v2": 75, "sroie": 46},
+  "expected_attack_records": 363,
+  "attack_epsilons_255": [4, 8, 16],
+  "defense_ids": ["jpeg", "resize_vote", "selective_multiview", "semantic_consistency"],
+  "prompts": {
+    "receipt": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+    "resume": "unused"
+  },
+  "semantic_prompts": {
+    "receipt": [
+      "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+      "Return the grand total that the customer ultimately paid. Output only the numeric amount.",
+      "Identify the final payable amount on this receipt, excluding subtotal and individual tax lines. Return only the amount.",
+      "What amount is labeled as the receipt's total, balance due, or amount paid? Return only the numeric amount.",
+      "Read the complete receipt and provide its final transaction total. Output only the amount."
+    ],
+    "resume": ["unused 1", "unused 2", "unused 3", "unused 4", "unused 5"]
+  },
+  "attack_sources": [
+    {
+      "name": "donut_public",
+      "records": "outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet",
+      "artifact_root": ".",
+      "sha256": "REPLACE_WITH_SHA256"
+    }
+  ],
+  "model": {
+    "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+    "revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+    "precision": "float32",
+    "max_length": 64
+  },
+  "defense": {
+    "defense_seed": 566,
+    "jpeg_quality": 85,
+    "resize_votes": 5,
+    "multiview_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+    "multiview_minimum_votes": 3,
+    "semantic_transforms": ["identity", "jpeg_q85", "resize_0.85", "blur_0.5", "brightness_0.95"],
+    "semantic_minimum_votes": 3
+  },
+  "audit_documents_per_worker": 3,
+  "adaptive": {"enabled": false, "document_limit": 0, "epsilons_255": []},
+  "notes": "Matched Donut evaluation of the same four Qwen defenses. Standard attacks are reported at epsilon 2/4/8/16, while defenses use the matched epsilon 4/8/16 grid. Epsilon 32 is excluded from the primary protocol."
+}

@@ -349,15 +349,27 @@ def attack(
 
     task = "resume" if dataset_name == "resume_parsing_vision" else "receipt"
     prompts = list(config["semantic_prompts"][task])
-    objectives = [
-        Objective(wrapper, pages, value, target, config["processor_tolerance"])
-        for value in prompts
-    ]
+    settings = config["attack"]
+    if hasattr(wrapper, "make_adaptive_objective"):
+        objectives = [
+            wrapper.make_adaptive_objective(
+                list(pages),
+                value,
+                target,
+                config["processor_tolerance"],
+                loss_type=str(settings["loss_type"]),
+            )
+            for value in prompts
+        ]
+    else:
+        objectives = [
+            Objective(wrapper, pages, value, target, config["processor_tolerance"])
+            for value in prompts
+        ]
     reference_grid = objectives[0].grids.tolist()
     if any(objective.grids.tolist() != reference_grid for objective in objectives):
         raise RuntimeError("semantic prompt changed the frozen image grid")
     parity = objectives[0].parity(clean)
-    settings = config["attack"]
     views = resolved_training_views(config, record_id, len(pages))
     samples = int(settings["eot_samples_per_step"])
     attack_method = str(settings.get("method", "uniform_multiview_eot"))
