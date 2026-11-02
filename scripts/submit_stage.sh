@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Submit one team member's checkpointed GPU shard to USC CARC.
+# Submit one checkpointed GPU shard or the five-worker Slurm array to USC CARC.
 #
 # Usage:
 #   bash scripts/submit_stage.sh STAGE USER_ID [CONFIG] [--dry-run]
+#   bash scripts/submit_stage.sh STAGE all [CONFIG] [--dry-run]
 #
 # Example:
 #   bash scripts/submit_stage.sh qwen_attack user1 configs/qwen_attack/receipt_active.json
@@ -20,6 +21,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/scripts/lib/qwen_receipt_runtime.sh"
 CONFIG_PATH="$REPO_ROOT/configs/$STAGE/active.json"
 DRY_RUN=0
+ARRAY_MODE=0
 
 for arg in "${@:3}"; do
   if [[ "$arg" == "--dry-run" ]]; then
@@ -30,13 +32,14 @@ for arg in "${@:3}"; do
 done
 
 case "$USER_ID" in
+  all)   NAME="team array"; WORKER_ID=0; ARRAY_MODE=1 ;;
   user1) NAME="Prabudhd"; WORKER_ID=0 ;;
   user2) NAME="Gary";     WORKER_ID=1 ;;
   user3) NAME="Saaketh";  WORKER_ID=2 ;;
   user4) NAME="Khalid";   WORKER_ID=3 ;;
   user5) NAME="Shail";    WORKER_ID=4 ;;
   *)
-    echo "Unknown user ID '$USER_ID'. Use user1, user2, user3, user4, or user5." >&2
+    echo "Unknown user ID '$USER_ID'. Use all, user1, user2, user3, user4, or user5." >&2
     exit 2
     ;;
 esac
@@ -176,7 +179,7 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
   }
 fi
 
-SBATCH_EXPORT="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5,PP_TRACK=$TRACK"
+SBATCH_EXPORT="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5,PP_TRACK=$TRACK,PP_ARRAY_MODE=$ARRAY_MODE"
 if [[ "$IS_RECEIPT" -eq 1 ]]; then
   SBATCH_EXPORT+=",PP_EXPECTED_GIT_SHA=$EXPECTED_GIT_SHA,PP_PYTHON_BIN=$PP_PYTHON_BIN,PP_SHARED_ARTIFACT_ROOT=$PP_SHARED_ARTIFACT_ROOT,PP_RECEIPT_OUTPUT_ROOT=$PP_RECEIPT_OUTPUT_ROOT"
 fi
@@ -191,12 +194,24 @@ SBATCH_ARGS=(
   --mem="$MEMORY"
   --time="$TIME_LIMIT"
   --gpus-per-task="$GPU_TYPE:1"
-  --job-name="pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}"
   --chdir="$REPO_ROOT"
-  --output="$LOG_DIR/%x_%j.out"
-  --error="$LOG_DIR/%x_%j.err"
   --export="$SBATCH_EXPORT"
 )
+
+if [[ "$ARRAY_MODE" -eq 1 ]]; then
+  SBATCH_ARGS+=(
+    --array=0-4
+    --job-name="pp_${STAGE}${TRACK:+_$TRACK}"
+    --output="$LOG_DIR/%x_%A_%a.out"
+    --error="$LOG_DIR/%x_%A_%a.err"
+  )
+else
+  SBATCH_ARGS+=(
+    --job-name="pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}"
+    --output="$LOG_DIR/%x_%j.out"
+    --error="$LOG_DIR/%x_%j.err"
+  )
+fi
 
 if [[ -n "$CONSTRAINT" ]]; then
   SBATCH_ARGS+=(--constraint="$CONSTRAINT")
@@ -204,8 +219,12 @@ fi
 
 echo "Stage: $STAGE"
 echo "Run: $RUN_ID${TRACK:+ (track: $TRACK)}"
-echo "Team member: $USER_ID ($NAME)"
-echo "Worker shard: $WORKER_ID of 5"
+if [[ "$ARRAY_MODE" -eq 1 ]]; then
+  echo "Team submission: one Slurm array with worker shards 0-4"
+else
+  echo "Team member: $USER_ID ($NAME)"
+  echo "Worker shard: $WORKER_ID of 5"
+fi
 echo "GPU request: $GPU_TYPE ${CONSTRAINT:+($CONSTRAINT)}"
 echo "CPU/RAM/time: $CPUS CPUs, $MEMORY, $TIME_LIMIT"
 if [[ "$IS_RECEIPT" -eq 1 ]]; then
@@ -298,6 +317,12 @@ PY
 fi
 
 JOB_ID="$(sbatch "${SBATCH_ARGS[@]}" "$REPO_ROOT/scripts/slurm/gpu_stage.sbatch")"
+if [[ "$ARRAY_MODE" -eq 1 ]]; then
+  echo "Submitted five-worker Slurm array $JOB_ID"
+  echo "Monitor: squeue -j $JOB_ID"
+  echo "Logs:    $LOG_DIR/pp_${STAGE}${TRACK:+_$TRACK}_${JOB_ID}_TASK.out"
+  exit 0
+fi
 echo "Submitted Slurm job $JOB_ID"
 echo "Monitor: squeue -j $JOB_ID"
 echo "Logs:    tail -f $LOG_DIR/pp_${STAGE}${TRACK:+_$TRACK}_w${WORKER_ID}_${JOB_ID}.out"
