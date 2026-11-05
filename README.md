@@ -755,7 +755,7 @@ data/          local datasets and processed manifests; not stored in Git
 docs/          operational runbook, project plans, and experiment contracts
 midterm/       CPU-only report tables and high-quality figures
 notebooks/     data auditing and qualitative result inspection
-outputs/       checkpoints, records, images, and strict merges; ignored by Git
+outputs/       permanent results plus links to active CARC scratch runs; ignored by Git
 scripts/       preparation, validation, submission, status, and merge tools
 src/           models, attacks, defenses, stages, and shared contracts
 tests/         CPU contract and regression tests

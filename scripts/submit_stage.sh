@@ -19,6 +19,7 @@ STAGE="$1"
 USER_ID="$2"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/scripts/lib/qwen_receipt_runtime.sh"
+PP_SCRATCH_ROOT="${PP_SCRATCH_ROOT:-/scratch1/${USER}/poisoned-paperwork}"
 CONFIG_PATH="$REPO_ROOT/configs/$STAGE/active.json"
 DRY_RUN=0
 ARRAY_MODE=0
@@ -179,7 +180,7 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
   }
 fi
 
-SBATCH_EXPORT="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5,PP_TRACK=$TRACK,PP_ARRAY_MODE=$ARRAY_MODE"
+SBATCH_EXPORT="ALL,PP_REPO_ROOT=$REPO_ROOT,PP_STAGE=$STAGE,PP_RUN_ID=$RUN_ID,PP_CONFIG=$CONFIG_PATH,PP_USER_ID=$USER_ID,PP_WORKER_ID=$WORKER_ID,PP_NUM_WORKERS=5,PP_TRACK=$TRACK,PP_ARRAY_MODE=$ARRAY_MODE,PP_SCRATCH_ROOT=$PP_SCRATCH_ROOT"
 if [[ "$IS_RECEIPT" -eq 1 ]]; then
   SBATCH_EXPORT+=",PP_EXPECTED_GIT_SHA=$EXPECTED_GIT_SHA,PP_PYTHON_BIN=$PP_PYTHON_BIN,PP_SHARED_ARTIFACT_ROOT=$PP_SHARED_ARTIFACT_ROOT,PP_RECEIPT_OUTPUT_ROOT=$PP_RECEIPT_OUTPUT_ROOT"
 fi
@@ -251,6 +252,12 @@ if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
   echo "Submission requires a clean committed worktree." >&2
   echo "Commit/push on the Mac, then pull that commit on CARC before submitting." >&2
   exit 1
+fi
+
+if [[ "$STAGE" != "baseline" && "$IS_RECEIPT" -eq 0 && -d "/scratch1/${USER}" ]]; then
+  python3 "$REPO_ROOT/scripts/manage_carc_storage.py" \
+    --scratch-root "$PP_SCRATCH_ROOT" \
+    verify-run --stage "$STAGE" --run-id "$RUN_ID"
 fi
 
 (

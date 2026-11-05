@@ -29,6 +29,21 @@ fi
 cd "$PP_REPO_ROOT"
 source "$PP_REPO_ROOT/scripts/lib/qwen_receipt_runtime.sh"
 
+if [[ -n "${PP_SCRATCH_ROOT:-}" ]]; then
+  case "$PP_SCRATCH_ROOT" in
+    /scratch1/*|/scratch2/*) ;;
+    *) echo "Unsafe PP_SCRATCH_ROOT: $PP_SCRATCH_ROOT" >&2; exit 2 ;;
+  esac
+  TASK_SUFFIX="${SLURM_ARRAY_TASK_ID:-${PP_WORKER_ID:-0}}"
+  export TMPDIR="$PP_SCRATCH_ROOT/tmp/${SLURM_JOB_ID:-manual}_$TASK_SUFFIX"
+  mkdir -p "$TMPDIR"
+  cleanup_tmpdir() {
+    rm -rf -- "$TMPDIR"
+  }
+  trap cleanup_tmpdir EXIT
+  echo "Temporary directory: $TMPDIR"
+fi
+
 IS_RECEIPT=0
 if [[ "$PP_STAGE" == "qwen_attack" ]] && \
    pp_receipt_is_config "$PP_CONFIG"; then
