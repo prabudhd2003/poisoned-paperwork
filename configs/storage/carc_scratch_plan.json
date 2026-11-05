@@ -1,0 +1,34 @@
+{
+  "scratch_root_template": "/scratch1/{user}/poisoned-paperwork",
+  "active_run_links": [
+    "outputs/qwen_attack/qwen_collected_external_v1",
+    "outputs/donut_attack/donut_collected_external_v1",
+    "outputs/defenses/defenses_donut_public_final_v1",
+    "outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1",
+    "outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1",
+    "outputs/jpeg_eot_attack/donut_jpeg_eot_public_full_v1",
+    "outputs/jpeg_eot_attack/donut_frequency_hardview_public_full_v1"
+  ],
+  "completed_checkpoint_runs": [
+    {
+      "path": "outputs/imported/qwen_receipt_validation_v1",
+      "expected_workers": 5
+    },
+    {
+      "path": "outputs/qwen_attack/qwen_resume_validation_v1",
+      "expected_workers": 5
+    },
+    {
+      "path": "outputs/qwen_attack/qwen_resume_smoke_shail_v2",
+      "expected_workers": 1
+    },
+    {
+      "path": "outputs/qwen_attack/qwen_resume_smoke_shail_v3_resumeproof",
+      "expected_workers": 1
+    },
+    {
+      "path": "outputs/qwen_attack/qwen_resume_smoke_shail_v4_bestiterate",
+      "expected_workers": 1
+    }
+  ]
+}

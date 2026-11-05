@@ -23,6 +23,97 @@ one L40S; do not change the GPU type between workers or add another GPU type as
 a fallback. Runtime configurations belong under `outputs/runtime_configs/` so
 their frozen source hashes do not dirty the tracked worktree.
 
+## Storage contract
+
+The shared `/project2` allocation is permanent project storage. Keep code,
+frozen runtime configurations, original collected receipts, annotations,
+manifests, completed merged tables, final records, and final attacked images
+there. Active run directories, restart checkpoints, model caches, and job
+temporary files belong in the submitting user's `/scratch1` directory.
+
+The repository keeps the historical `outputs/STAGE/RUN_ID` paths by making
+each active run path a symbolic link to scratch. Experiment code and status
+commands therefore use the same paths as before. Scratch is not backed up and
+can be purged, so a completed run must be archived back to
+`outputs/final/STAGE/RUN_ID` before its scratch copy is treated as disposable.
+
+After every project job has been cancelled or completed, inspect the reviewed
+storage plan:
+
+```bash
+python scripts/manage_carc_storage.py plan
+```
+
+Remove checkpoints only from runs whose strict merge and every worker marker
+have already been verified. The command refuses incomplete runs and performs
+a dry run unless `--apply` is present:
+
+```bash
+python scripts/manage_carc_storage.py prune-completed-checkpoints
+python scripts/manage_carc_storage.py prune-completed-checkpoints --apply
+```
+
+Abandoned atomic-write files and core dumps can also be audited and removed.
+This command never selects records, images, merged tables, configurations, or
+valid checkpoint files:
+
+```bash
+python scripts/manage_carc_storage.py prune-temporary-files
+python scripts/manage_carc_storage.py prune-temporary-files --apply
+```
+
+Create the reviewed active-run links and move any existing partial run data to
+scratch. Each source is copied and compared by relative path and file checksum
+before its project copy is removed:
+
+```bash
+python scripts/manage_carc_storage.py setup
+python scripts/manage_carc_storage.py setup --apply
+python scripts/manage_carc_storage.py verify
+```
+
+The production launcher refuses a non-baseline run on CARC unless its exact
+`outputs/STAGE/RUN_ID` path is a writable link under the configured scratch
+root. For a future run that is not yet in the reviewed plan, create its link
+before submission:
+
+```bash
+python scripts/manage_carc_storage.py link-run \
+  --stage STAGE --run-id RUN_ID
+python scripts/manage_carc_storage.py link-run \
+  --stage STAGE --run-id RUN_ID --apply
+```
+
+After all workers finish and the strict merge exists, archive every final file
+except restart checkpoints back into permanent project storage:
+
+```bash
+python scripts/manage_carc_storage.py archive-run \
+  --stage STAGE --run-id RUN_ID --expected-workers 5
+python scripts/manage_carc_storage.py archive-run \
+  --stage STAGE --run-id RUN_ID --expected-workers 5 --apply
+```
+
+The verified archive is written under `outputs/final/`. Do not remove a
+scratch run until this command succeeds. The Slurm worker also creates its
+per-job `TMPDIR` under scratch and removes that temporary directory when the
+worker exits.
+
+For the current seven remaining experiment families, first validate storage,
+all frozen runtime configurations, and every CPU preflight. The check command
+does not submit anything:
+
+```bash
+bash scripts/submit_remaining_experiments.sh --check
+bash scripts/submit_remaining_experiments.sh --submit
+```
+
+The submission command creates seven Slurm arrays with five workers each. It
+includes the collected-receipt Qwen and Donut attacks, Donut baseline defenses,
+and uniform plus hard-view JPEG-EOT attacks for Qwen and Donut. Existing partial
+records remain restart inputs because the scratch links preserve the original
+run paths.
+
 ## 0. One-time setup
 
 ```bash
@@ -210,7 +301,7 @@ merged attack tables. Typical paths are:
 
 ```bash
 RESUME=outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet
-RECEIPT=/project2/yzhao010_1531/qwen-receipt-runs/qwen_attack/qwen_receipt_validation_v1/merged/attacks.parquet
+RECEIPT=outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet
 COLLECTED=outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet
 
 python scripts/prepare_stage_config.py transfer \
@@ -241,7 +332,7 @@ successes on every public dataset.
 
 ```bash
 RESUME=outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet
-RECEIPT=/project2/yzhao010_1531/qwen-receipt-runs/qwen_attack/qwen_receipt_validation_v1/merged/attacks.parquet
+RECEIPT=outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet
 
 python scripts/prepare_stage_config.py defenses_public \
   --source resume="$RESUME" \
