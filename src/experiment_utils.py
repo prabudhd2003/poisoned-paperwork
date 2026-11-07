@@ -27,15 +27,33 @@ def repo_root_from_config(config_path: str | Path) -> Path:
 
 
 def git_commit(root: Path, *, require_clean: bool = True) -> str:
+    """Return and validate the committed experiment source revision.
+
+    Submission rejects every dirty item, including untracked files. Workers may
+    start much later, so runtime validation ignores untracked artifacts while
+    continuing to reject tracked or staged source changes.
+    """
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
+
+    expected = os.environ.get("PP_EXPECTED_GIT_SHA", "").strip()
+    if expected and commit != expected:
+        raise RuntimeError(
+            "queued experiment commit changed before worker execution: "
+            f"{commit} != {expected}"
+        )
+
     if require_clean:
         status = subprocess.check_output(
-            ["git", "status", "--porcelain"], cwd=root, text=True
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=root,
+            text=True,
         ).strip()
         if status:
-            raise RuntimeError("experiment requires a clean committed worktree")
+            raise RuntimeError(
+                "experiment source has tracked or staged changes"
+            )
     return commit
 
 
