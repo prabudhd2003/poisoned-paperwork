@@ -4,7 +4,9 @@ Before editing this repository, read these files completely:
 
 1. `README.md` for the scientific question, threat model, completed results,
    attack/defense definitions, and remaining work.
-2. `docs/CARC_END_TO_END.md` for the operational contract, five-worker mapping,
+2. `docs/RESULTS_LEDGER.md` for the verified result values, exact run IDs,
+   completion state, evidence paths, and results that are still interim.
+3. `docs/CARC_END_TO_END.md` for the operational contract, five-worker mapping,
    L40S-only policy, immutable runtime configurations, submission commands,
    checkpoint/restart behavior, and completion checks.
 

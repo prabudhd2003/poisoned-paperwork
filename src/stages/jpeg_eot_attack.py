@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 from checkpoints import atomic_json, sha256_file, sha256_text
 from experiment_utils import (
+    git_commit,
     initialize_run,
     merge_json_records,
     repo_root_from_config,
@@ -18,6 +20,7 @@ from models.donut import (
     DEFAULT_REVISION as DONUT_REVISION,
 )
 from models.qwen import DEFAULT_MODEL_ID as QWEN_MODEL_ID, DEFAULT_REVISION as QWEN_REVISION
+from sharding import assigned_record_ids
 
 
 QWEN_DATASETS = ("cord_v2", "resume_parsing_vision", "sroie")
@@ -25,6 +28,16 @@ QWEN_DOCUMENTS = {"cord_v2": 96, "resume_parsing_vision": 74, "sroie": 123}
 DONUT_DATASETS = ("cord_v2", "sroie")
 DONUT_DOCUMENTS = {"cord_v2": 75, "sroie": 46}
 EPSILONS = [4, 8, 16]
+RESUME_APPROVALS = Path("configs/provenance/jpeg_eot_resume_compatibility.json")
+SCIENTIFIC_RESUME_FILES = (
+    "src/stages/jpeg_eot_attack.py",
+    "src/attacks/jpeg_eot.py",
+    "src/models/qwen.py",
+    "src/stages/defenses.py",
+    "src/defenses.py",
+    "src/normalization.py",
+    "src/checkpoints.py",
+)
 
 
 def _protocol(config: dict[str, Any]):
@@ -204,33 +217,134 @@ def _load_plan(root: Path, config: dict[str, Any]):
     return representatives
 
 
-def preflight(config: dict[str, Any], root: Path) -> None:
-    validate_config(config)
-    selected = _load_plan(Path(root).resolve(), config)
-    counts = selected.groupby("dataset_name").record_id.nunique().to_dict()
-    print(
-        f"JPEG-EOT PREFLIGHT PASSED: {len(selected)} documents, "
-        f"epsilons={EPSILONS}, datasets={counts}"
-    )
+def _scientific_resume_fingerprint(root: Path) -> str:
+    digest = hashlib.sha256()
+    for relative in SCIENTIFIC_RESUME_FILES:
+        path = root / relative
+        if not path.is_file():
+            raise FileNotFoundError(f"scientific resume source missing: {path}")
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
-def _record_valid(path: Path, expected: dict[str, Any]) -> bool:
+def _legacy_commit_is_approved(
+    root: Path, expected: dict[str, Any], observed_commit: Any,
+) -> bool:
+    path = root / RESUME_APPROVALS
+    if not path.is_file():
+        return False
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    fingerprint = _scientific_resume_fingerprint(root)
+    for approval in registry.get("approvals", []):
+        if (
+            approval.get("run_id") == expected.get("run_id")
+            and approval.get("config_sha256") == expected.get("config_sha256")
+            and approval.get("record_git_commit") == observed_commit
+            and approval.get("approved_scientific_sha256") == fingerprint
+        ):
+            return True
+    return False
+
+
+def _record_valid(
+    path: Path,
+    expected: dict[str, Any],
+    *,
+    root: Path,
+    verify_images: bool = True,
+) -> bool:
     if not path.is_file():
         return False
     value = json.loads(path.read_text(encoding="utf-8"))
     for key, expected_value in expected.items():
-        if value.get(key) != expected_value:
+        observed = value.get(key)
+        if key == "git_commit" and observed != expected_value:
+            if _legacy_commit_is_approved(root, expected, observed):
+                continue
+        if observed != expected_value:
             raise RuntimeError(f"JPEG-EOT record provenance mismatch in {key}: {path}")
     if value.get("status") != "complete":
         raise RuntimeError(f"JPEG-EOT record is not complete: {path}")
     images = value.get("images")
     if not isinstance(images, list) or not images:
         raise RuntimeError(f"JPEG-EOT record has no PNG images: {path}")
-    for image in images:
-        image_path = Path(image["path"])
-        if not image_path.is_file() or sha256_file(image_path) != image["sha256"]:
-            raise RuntimeError(f"JPEG-EOT PNG is missing or changed: {image_path}")
+    if verify_images:
+        for image in images:
+            image_path = Path(image["path"])
+            if not image_path.is_file() or sha256_file(image_path) != image["sha256"]:
+                raise RuntimeError(f"JPEG-EOT PNG is missing or changed: {image_path}")
     return True
+
+
+def _audit_saved_records(
+    root: Path, config: dict[str, Any], selected,
+) -> int:
+    """Reject incompatible partial records before a GPU job enters the queue."""
+    output = root / "outputs" / "jpeg_eot_attack" / str(config["run_id"])
+    paths = sorted(output.glob("shards/worker_*/records/*.json"))
+    if not paths:
+        return 0
+    copied_config = output / "config.json"
+    if not copied_config.is_file():
+        raise RuntimeError("partial JPEG-EOT run has no frozen config copy")
+    copied_value = json.loads(copied_config.read_text(encoding="utf-8"))
+    if copied_value != config:
+        raise RuntimeError("partial JPEG-EOT run was created from a different config")
+    config_hash = sha256_file(copied_config)
+    commit = git_commit(root)
+    seed = int(config["seed"])
+    worker_by_record: dict[str, int] = {}
+    all_ids = sorted(selected.index.astype(str))
+    for worker_id in range(5):
+        for record_id in assigned_record_ids(all_ids, worker_id, 5):
+            worker_by_record[record_id] = worker_id
+    seen: set[str] = set()
+    for path in paths:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        record_id = str(value.get("record_id", ""))
+        if record_id not in worker_by_record:
+            raise RuntimeError(f"partial JPEG-EOT record has unknown record_id: {path}")
+        try:
+            epsilon = int(value.get("epsilon_255"))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"partial JPEG-EOT record has invalid epsilon: {path}") from exc
+        if epsilon not in EPSILONS:
+            raise RuntimeError(f"partial JPEG-EOT record has unexpected epsilon: {path}")
+        key = _key(record_id, epsilon, seed)
+        if path.stem != key or key in seen:
+            raise RuntimeError(f"partial JPEG-EOT record key mismatch or duplicate: {path}")
+        seen.add(key)
+        _record_valid(
+            path,
+            {
+                "run_id": config["run_id"],
+                "stage": "jpeg_eot_attack",
+                "config_sha256": config_hash,
+                "git_commit": commit,
+                "worker_id": worker_by_record[record_id],
+                "experiment_key": key,
+                "record_id": record_id,
+                "epsilon_255": epsilon,
+            },
+            root=root,
+            verify_images=False,
+        )
+    return len(paths)
+
+
+def preflight(config: dict[str, Any], root: Path) -> None:
+    validate_config(config)
+    root = Path(root).resolve()
+    selected = _load_plan(root, config)
+    counts = selected.groupby("dataset_name").record_id.nunique().to_dict()
+    saved = _audit_saved_records(root, config, selected)
+    print(
+        f"JPEG-EOT PREFLIGHT PASSED: {len(selected)} documents, "
+        f"epsilons={EPSILONS}, datasets={counts}, compatible_saved_records={saved}"
+    )
 
 
 def _key(record_id: str, epsilon: int, seed: int) -> str:
@@ -308,7 +422,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
                 }
                 path = shard / "records" / f"{key}.json"
                 expected += 1
-                if _record_valid(path, expected_record):
+                if _record_valid(path, expected_record, root=root):
                     continue
                 result = attack(
                     wrapper,
@@ -338,7 +452,7 @@ def run(config, config_path, user_id, worker_id, num_workers):
                     "status": "complete",
                     "error": None,
                 })
-                _record_valid(path, expected_record)
+                _record_valid(path, expected_record, root=root)
                 atomic_json(shard / "progress.json", {
                     "completed_experiments": len(list((shard / "records").glob("*.json"))),
                     "last_completed": key,

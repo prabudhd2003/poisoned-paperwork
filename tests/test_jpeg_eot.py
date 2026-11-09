@@ -15,6 +15,40 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 class JpegEotTests(unittest.TestCase):
+    def test_reviewed_partial_run_compatibility_is_exact(self):
+        from stages.jpeg_eot_attack import (
+            _legacy_commit_is_approved,
+            _scientific_resume_fingerprint,
+        )
+
+        registry = json.loads(
+            (ROOT / "configs/provenance/jpeg_eot_resume_compatibility.json")
+            .read_text()
+        )
+        observed_fingerprint = _scientific_resume_fingerprint(ROOT)
+        approvals = registry["approvals"]
+        self.assertTrue(approvals)
+        self.assertTrue(all(
+            item["approved_scientific_sha256"] == observed_fingerprint
+            for item in approvals
+        ))
+
+        approval = approvals[0]
+        expected = {
+            "run_id": approval["run_id"],
+            "config_sha256": approval["config_sha256"],
+        }
+        self.assertTrue(_legacy_commit_is_approved(
+            ROOT, expected, approval["record_git_commit"]
+        ))
+        self.assertFalse(_legacy_commit_is_approved(
+            ROOT, {**expected, "config_sha256": "0" * 64},
+            approval["record_git_commit"],
+        ))
+        self.assertFalse(_legacy_commit_is_approved(
+            ROOT, expected, "0" * 40
+        ))
+
     def test_real_jpeg_forward_and_identity_backward(self):
         from attacks.jpeg_eot import jpeg_bpda_tensor
         from defenses import jpeg_roundtrip
