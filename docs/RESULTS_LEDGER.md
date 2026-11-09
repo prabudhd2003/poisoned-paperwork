@@ -68,14 +68,19 @@ infer them from the Qwen defense table.
 
 Run ID: `qwen_collected_external_v1`.
 
-The expensive GPU portion is complete: 440 records and five completion markers
-exist. Historical records omitted `record_id`, so the original merge failed.
-Use `scripts/finalize_collected_qwen.py` to perform the strict CPU-only schema
-repair and merge. Do not submit this GPU run again.
+Finalized on 2026-11-09 with 440 validated records, 110 unique clean-correct
+documents, five complete workers, and zero failures. All records use commit
+`8a7b66c`. The repaired merged result is the final source of truth.
 
-The pre-merge interim conditional ASR was 0.0%, 70.9%, 88.2%, and 99.1% at
-epsilon 2, 4, 8, and 16. These values remain interim until the repaired merged
-summary is produced.
+| Epsilon | Successes | Attempts | Conditional ASR | Median SSIM | Median LPIPS |
+|---:|---:|---:|---:|---:|---:|
+| 2 | 0 | 110 | 0.0% | 0.9942 | 0.0079 |
+| 4 | 78 | 110 | 70.9% | 0.9392 | 0.1177 |
+| 8 | 97 | 110 | 88.2% | 0.8017 | 0.2787 |
+| 16 | 109 | 110 | 99.1% | 0.5388 | 0.4513 |
+
+Evidence:
+`outputs/qwen_attack/qwen_collected_external_v1/merged/summary.json`
 
 ## Adaptive Qwen attacks
 
