@@ -602,7 +602,7 @@ receipts. Each defense or adaptive run uses epsilon 4, 8, and 16.
 Qwen standard attacks are complete. Prepare the three Qwen follow-ups:
 
 ```bash
-QWEN_COLLECTED="$PWD/outputs/qwen_attack/qwen_collected_external_v1/merged/attacks.parquet"
+QWEN_COLLECTED="$PWD/outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet"
 
 python scripts/prepare_stage_config.py defenses_qwen_collected \
   --source qwen_collected="$QWEN_COLLECTED" \
@@ -616,6 +616,12 @@ python scripts/prepare_stage_config.py jpeg_eot_qwen_collected_hardview \
   --source qwen_collected="$QWEN_COLLECTED" \
   --output outputs/runtime_configs/qwen_collected_hardview_full_v1.json
 ```
+
+The finalized collected-attack table does not contain a `prompt_text` column.
+For collected receipts only, the adaptive stage restores the primary receipt
+prompt from the frozen `semantic_prompts.receipt` configuration. Public-source
+runs still require `prompt_text` in their source tables and fail preflight if
+it is absent. This keeps the compatibility rule narrow and reproducible.
 
 Run every CPU preflight before submission:
 
