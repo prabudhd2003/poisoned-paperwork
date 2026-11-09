@@ -14,10 +14,11 @@ import numpy as np
 
 from checkpoints import atomic_json, sha256_file, sha256_text
 from experiment_utils import (
-    initialize_run, load_collected_image, load_collected_manifest,
-    merge_json_records, repo_root_from_config, write_worker_complete,
+    git_commit, initialize_run, load_collected_image, load_collected_manifest,
+    merge_json_records, read_json, repo_root_from_config, write_worker_complete,
 )
 from normalization import normalize_receipt_total
+from sharding import assigned_record_ids
 
 
 PROMPT = (
@@ -135,6 +136,7 @@ def run_qwen(config, config_path, user_id, worker_id, num_workers):
                 provenance = {
                     "run_id": config["run_id"], "stage": "qwen_attack",
                     "track": "collected_receipts", "experiment_key": key,
+                    "record_id": record_id,
                     "config_sha256": config_hash, "git_commit": commit,
                     "model_id": wrapper.model_id, "model_revision": wrapper.revision,
                     "worker_id": worker_id, "user_id": user_id,
@@ -164,6 +166,139 @@ def run_qwen(config, config_path, user_id, worker_id, num_workers):
         sort_columns=["record_id", "epsilon_255"],
     ):
         _write_attack_summary(output, "qwen")
+
+
+def repair_and_finalize_qwen(
+    config: dict[str, Any], config_path: str | Path, *, num_workers: int = 5,
+) -> Path:
+    """Repair the historical missing record_id field and merge without a GPU.
+
+    This is deliberately strict.  It only changes records whose complete frozen
+    provenance matches the run contract and whose sole schema defect is the
+    absent ``record_id`` field.
+    """
+    _validate(config, "qwen")
+    if num_workers != 5:
+        raise ValueError("collected Qwen production runs use exactly five workers")
+    config_path = Path(config_path).resolve()
+    root = repo_root_from_config(config_path)
+    _, candidates = _load_candidates(root, config, "qwen")
+    config_hash = sha256_file(config_path)
+    output = root / "outputs" / "qwen_attack" / str(config["run_id"])
+    contract_path = output / "run_contract.json"
+    if not contract_path.is_file():
+        raise FileNotFoundError(f"run contract missing: {contract_path}")
+    contract = read_json(contract_path)
+    expected_contract = {
+        "run_id": config["run_id"],
+        "stage": "qwen_attack",
+        "config_sha256": config_hash,
+        "num_workers": num_workers,
+        "records": len(candidates),
+    }
+    for field, expected_value in expected_contract.items():
+        if contract.get(field) != expected_value:
+            raise RuntimeError(
+                f"collected Qwen run contract mismatch in {field}: "
+                f"{contract.get(field)!r} != {expected_value!r}"
+            )
+    execution_commit = str(contract.get("git_commit", ""))
+    if len(execution_commit) != 40:
+        raise RuntimeError("collected Qwen run contract has no valid Git commit")
+    repair_commit = git_commit(root)
+    seed = int(config["seed"])
+    epsilons = [int(value) for value in config["attack"]["epsilons_255"]]
+    repaired = 0
+    validated = 0
+    all_ids = sorted(candidates.index.astype(str))
+
+    for worker_id in range(num_workers):
+        shard = output / "shards" / f"worker_{worker_id:02d}"
+        ids = assigned_record_ids(all_ids, worker_id, num_workers)
+        assignment = output / "assignments" / f"worker_{worker_id:02d}.txt"
+        expected_assignment = "".join(f"{record_id}\n" for record_id in ids)
+        if not assignment.is_file() or assignment.read_text(encoding="utf-8") != expected_assignment:
+            raise RuntimeError(f"worker assignment differs: {assignment}")
+        expected_paths: set[Path] = set()
+        for record_id in ids:
+            source = candidates.loc[record_id]
+            for epsilon in epsilons:
+                key = _key("qwen", record_id, epsilon, seed)
+                path = shard / "records" / f"{key}.json"
+                expected_paths.add(path)
+                if not path.is_file():
+                    raise RuntimeError(f"completed Qwen record is missing: {path}")
+                record = read_json(path)
+                expected_fields = {
+                    "run_id": config["run_id"],
+                    "stage": "qwen_attack",
+                    "track": "collected_receipts",
+                    "experiment_key": key,
+                    "config_sha256": config_hash,
+                    "git_commit": execution_commit,
+                    "worker_id": worker_id,
+                    "dataset_name": "collected_receipts",
+                    "experiment_split": "external_test",
+                    "clean_target": str(source.clean_target),
+                    "attack_target": str(source.attack_target),
+                    "seed": seed,
+                    "epsilon_255": epsilon,
+                }
+                for field, expected_value in expected_fields.items():
+                    if record.get(field) != expected_value:
+                        raise RuntimeError(
+                            f"record provenance mismatch in {field}: {path}"
+                        )
+                existing_record_id = record.get("record_id")
+                if existing_record_id not in (None, record_id):
+                    raise RuntimeError(f"record_id mismatch: {path}")
+                if existing_record_id is None:
+                    record["record_id"] = record_id
+                    record["schema_repair"] = "add_missing_record_id_v1"
+                    record["schema_repair_commit"] = repair_commit
+                    record["schema_repaired_at"] = datetime.now(timezone.utc).isoformat()
+                    atomic_json(path, record)
+                    repaired += 1
+                validated += 1
+        actual_paths = set((shard / "records").glob("*.json"))
+        if actual_paths != expected_paths:
+            raise RuntimeError(
+                f"worker {worker_id} has unexpected or missing Qwen record files"
+            )
+        marker = read_json(shard / "WORKER_COMPLETE.json")
+        marker_expected = {
+            "run_id": config["run_id"],
+            "worker_id": worker_id,
+            "expected_records": len(expected_paths),
+            "completed_records": len(expected_paths),
+            "config_sha256": config_hash,
+            "git_commit": execution_commit,
+        }
+        for field, expected_value in marker_expected.items():
+            if marker.get(field) != expected_value:
+                raise RuntimeError(
+                    f"worker completion marker mismatch in {field}: {shard}"
+                )
+
+    expected_total = len(candidates) * len(epsilons)
+    if validated != expected_total:
+        raise RuntimeError(f"validated {validated} records; expected {expected_total}")
+    merged = merge_json_records(
+        output,
+        config=config,
+        config_hash=config_hash,
+        num_workers=num_workers,
+        expected_records=expected_total,
+        sort_columns=["record_id", "epsilon_255"],
+    )
+    if not merged:
+        raise RuntimeError("all worker markers were validated but merge did not run")
+    _write_attack_summary(output, "qwen")
+    print(
+        f"COLLECTED QWEN FINALIZED: validated={validated}, "
+        f"repaired={repaired}, output={output / 'merged'}"
+    )
+    return output / "merged"
 
 
 def run_donut(config, config_path, user_id, worker_id, num_workers):

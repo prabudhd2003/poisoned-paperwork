@@ -65,7 +65,7 @@ case "$STAGE" in
   defenses)
     GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
   jpeg_eot_attack)
-    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="08:00:00" ;;
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="12:00:00" ;;
   *)
     echo "Unknown stage '$STAGE'." >&2
     echo "Choose: baseline, donut_attack, qwen_attack, transfer_robustness, eot_patch, defenses, jpeg_eot_attack" >&2

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "purpose": "Allow only the reviewed pre-storage-migration Qwen JPEG-EOT records to resume under the operationally hardened runner.",
+  "approvals": [
+    {
+      "run_id": "qwen_jpeg_eot_public_full_v1",
+      "config_sha256": "78c602ab27eff4f002005d4c75ba9ec6c3e926709256dbdf0fbfbdeba777831e",
+      "record_git_commit": "97858f607f571453841c609618014a1ba03ace46",
+      "approved_scientific_sha256": "b3215bd15886952c4162341a5cf99d47bb826e79ec2e9c4cbab3af06a2ca3fb3",
+      "review": "The intervening commits changed submission, storage, documentation, and provenance validation. The saved attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
+    },
+    {
+      "run_id": "qwen_frequency_hardview_public_full_v1",
+      "config_sha256": "9c02831ce35f06e80fbaf2c0332da15712bda97cd17afd12fe7acf34995a26cd",
+      "record_git_commit": "97858f607f571453841c609618014a1ba03ace46",
+      "approved_scientific_sha256": "b3215bd15886952c4162341a5cf99d47bb826e79ec2e9c4cbab3af06a2ca3fb3",
+      "review": "The intervening commits changed submission, storage, documentation, and provenance validation. The saved attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
+    }
+  ]
+}
