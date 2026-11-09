@@ -27,6 +27,8 @@ QWEN_DATASETS = ("cord_v2", "resume_parsing_vision", "sroie")
 QWEN_DOCUMENTS = {"cord_v2": 96, "resume_parsing_vision": 74, "sroie": 123}
 DONUT_DATASETS = ("cord_v2", "sroie")
 DONUT_DOCUMENTS = {"cord_v2": 75, "sroie": 46}
+COLLECTED_DATASETS = ("collected_receipts",)
+COLLECTED_DOCUMENTS = {"qwen": 110, "donut": 90}
 EPSILONS = [4, 8, 16]
 RESUME_APPROVALS = Path("configs/provenance/jpeg_eot_resume_compatibility.json")
 SCIENTIFIC_RESUME_FILES = (
@@ -42,11 +44,22 @@ SCIENTIFIC_RESUME_FILES = (
 
 def _protocol(config: dict[str, Any]):
     model_key = str(config.get("model_key", "qwen"))
+    scope = str(config.get("dataset_scope", "public"))
+    models = {
+        "qwen": (QWEN_MODEL_ID, QWEN_REVISION),
+        "donut": (DONUT_MODEL_ID, DONUT_REVISION),
+    }
+    if model_key not in models:
+        raise ValueError("adaptive attack model_key must be qwen or donut")
+    model_id, revision = models[model_key]
+    if scope == "collected_receipts":
+        documents = {"collected_receipts": COLLECTED_DOCUMENTS[model_key]}
+        return model_key, COLLECTED_DATASETS, documents, model_id, revision
+    if scope != "public":
+        raise ValueError("adaptive attack dataset_scope must be public or collected_receipts")
     if model_key == "qwen":
-        return model_key, QWEN_DATASETS, QWEN_DOCUMENTS, QWEN_MODEL_ID, QWEN_REVISION
-    if model_key == "donut":
-        return model_key, DONUT_DATASETS, DONUT_DOCUMENTS, DONUT_MODEL_ID, DONUT_REVISION
-    raise ValueError("adaptive attack model_key must be qwen or donut")
+        return model_key, QWEN_DATASETS, QWEN_DOCUMENTS, model_id, revision
+    return model_key, DONUT_DATASETS, DONUT_DOCUMENTS, model_id, revision
 
 
 def validate_config(config: dict[str, Any]) -> None:
@@ -71,7 +84,14 @@ def validate_config(config: dict[str, Any]) -> None:
         "uniform_multiview_eot": "uniform_eot",
         "frequency_hardview_minimax_eot": "hardview_eot",
     }[method]
-    expected_track = base_track if model_key == "qwen" else f"donut_{base_track}"
+    scope = str(config.get("dataset_scope", "public"))
+    if scope == "collected_receipts":
+        expected_track = f"{model_key}_collected_{base_track}"
+        contract = config.get("collected_manifest_contract", {})
+        if contract.get("expected_documents") != 114:
+            raise ValueError("collected adaptive attack requires the frozen 114-document manifest")
+    else:
+        expected_track = base_track if model_key == "qwen" else f"donut_{base_track}"
     if config.get("track") != expected_track:
         raise ValueError(f"adaptive attack track must equal {expected_track}")
     sampling = attack.get("view_sampling")

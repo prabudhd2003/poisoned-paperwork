@@ -593,6 +593,86 @@ Use `midterm/08_defense_results.ipynb` for matched Qwen/Donut non-adaptive
 defenses and `midterm/10_adaptive_defense_attack.ipynb` for all four adaptive
 method/model combinations.
 
+### 6f. Self-collected defenses and adaptive attacks
+
+The external test remains separate from the public datasets. Qwen uses its 110
+clean-correct self-collected receipts. Donut uses its own 90 clean-correct
+receipts. Each defense or adaptive run uses epsilon 4, 8, and 16.
+
+Qwen standard attacks are complete. Prepare the three Qwen follow-ups:
+
+```bash
+QWEN_COLLECTED="$PWD/outputs/qwen_attack/qwen_collected_external_v1/merged/attacks.parquet"
+
+python scripts/prepare_stage_config.py defenses_qwen_collected \
+  --source qwen_collected="$QWEN_COLLECTED" \
+  --output outputs/runtime_configs/defenses_qwen_collected_final_v1.json
+
+python scripts/prepare_stage_config.py jpeg_eot_qwen_collected \
+  --source qwen_collected="$QWEN_COLLECTED" \
+  --output outputs/runtime_configs/qwen_collected_jpeg_eot_full_v1.json
+
+python scripts/prepare_stage_config.py jpeg_eot_qwen_collected_hardview \
+  --source qwen_collected="$QWEN_COLLECTED" \
+  --output outputs/runtime_configs/qwen_collected_hardview_full_v1.json
+```
+
+Run every CPU preflight before submission:
+
+```bash
+python scripts/preflight_stage.py --stage defenses \
+  --config outputs/runtime_configs/defenses_qwen_collected_final_v1.json
+python scripts/preflight_stage.py --stage jpeg_eot_attack \
+  --config outputs/runtime_configs/qwen_collected_jpeg_eot_full_v1.json
+python scripts/preflight_stage.py --stage jpeg_eot_attack \
+  --config outputs/runtime_configs/qwen_collected_hardview_full_v1.json
+```
+
+The standard Donut attack must finish before its three follow-ups can be
+frozen. Prepare and submit it after the shared parent directory is writable:
+
+```bash
+python scripts/prepare_stage_config.py donut_collected \
+  --output outputs/runtime_configs/donut_collected.json
+python scripts/preflight_stage.py --stage donut_attack \
+  --config outputs/runtime_configs/donut_collected.json
+bash scripts/submit_stage.sh donut_attack all \
+  outputs/runtime_configs/donut_collected.json
+```
+
+After `donut_collected_external_v1` is strictly merged, prepare its matched
+follow-ups:
+
+```bash
+DONUT_COLLECTED="$PWD/outputs/donut_attack/donut_collected_external_v1/merged/attacks.parquet"
+
+python scripts/prepare_stage_config.py defenses_donut_collected \
+  --source donut_collected="$DONUT_COLLECTED" \
+  --output outputs/runtime_configs/defenses_donut_collected_final_v1.json
+python scripts/prepare_stage_config.py jpeg_eot_donut_collected \
+  --source donut_collected="$DONUT_COLLECTED" \
+  --output outputs/runtime_configs/donut_collected_jpeg_eot_full_v1.json
+python scripts/prepare_stage_config.py jpeg_eot_donut_collected_hardview \
+  --source donut_collected="$DONUT_COLLECTED" \
+  --output outputs/runtime_configs/donut_collected_hardview_full_v1.json
+```
+
+Create each scratch link with `manage_carc_storage.py link-run` before
+submitting it. A project path that resolves into `/scratch1` is active working
+storage, not the permanent archive. Once all five completion markers and a
+strict merged summary exist, copy the checkpoint-free result into project
+storage with:
+
+```bash
+python scripts/manage_carc_storage.py archive-run \
+  --stage STAGE --run-id RUN_ID
+python scripts/manage_carc_storage.py archive-run \
+  --stage STAGE --run-id RUN_ID --apply
+```
+
+The durable copy is stored under `outputs/final/STAGE/RUN_ID`. Never remove a
+scratch run until this command succeeds and the permanent copy is verified.
+
 ## 7. Analysis only (no GPU execution)
 
 After each strict merge exists, use these notebooks locally or through VS Code
