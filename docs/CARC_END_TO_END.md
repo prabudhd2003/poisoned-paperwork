@@ -1118,3 +1118,9 @@ before resubmitting. Do not regenerate their frozen configs. The legacy
 ready_donut_v1 helper explicitly targets 35dd6c1 and must not be used unchanged
 on the newly published checkout. No production jobs are automatically started
 by a Git pull.
+
+After a reviewed update, use the tracked `scripts/ready_donut/queue_ready_donut.py`
+with `--expected-commit FULL_REVIEWED_SHA` (both check and submit invocations).
+This explicitly pins the new checkout; the old runtime copies remain untouched.
+The helper continues to reject changed configs, duplicate submissions and partial
+Donut progress. Never delete an existing submission manifest to bypass its guard.

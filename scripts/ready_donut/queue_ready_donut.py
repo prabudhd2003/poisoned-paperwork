@@ -111,6 +111,7 @@ def sbatch_from_launcher(text, smoke_id, commit):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--submit", action="store_true")
+    p.add_argument("--expected-commit", help="Full reviewed checkout SHA after a coordinated update")
     a = p.parse_args()
     root = Path.cwd().resolve()
     if not (root / "scripts/submit_stage.sh").is_file():
@@ -118,9 +119,11 @@ def main():
     if sys.version_info[:2] != (3, 11):
         raise SystemExit("Activate the CARC paperwork Python 3.11 environment")
     commit = output(["git", "rev-parse", "HEAD"])
-    if not commit.startswith("35dd6c1"):
+    if a.expected_commit and commit != a.expected_commit:
+        raise SystemExit("Checkout differs from the explicitly pinned submission commit")
+    if not a.expected_commit and not commit.startswith("35dd6c1"):
         raise SystemExit(
-            "This bundle was reviewed for 35dd6c1; inspect before using another commit"
+            "Updated checkout: supply --expected-commit with the full reviewed SHA"
         )
     if output(["git", "status", "--porcelain"]):
         raise SystemExit(
