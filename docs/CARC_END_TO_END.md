@@ -650,7 +650,7 @@ After `donut_collected_external_v1` is strictly merged, prepare its matched
 follow-ups:
 
 ```bash
-DONUT_COLLECTED="$PWD/outputs/donut_attack/donut_collected_external_v1/merged/attacks.parquet"
+DONUT_COLLECTED="$PWD/outputs/donut_attack/donut_collected_external_v1/merged/records.parquet"
 
 python scripts/prepare_stage_config.py defenses_donut_collected \
   --source donut_collected="$DONUT_COLLECTED" \
@@ -725,3 +725,396 @@ request is a safety ceiling per allocation, not an expectation that a full
 shard finishes once. If a worker times out, resubmit its identical command; it
 reuses completed records and resumes the current attack from its ten-step
 checkpoint. Never delete or rename the partial run directory.
+
+## 9. Final evidence defense and full transfer protocol (new runs only)
+
+These commands use the new `final_protocol` stage. Do not run them until the
+Mac changes have been reviewed, committed and explicitly authorized for push,
+and the existing CARC workers no longer depend on the checkout being updated.
+Nothing in this section has been submitted by the coding agent.
+
+Read `docs/FINAL_RESEARCH_PROTOCOL.md` before interpreting the experiments.
+The old 20-document transfer configuration remains unchanged. New transfer
+runs contain the full clean cohort and all supplied source-eligible attacks.
+Source preparation verifies full baseline eligibility and refuses partial
+adaptive source tables. It copies the actual input PNGs into permanent project
+storage under `outputs/final_inputs/RUN_ID`, with checksums. Budget for these
+copies using project quota, not whole-filesystem free space.
+
+### Obtain a current read-only state snapshot
+
+```bash
+cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+source scripts/activate_paperwork.sh
+squeue -u "$USER" -o "%.18i %.48j %.12T %.12M %.12l %.24R"
+sacct -j 13871221,13871227,13871232,13871336,13871341 -X \
+  --format=JobID%22,JobName%48,State%12,Elapsed,ExitCode
+myquota
+python scripts/stage_status.py donut_attack donut_collected_external_v1
+python -m json.tool outputs/defenses/defenses_donut_public_final_v1/merged/defense_summary.json
+test -w outputs/donut_attack && echo 'Donut parent is writable'
+```
+
+The IDs above are historical submissions, not a current queue observation.
+Do not duplicate active workers. Collected Donut follow-ups still require its
+completed standard attack source. Use the existing sections for that sequence.
+
+### Install the separate OCR dependency and inspect baseline sources
+
+Do this only after the existing jobs are finished. This adds OCR to the
+activated environment; it does not upgrade torch or transformers.
+
+```bash
+cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+source scripts/activate_paperwork.sh
+conda install -y -c conda-forge tesseract
+TESSDATA_DIR="$(python - <<'PY'
+import os
+from pathlib import Path
+root = Path(os.environ['CONDA_PREFIX'])
+paths = [root/'share/tessdata', root/'share/tesseract-ocr/5/tessdata']
+path = next((p for p in paths if (p/'eng.traineddata').is_file()), None)
+if path is None:
+    raise SystemExit('Tesseract English traineddata not found; inspect the installation')
+print(path)
+PY
+)"
+tesseract --version
+tesseract --tessdata-dir "$TESSDATA_DIR" --list-langs
+python - <<'PY'
+from pathlib import Path
+import pandas as pd
+for path in Path('outputs').glob('baseline/*/merged/records.parquet'):
+    frame = pd.read_parquet(path)
+    print(path)
+    print(frame.groupby(['model_key','dataset_name']).clean_correct.agg(['sum','size']))
+PY
+```
+
+Public OCR runs require `eng.traineddata` and `ind.traineddata` in this directory.
+If Indonesian is absent, install that language data before freezing. The
+preparer hashes both files and the Tesseract executable and records its version.
+Use baseline tables whose counts agree with the ledger. The paths below follow
+the repository baseline run IDs; if the audit shows different source locations,
+substitute their verified paths. Baseline columns must include `model_key`,
+`record_id`, `clean_correct`, `model_id`, and `model_revision`. Missing eligibility
+or mismatched source model revisions are errors.
+
+### Freeze the full public Qwen comparison
+
+```bash
+python scripts/prepare_final_protocol.py \
+  --mode defense --model qwen --cohort public \
+  --run-id evidence_qwen_public_standard_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:standard:outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet \
+  --source qwen:standard:outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet \
+  --tessdata-dir "$TESSDATA_DIR"
+```
+
+Each source family must cover all its applicable datasets. For Qwen public
+standard attacks, provide both receipt and resume tables as above. A completed
+public EOT table covering all three datasets is a single source. To replay EOT
+and hard-view attacks after their strict merges exist, use this complete command.
+The standard-only run remains independently interpretable.
+
+```bash
+python scripts/prepare_final_protocol.py \
+  --mode defense --model qwen --cohort public \
+  --run-id evidence_qwen_public_all_sources_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:standard:outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet \
+  --source qwen:standard:outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet \
+  --source qwen:uniform_eot:outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1/merged/records.parquet \
+  --source qwen:hardview:outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1/merged/records.parquet \
+  --tessdata-dir "$TESSDATA_DIR"
+```
+
+### Freeze the full public Donut comparison and both transfer sources
+
+```bash
+python scripts/prepare_final_protocol.py \
+  --mode defense --model donut --cohort public \
+  --run-id evidence_donut_public_standard_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source donut:standard:outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet \
+  --tessdata-dir "$TESSDATA_DIR"
+
+python scripts/prepare_final_protocol.py \
+  --mode transfer --model internvl --cohort public \
+  --run-id internvl_public_full_standard_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:standard:outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet \
+  --source qwen:standard:outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet \
+  --source donut:standard:outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet
+```
+
+InternVL is pinned and inference-only. The adapter disables the optional
+FlashAttention dependency and wraps chat inference in inference mode. This is
+not a demonstration of compatibility with transformers 5.17.0. Run its smoke
+before full submission. If loading fails, preserve the traceback; do not
+upgrade the shared environment or bypass the smoke gate. A separately pinned
+compatible environment and a newly frozen runtime config may be needed.
+
+### External clean utility, defense and transfer
+
+Run this only after both source attacks have completed. All 114 clean receipts
+are evaluated; attacks remain on each source model's own clean-correct subset.
+
+```bash
+for MODEL in qwen donut; do
+  if [ "$MODEL" = qwen ]; then
+    ATTACK_SOURCE=outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet
+  else
+    ATTACK_SOURCE=outputs/donut_attack/donut_collected_external_v1/merged/records.parquet
+  fi
+  python scripts/prepare_final_protocol.py \
+    --mode defense --model "$MODEL" --cohort collected \
+    --run-id "evidence_${MODEL}_collected_standard_v1" \
+    --baseline outputs/baseline/baseline_collected_external_v1/merged/records.parquet \
+    --source "${MODEL}:standard:${ATTACK_SOURCE}" \
+    --tessdata-dir "$TESSDATA_DIR"
+done
+
+python scripts/prepare_final_protocol.py \
+  --mode transfer --model internvl --cohort collected \
+  --run-id internvl_collected_full_standard_v1 \
+  --baseline outputs/baseline/baseline_collected_external_v1/merged/records.parquet \
+  --source qwen:standard:outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet \
+  --source donut:standard:outputs/donut_attack/donut_collected_external_v1/merged/records.parquet
+```
+
+### Attack the evidence defense itself
+
+The public Qwen command includes all three seed families after their completion.
+It creates new bounded images, rather than merely re-evaluating old attacks.
+
+```bash
+python scripts/prepare_final_protocol.py \
+  --mode adaptive --model qwen --cohort public \
+  --run-id evidence_qwen_public_adaptive_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:standard:outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet \
+  --source qwen:standard:outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet \
+  --source qwen:uniform_eot:outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1/merged/records.parquet \
+  --source qwen:hardview:outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1/merged/records.parquet \
+  --queries 2000 --objective targeted --tessdata-dir "$TESSDATA_DIR"
+
+python scripts/prepare_final_protocol.py \
+  --mode adaptive --model donut --cohort public \
+  --run-id evidence_donut_public_adaptive_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source donut:standard:outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet \
+  --source donut:uniform_eot:outputs/jpeg_eot_attack/donut_jpeg_eot_public_full_v1/merged/records.parquet \
+  --source donut:hardview:outputs/jpeg_eot_attack/donut_frequency_hardview_public_full_v1/merged/records.parquet \
+  --queries 2000 --objective targeted --tessdata-dir "$TESSDATA_DIR"
+
+for MODEL in qwen donut; do
+  if [ "$MODEL" = qwen ]; then
+    ATTACK_SOURCE=outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet
+  else
+    ATTACK_SOURCE=outputs/donut_attack/donut_collected_external_v1/merged/records.parquet
+  fi
+  python scripts/prepare_final_protocol.py \
+    --mode adaptive --model "$MODEL" --cohort collected \
+    --run-id "evidence_${MODEL}_collected_adaptive_v1" \
+    --baseline outputs/baseline/baseline_collected_external_v1/merged/records.parquet \
+    --source "${MODEL}:standard:${ATTACK_SOURCE}" \
+    --source "${MODEL}:uniform_eot:outputs/jpeg_eot_attack/${MODEL}_collected_jpeg_eot_full_v1/merged/records.parquet" \
+    --source "${MODEL}:hardview:outputs/jpeg_eot_attack/${MODEL}_collected_frequency_hardview_full_v1/merged/records.parquet" \
+    --queries 2000 --objective targeted --tessdata-dir "$TESSDATA_DIR"
+done
+```
+
+For a predeclared stronger-budget diagnostic, repeat with a new run ID and
+`--queries 8000`; for availability, use a new run ID and `--objective availability`.
+Do not edit a frozen config or select the better threshold using external data.
+
+### Preflight, real smoke, full execution and preservation
+
+Choose one newly frozen config. This block only preflights and submits a small
+L40S smoke. It does not submit the full array. Repeat separately for each config.
+
+```bash
+CONFIG=outputs/runtime_configs/evidence_qwen_public_adaptive_v1.json
+python scripts/preflight_stage.py --stage final_protocol --config "$CONFIG"
+mkdir -p logs
+sbatch --account=yzhao010_1531 --partition=gpu --nodes=1 --ntasks=1 \
+  --cpus-per-task=8 --mem=64G --time=02:00:00 --gpus-per-task=l40s:1 \
+  --job-name=pp_final_smoke --output=logs/pp_final_smoke_%j.out \
+  --error=logs/pp_final_smoke_%j.err \
+  --export="ALL,PP_FINAL_CONFIG=$PWD/$CONFIG" \
+  --wrap='cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork && source scripts/activate_paperwork.sh && python scripts/smoke_final_protocol.py --config "$PP_FINAL_CONFIG"'
+```
+
+Inspect the returned Slurm job with `sacct` and both logs. The smoke exercises
+one eligible document per dataset, every configured condition, multi-image
+InternVL when applicable, and two actual gradient steps plus three query-search
+steps for adaptive mode. It does not establish full-run memory feasibility or
+attack efficacy. A matching smoke receipt is required by the full submitter.
+
+After the smoke succeeds, use this separate block. It uses the same `CONFIG`
+variable and never changes an existing run directory or worker assignment.
+
+```bash
+RUN_ID="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["run_id"])' "$CONFIG")"
+python scripts/check_final_smoke.py --config "$CONFIG"
+python scripts/manage_carc_storage.py link-run --stage final_protocol --run-id "$RUN_ID" --apply
+python scripts/manage_carc_storage.py verify-run --stage final_protocol --run-id "$RUN_ID"
+bash scripts/submit_stage.sh final_protocol all "$CONFIG"
+python scripts/stage_status.py final_protocol "$RUN_ID"
+```
+
+Do not rerun `all` while any worker is queued/running. After a timeout, resubmit
+only its corresponding `user1` through `user5`, with the identical config.
+White-box and query checkpoints retain completed steps. No notebook launches
+compute. Runtime package versions and OCR binaries are frozen by preparation;
+preflight fails on version drift rather than assuming compatibility.
+
+After all five markers, zero failures, and `final_summary.csv` exist:
+
+```bash
+python scripts/archive_final_protocol.py --run-id "$RUN_ID"
+python scripts/archive_final_protocol.py --run-id "$RUN_ID" --apply
+```
+
+This archives the checkpoint-free run and copies/checksums the frozen input
+bundle into `outputs/final/final_protocol/RUN_ID/frozen_inputs`. It never deletes
+scratch files. Stored paths retain original logical locations; restoring on a
+new machine requires restoring `frozen_inputs` to `outputs/final_inputs/RUN_ID`
+and the run to its logical output path, or explicitly remapping those prefixes.
+An archive is not established until the copy verification actually succeeds.
+
+### Replay the new adaptive PNGs and evaluate their transfer
+
+```bash
+python scripts/prepare_final_protocol.py \
+  --mode defense --model qwen --cohort public \
+  --run-id evidence_qwen_public_adaptive_replay_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:evidence_adaptive:outputs/final_protocol/evidence_qwen_public_adaptive_v1/merged/records.parquet \
+  --tessdata-dir "$TESSDATA_DIR"
+
+python scripts/prepare_final_protocol.py \
+  --mode transfer --model internvl --cohort public \
+  --run-id internvl_public_full_adaptive_v1 \
+  --baseline outputs/baseline/baseline_validation_v1/merged/records.parquet \
+  --source qwen:evidence_adaptive:outputs/final_protocol/evidence_qwen_public_adaptive_v1/merged/records.parquet \
+  --source donut:evidence_adaptive:outputs/final_protocol/evidence_donut_public_adaptive_v1/merged/records.parquet
+```
+
+Repeat the same preparation with the collected cohort and its verified baseline
+and adaptive sources for external transfer/replay. Each new config uses the
+preflight/smoke/submission/archive sequence above. Then open
+`notebooks/12_final_evidence_and_transfer.ipynb`. It exports stratified CSVs,
+paired document-bootstrap comparisons, matched Qwen/Donut source intersections,
+ASR/clean-utility PNG figures, budget traces and per-page perceptual metrics.
+
+### Complete final comparison matrix after all adaptive runs finish
+
+This optional final consolidation evaluates all four attack families under every
+condition and on InternVL, while preserving each family's denominator. It uses
+new IDs even if the earlier three-family replay has already run. The block is
+complete and generates six configurations; it does not submit jobs. It requires
+all original and new adaptive strict merges. Use the same verified OCR directory
+from the setup block. After preparation, apply the smoke/submission/archive
+sequence independently to each resulting config.
+
+```bash
+cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+source scripts/activate_paperwork.sh
+for COHORT in public collected; do
+  if [ "$COHORT" = public ]; then
+    BASELINE=outputs/baseline/baseline_validation_v1/merged/records.parquet
+  else
+    BASELINE=outputs/baseline/baseline_collected_external_v1/merged/records.parquet
+  fi
+  TRANSFER_SOURCES=()
+  for MODEL in qwen donut; do
+    SOURCES=()
+    if [ "$COHORT" = public ]; then
+      if [ "$MODEL" = qwen ]; then
+        SOURCES+=(--source qwen:standard:outputs/imported/qwen_receipt_validation_v1/merged/attacks_for_defenses.parquet)
+        SOURCES+=(--source qwen:standard:outputs/qwen_attack/qwen_resume_validation_v1/merged/attacks.parquet)
+      else
+        SOURCES+=(--source donut:standard:outputs/imported/donut_public_validation/merged/attacks_for_defenses.parquet)
+      fi
+      UNIFORM="outputs/jpeg_eot_attack/${MODEL}_jpeg_eot_public_full_v1/merged/records.parquet"
+      HARDVIEW="outputs/jpeg_eot_attack/${MODEL}_frequency_hardview_public_full_v1/merged/records.parquet"
+    else
+      if [ "$MODEL" = qwen ]; then
+        STANDARD=outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet
+      else
+        STANDARD=outputs/donut_attack/donut_collected_external_v1/merged/records.parquet
+      fi
+      SOURCES+=(--source "${MODEL}:standard:${STANDARD}")
+      UNIFORM="outputs/jpeg_eot_attack/${MODEL}_collected_jpeg_eot_full_v1/merged/records.parquet"
+      HARDVIEW="outputs/jpeg_eot_attack/${MODEL}_collected_frequency_hardview_full_v1/merged/records.parquet"
+    fi
+    SOURCES+=(--source "${MODEL}:uniform_eot:${UNIFORM}")
+    SOURCES+=(--source "${MODEL}:hardview:${HARDVIEW}")
+    SOURCES+=(--source "${MODEL}:evidence_adaptive:outputs/final_protocol/evidence_${MODEL}_${COHORT}_adaptive_v1/merged/records.parquet")
+    python scripts/prepare_final_protocol.py \
+      --mode defense --model "$MODEL" --cohort "$COHORT" \
+      --run-id "evidence_${MODEL}_${COHORT}_final_matrix_v1" \
+      --baseline "$BASELINE" "${SOURCES[@]}" --tessdata-dir "$TESSDATA_DIR"
+    TRANSFER_SOURCES+=("${SOURCES[@]}")
+  done
+  python scripts/prepare_final_protocol.py \
+    --mode transfer --model internvl --cohort "$COHORT" \
+    --run-id "internvl_${COHORT}_full_final_matrix_v1" \
+    --baseline "$BASELINE" "${TRANSFER_SOURCES[@]}"
+done
+```
+
+
+## Queue currently missing Donut runs without changing the CARC checkout
+
+The two helpers in `scripts/ready_donut/` target commit `35dd6c1` and Python
+3.11. Copy ONLY those two Python files into
+`outputs/runtime_tools/ready_donut_v1/` on CARC. Do not copy tracked changes,
+pull, or push while the existing Qwen jobs are pending. Do not overwrite the
+runtime helper copies after submitting; their hashes are frozen.
+
+From the CARC repository root with paperwork activated:
+
+```bash
+python outputs/runtime_tools/ready_donut_v1/queue_ready_donut.py
+python outputs/runtime_tools/ready_donut_v1/queue_ready_donut.py --submit
+```
+
+The first command prepares hash-frozen configs and performs CPU checks.
+The second links only unqueued runs without saved progress to scratch, then
+submits one two-hour L40S smoke and up to three five-worker production arrays
+with explicit `afterok` dependencies. Production uses the existing full
+100-step configurations. The isolated smoke uses two steps, one collected
+receipt and one public receipt per dataset, and cannot count as research data.
+The arrays are collected Donut standard, public uniform EOT, and public
+frequency hard-view EOT. Public Donut defenses are already complete; collected
+Donut defenses and adaptive attacks require the standard collected merge first.
+
+Submission IDs are recorded durably in
+`outputs/runtime_configs/ready_donut_v1_submissions.json`. Active jobs and
+complete runs are skipped. Existing partial output stops submission for manual
+worker-specific resume; it is never deleted. If submission or smoke fails,
+inspect this ledger and `logs/pp_ready_donut_smoke_<ID>.out` / `.err` before any
+retry. A failed smoke blocks all dependent arrays. Do not clear the ledger to
+bypass this guard or blindly submit a second array.
+
+
+## Updating the shared checkout after explicitly canceling jobs
+
+The user has elected to cancel and update instead of retaining the old queue.
+Snapshot job IDs and runtime configs first, cancel only this user's project
+jobs, and wait until they disappear from squeue. Check collaborators' project
+jobs as well before pulling; do not cancel another user's jobs. Use a clean
+checkout and a fast-forward-only update to the exact published commit. Never
+use git clean, reset --hard, or remove output shards to make an update pass.
+
+Run the CPU suite in CARC's paperwork environment after updating. A passing
+suite is not a GPU smoke. Existing partial Qwen runs can enforce old-commit
+provenance, so verify the resume registry and scientific-code compatibility
+before resubmitting. Do not regenerate their frozen configs. The legacy
+ready_donut_v1 helper explicitly targets 35dd6c1 and must not be used unchanged
+on the newly published checkout. No production jobs are automatically started
+by a Git pull.

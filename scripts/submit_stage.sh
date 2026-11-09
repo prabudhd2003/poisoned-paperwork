@@ -58,6 +58,8 @@ case "$STAGE" in
     GPU_TYPE="l40s"; MEMORY="48G"; TIME_LIMIT="08:00:00" ;;
   qwen_attack)
     GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="04:00:00" ;;
+  final_protocol)
+    GPU_TYPE="l40s"; MEMORY="64G"; TIME_LIMIT="12:00:00" ;;
   transfer_robustness)
     GPU_TYPE="l40s"; MEMORY="48G"; TIME_LIMIT="08:00:00" ;;
   eot_patch)
@@ -265,6 +267,9 @@ fi
   source scripts/activate_paperwork.sh
   export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
   python scripts/preflight_stage.py --stage "$STAGE" --config "$CONFIG_PATH"
+  if [[ "$STAGE" == "final_protocol" ]]; then
+    python scripts/check_final_smoke.py --config "$CONFIG_PATH"
+  fi
 )
 
 if [[ "$STAGE" == "qwen_attack" || "$STAGE" == "jpeg_eot_attack" ]]; then

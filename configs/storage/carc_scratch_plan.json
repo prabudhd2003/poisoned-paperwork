@@ -13,7 +13,26 @@
     "outputs/jpeg_eot_attack/qwen_collected_jpeg_eot_full_v1",
     "outputs/jpeg_eot_attack/qwen_collected_frequency_hardview_full_v1",
     "outputs/jpeg_eot_attack/donut_collected_jpeg_eot_full_v1",
-    "outputs/jpeg_eot_attack/donut_collected_frequency_hardview_full_v1"
+    "outputs/jpeg_eot_attack/donut_collected_frequency_hardview_full_v1",
+    "outputs/final_protocol/evidence_qwen_public_standard_v1",
+    "outputs/final_protocol/evidence_qwen_public_all_sources_v1",
+    "outputs/final_protocol/evidence_donut_public_standard_v1",
+    "outputs/final_protocol/internvl_public_full_standard_v1",
+    "outputs/final_protocol/internvl_collected_full_standard_v1",
+    "outputs/final_protocol/internvl_public_full_adaptive_v1",
+    "outputs/final_protocol/evidence_qwen_public_adaptive_replay_v1",
+    "outputs/final_protocol/evidence_qwen_collected_standard_v1",
+    "outputs/final_protocol/evidence_qwen_collected_adaptive_v1",
+    "outputs/final_protocol/evidence_qwen_public_adaptive_v1",
+    "outputs/final_protocol/evidence_donut_collected_standard_v1",
+    "outputs/final_protocol/evidence_donut_collected_adaptive_v1",
+    "outputs/final_protocol/evidence_donut_public_adaptive_v1",
+    "outputs/final_protocol/evidence_qwen_public_final_matrix_v1",
+    "outputs/final_protocol/evidence_donut_public_final_matrix_v1",
+    "outputs/final_protocol/internvl_public_full_final_matrix_v1",
+    "outputs/final_protocol/evidence_qwen_collected_final_matrix_v1",
+    "outputs/final_protocol/evidence_donut_collected_final_matrix_v1",
+    "outputs/final_protocol/internvl_collected_full_final_matrix_v1"
   ],
   "completed_checkpoint_runs": [
     {

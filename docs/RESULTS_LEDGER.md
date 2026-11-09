@@ -134,3 +134,177 @@ standard Donut attack over its 90 clean-correct self-collected receipts.
 Before adding a number to a report, prefer a merged `summary.json` or merged
 Parquet table. If only shard records exist, label the value interim and record
 the denominator. Update this ledger when a run reaches strict merged completion.
+
+## Final protocol implementation, 2026-11-09
+
+Entry checkout was clean at `35dd6c1270cdb2a271a06a8dbd209a50ba11a5b9`.
+New work is local and uncommitted. Nothing was pushed, no CARC connection was
+opened, and no job was submitted or changed. No new empirical ASR or clean
+accuracy is available. The Donut exact defense table and current queued-job
+status still require the read-only CARC snapshot in runbook section 9.
+
+Implemented in the isolated `final_protocol` stage:
+
+- OCR-grounded selective inference, OCR-only, full+OCR and full+crop ablations,
+  plus no-defense and all four existing baseline conditions;
+- full public/external clean cohorts, source-clean-correct attack eligibility,
+  separate dataset/source/family/epsilon denominators, accepted errors,
+  abstention, true correct recovery, utility and inference cost;
+- adaptive full-page/crop PGD followed by actual-pipeline query search,
+  targeted and availability objectives, saved/reloaded bounded PNGs,
+  LPIPS/SSIM, per-step/query checkpoints and budget diagnostics;
+- full InternVL clean evaluation and direct/transformed transfer, including
+  source-eligible and both-models-clean-correct denominators;
+- frozen baseline/source/image/runtime/OCR provenance, strict preflight,
+  matching L40S smoke gate, scratch definitions, and verified permanent input
+  plus result archival tooling;
+- analysis notebook `notebooks/12_final_evidence_and_transfer.ipynb`, with
+  paired bootstrap differences, matched source intersections, CSV and PNG exports.
+
+Planned standard-only evaluation sizes, not results:
+
+| Run family | Full clean documents | Attack images | Conditions | Evaluation records |
+|---|---:|---:|---:|---:|
+| Qwen public defense | 301 | 879 | 9 | 10,620 |
+| Donut public defense | 226 | 363 | 9 | 5,301 |
+| Qwen external defense | 114 | 330 | 9 | 3,996 |
+| Donut external defense | 114 | 270 | 9 | 3,456 |
+| InternVL public standard transfer | 301 | 1,656 | 11 | 21,527 |
+| InternVL external standard transfer | 114 | 800 | 11 | 10,054 |
+
+Adaptive generation plans remain 879/363 public Qwen/Donut and 330/270 external
+Qwen/Donut, at epsilon 4/8/16. Each uses 100 surrogate gradient steps and up to
+2,000 actual defense queries by default. These can be expensive; measure the
+L40S smoke and early shard throughput before estimating aggregate GPU hours.
+Do not treat the earlier EOT GPU-hour estimate as a budget for this new search.
+
+Local validation passed:
+
+- 143 CPU tests, including 19 new final-protocol tests;
+- synthetic 301-document input freezing, source-grid validation and overwrite
+  rejection; five-worker fake-model merge/resume; exact source identity;
+- receipt exclusions/conflicts, multipage degree rules, abstention denominators,
+  source PNG versus JPEG outcome semantics, bounded query search, deterministic
+  interrupted resume, and surrogate gradient updates with a toy objective;
+- notebook schema validation and every cell with absent results and synthetic
+  results, including paired CSVs and exported PNGs;
+- Python compilation, 12 new terminal-block shell syntax checks, launcher shell
+  syntax and `git diff --check`.
+
+Test environment was an isolated temporary Mac environment with Python 3.9.6,
+torch 2.8.0, torchvision 0.23.0, transformers 4.48.3, pandas 2.3.3, numpy 2.0.2,
+and Pillow 11.3.0. It is not the CARC Python 3.11 / torch 2.6 / transformers 5.17
+runtime. The first full test attempt had one missing-transformers dependency;
+after installing it in the temporary environment, the complete suite passed.
+Warnings were library deprecations/LibreSSL and an existing toy-test tensor
+conversion warning. No GPU model weights or actual Tesseract binary were run
+locally. Synthetic outputs are validation fixtures, not scientific results.
+
+Open gates and limitations:
+
+- Verify current CARC job states, Donut parent permission, full source merges,
+  baseline table locations, source counts and project quota.
+- Install and hash English/Indonesian OCR data. The actual Tesseract interface
+  and its clean coverage remain untested on the real experiment corpus.
+- Run separate L40S inference/gradient/multipage smokes for each frozen config.
+  InternVL trusted-remote-code compatibility with transformers 5.17 is unresolved.
+- Receipt rules require same-line labeled amounts; resume rules are conservative
+  and stricter about completion than the existing highest-degree-stated task.
+  These can lower coverage and must be reported, not hidden by label changes.
+- The adaptive OCR gate is attacked through actual queries, not OCR gradients.
+  Discrete search plateaus, final-iterate surrogate seeds and finite budgets
+  limit robustness conclusions. Inspect curves and stronger-budget runs.
+- The proposed contribution is a falsifiable evidence-agreement evaluation,
+  not a claim that OCR, localization, consistency, or abstention is novel.
+- No permanent CARC archive has been created by this local work.
+
+Execution order is documented in `docs/CARC_END_TO_END.md` section 9. Detailed
+scientific scope and primary-source review are in `docs/FINAL_RESEARCH_PROTOCOL.md`.
+
+## Collected Donut source-path correction
+
+The collected Donut implementation writes `merged/records.parquet`. Corrected
+the runbook and three tracked follow-up templates that incorrectly referenced
+`merged/attacks.parquet`. Existing runtime configs and CARC runs were not edited.
+This correction does not establish that Khalid completed the run; verify current
+permissions, job states, five markers, 360 records and zero failures first.
+
+## CARC snapshot supplied by user, 2026-11-09
+
+CARC remains at commit `35dd6c1`, Python 3.11.16 in the paperwork environment.
+Khalid's parent permission repair succeeded: `outputs/donut_attack` is mode
+2775, and the user's temporary-directory creation probe passed. The project
+link `outputs/donut_attack/donut_collected_external_v1` does not yet exist;
+there is no collected Donut merged table through that path. The scratch run
+was not inspected by this snapshot and must be preserved if it exists.
+
+The shown queue for pkandpal and kbali contains exactly 25 pending Qwen tasks,
+all waiting on Priority, across arrays 13871221, 13871227, 13871232, 13871336,
+and 13871341. No running or pending Donut job appears in that queue snapshot.
+Do not duplicate those Qwen workers or update their checkout.
+
+Public Donut defenses were reconfirmed complete: five markers with shard
+counts 400/384/384/384/384, 1,936 records, 121 documents, zero failures, commit
+`8a7b66c4f37f169df3050441ba386820132f613a`. Strict merge timestamp was
+2026-11-09T13:14:08.668144+00:00. The historical Slurm array 13814788 also has
+five COMPLETED workers with exit code 0:0.
+
+Completed-run attack counts printed from the shards (retrieve the merged table
+before final report export):
+
+| Dataset | Defense | Successes at 4 | Successes at 8 | Successes at 16 | Attempts per epsilon |
+|---|---|---:|---:|---:|---:|
+| CORD | JPEG | 6 | 18 | 53 | 75 |
+| CORD | Resize vote | 6 | 11 | 38 | 75 |
+| CORD | Visual multi-view | 6 | 18 | 53 | 75 |
+| CORD | Semantic consistency | 4 | 13 | 38 | 75 |
+| SROIE | JPEG | 0 | 4 | 15 | 46 |
+| SROIE | Resize vote | 2 | 3 | 11 | 46 |
+| SROIE | Visual multi-view | 5 | 5 | 16 | 46 |
+| SROIE | Semantic consistency | 0 | 2 | 5 | 46 |
+
+The status display used `adversarial_target_success` for clean rows too. Its
+zeros are not zero clean accuracy, and the epsilon labels on those clean rows
+come from their representative attack records. Do not report clean accuracy
+from that status display.
+
+Both public Donut adaptive project run paths are missing. Historical launch
+attempts failed; there are no current Donut adaptive workers in the shown queue.
+After verifying the collected scratch link and existing runtime config, the
+next production submission is collected Donut standard attacks (90 documents,
+360 attacks). Public Donut adaptive sources are independent of that run but
+still require preflight and a real adaptive GPU smoke. Collected Donut defenses
+and both adaptive methods depend on its strict 360-record standard merge.
+
+
+## Runtime-only Donut submission bundle prepared (2026-11-09)
+
+Prepared `scripts/ready_donut/queue_ready_donut.py` and
+`smoke_ready_donut.py` for copying into ignored
+`outputs/runtime_tools/ready_donut_v1/` on CARC at commit `35dd6c1`.
+No remote connection, submission, Git push, GPU validation, or new efficacy
+result was performed. Five CPU tests pass, including actual launcher dry-runs
+for all three job names and explicit L40S/five-worker/afterok contracts.
+
+The bundle checks frozen sources and current queues, preserves partial progress,
+and queues missing collected Donut standard attacks (360 records), public
+Donut uniform EOT (363), and public Donut frequency hard-view EOT (363).
+All production arrays depend on a successful isolated L40S smoke. The smoke
+checks saved PNG bounds, hashes, finite metrics, completed-record reuse, and
+adaptive checkpoint interruption/resume. Production wrappers verify the
+smoke receipt and unchanged code/config/helper hashes before running.
+The GPU smoke has NOT been run locally. Existing Qwen jobs are untouched.
+Collected Donut defense/EOT followups still require the strict standard merge.
+
+
+## User-requested code update after cancellation (2026-11-09)
+
+User explicitly chose to cancel pending project jobs and pull all prepared Mac
+code into CARC. The local suite passes 149 CPU tests. This does not establish
+CARC GPU compatibility. Cancellation and the remote pull have not been observed
+by the agent. Preserve runtime configs, partial records, and checkpoints.
+Before changing the shared checkout, verify no collaborator worker uses it.
+After pulling, run CARC CPU checks and inspect resume compatibility before
+resubmission. The runtime-only ready_donut_v1 bundle remains pinned to 35dd6c1;
+do not use that old command unchanged after upgrading the checkout. New final
+protocol stages remain gated by their actual L40S smoke receipts.

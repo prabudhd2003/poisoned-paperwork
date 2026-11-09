@@ -12,7 +12,7 @@
   "attack_sources": [
     {
       "name": "donut_collected",
-      "records": "outputs/donut_attack/donut_collected_external_v1/merged/attacks.parquet",
+      "records": "outputs/donut_attack/donut_collected_external_v1/merged/records.parquet",
       "artifact_root": ".",
       "sha256": "REPLACE_WITH_SHA256"
     }

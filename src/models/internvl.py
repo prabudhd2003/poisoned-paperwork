@@ -51,6 +51,8 @@ class InternVL:
     ) -> None:
         import torch
         from transformers import AutoModel, AutoTokenizer
+        if image_size != 448 or not 1 <= max_tiles <= 12:
+            raise ValueError("InternVL requires 448 pixels and 1..12 tiles")
 
         self.device = device
         self.model_id = model_id
@@ -64,7 +66,7 @@ class InternVL:
         )
         self.model = AutoModel.from_pretrained(
             model_id, revision=revision, trust_remote_code=True,
-            torch_dtype=self.dtype, low_cpu_mem_usage=True,
+            torch_dtype=self.dtype, low_cpu_mem_usage=True, use_flash_attn=False,
         ).eval().to(device)
         for parameter in self.model.parameters():
             parameter.requires_grad_(False)
@@ -93,6 +95,8 @@ class InternVL:
         from PIL import Image
 
         pages = [images] if isinstance(images, Image.Image) else list(images)
+        if not pages:
+            raise ValueError("InternVL requires at least one page")
         pixels, counts = self._pixels(pages)
         prefix = "\n".join(f"Image-{index + 1}: <image>" for index in range(len(pages)))
         question = f"{prefix}\n{prompt}" if prefix else prompt
@@ -100,10 +104,12 @@ class InternVL:
             "max_new_tokens": self.max_new_tokens, "do_sample": False,
             "num_beams": 1,
         }
-        return self.model.chat(
-            self.tokenizer, pixels, question, generation,
-            num_patches_list=counts, history=None, return_history=False,
-        )
+        import torch
+        with torch.inference_mode():
+            return self.model.chat(
+                self.tokenizer, pixels, question, generation,
+                num_patches_list=counts, history=None, return_history=False,
+            )
 
     def unload(self) -> None:
         import torch
