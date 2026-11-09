@@ -702,11 +702,12 @@ the findings concern model behavior rather than only one public benchmark.
 ## Remaining work
 
 1. Finish and strictly merge both 879-record adaptive Qwen studies.
-2. Finish the 114-receipt Qwen/Donut baseline, then attack each model's own
-   clean-correct subset.
-3. Import the hash-verified Donut public PNGs and run the matched four-defense
-   evaluation at ε = 4/8/16.
-4. Smoke-test and run both 363-record adaptive Donut studies.
+2. Run the standard Donut attack on its 90 clean-correct self-collected
+   receipts. The matched Qwen run is complete on 110 receipts.
+3. Run the four defenses and both adaptive methods on each model's own
+   self-collected clean-correct subset at ε = 4/8/16.
+4. Finish the matched public Donut defenses and both 363-record public Donut
+   adaptive studies.
 5. Complete the black-box transfer and digital-robustness study.
 6. Compare Qwen and Donut using `midterm/08_defense_results.ipynb` and
    `midterm/10_adaptive_defense_attack.ipynb`.

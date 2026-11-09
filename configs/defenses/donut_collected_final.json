@@ -1,0 +1,21 @@
+{
+  "extends": "configs/defenses/donut_public_final.json",
+  "run_id": "defenses_donut_collected_final_v1",
+  "collected_manifest_contract": {
+    "expected_documents": 114,
+    "manifest_sha256": "REPLACED_BY_RUNTIME_FREEZE"
+  },
+  "expected_documents_by_dataset": {
+    "collected_receipts": 90
+  },
+  "expected_attack_records": 270,
+  "attack_sources": [
+    {
+      "name": "donut_collected",
+      "records": "outputs/donut_attack/donut_collected_external_v1/merged/attacks.parquet",
+      "artifact_root": ".",
+      "sha256": "REPLACE_WITH_SHA256"
+    }
+  ],
+  "notes": "Matched defense evaluation on all 90 clean-correct self-collected Donut receipts at epsilon 4, 8, and 16."
+}

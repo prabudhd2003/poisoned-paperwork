@@ -111,6 +111,24 @@ final.
   out after saving roughly 77 to 92 records each.
 - Scratch-backed output links are intentional. Never delete a partial shard.
 
+## Frozen self-collected follow-up protocol
+
+The following runs are configured but are not results until their strict
+merged summaries exist.
+
+| Model | Run | Documents | Attacks |
+|---|---|---:|---:|
+| Qwen | `defenses_qwen_collected_final_v1` | 110 | 330 |
+| Qwen | `qwen_collected_jpeg_eot_full_v1` | 110 | 330 |
+| Qwen | `qwen_collected_frequency_hardview_full_v1` | 110 | 330 |
+| Donut | `defenses_donut_collected_final_v1` | 90 | 270 |
+| Donut | `donut_collected_jpeg_eot_full_v1` | 90 | 270 |
+| Donut | `donut_collected_frequency_hardview_full_v1` | 90 | 270 |
+
+Each count uses epsilon 4, 8, and 16. Qwen follow-ups use the finalized
+440-record standard attack table. Donut follow-ups depend on completion of the
+standard Donut attack over its 90 clean-correct self-collected receipts.
+
 ## Evidence discipline
 
 Before adding a number to a report, prefer a merged `summary.json` or merged

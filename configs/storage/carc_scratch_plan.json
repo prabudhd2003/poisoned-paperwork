@@ -7,7 +7,13 @@
     "outputs/jpeg_eot_attack/qwen_jpeg_eot_public_full_v1",
     "outputs/jpeg_eot_attack/qwen_frequency_hardview_public_full_v1",
     "outputs/jpeg_eot_attack/donut_jpeg_eot_public_full_v1",
-    "outputs/jpeg_eot_attack/donut_frequency_hardview_public_full_v1"
+    "outputs/jpeg_eot_attack/donut_frequency_hardview_public_full_v1",
+    "outputs/defenses/defenses_qwen_collected_final_v1",
+    "outputs/defenses/defenses_donut_collected_final_v1",
+    "outputs/jpeg_eot_attack/qwen_collected_jpeg_eot_full_v1",
+    "outputs/jpeg_eot_attack/qwen_collected_frequency_hardview_full_v1",
+    "outputs/jpeg_eot_attack/donut_collected_jpeg_eot_full_v1",
+    "outputs/jpeg_eot_attack/donut_collected_frequency_hardview_full_v1"
   ],
   "completed_checkpoint_runs": [
     {

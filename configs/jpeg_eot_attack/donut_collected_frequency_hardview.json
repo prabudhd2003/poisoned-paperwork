@@ -1,0 +1,23 @@
+{
+  "extends": "configs/jpeg_eot_attack/donut_public_frequency_hardview.json",
+  "dataset_scope": "collected_receipts",
+  "track": "donut_collected_hardview_eot",
+  "run_id": "donut_collected_frequency_hardview_full_v1",
+  "datasets": ["collected_receipts"],
+  "expected_documents_by_dataset": {
+    "collected_receipts": 90
+  },
+  "collected_manifest_contract": {
+    "expected_documents": 114,
+    "manifest_sha256": "REPLACED_BY_RUNTIME_FREEZE"
+  },
+  "attack_sources": [
+    {
+      "name": "donut_collected",
+      "records": "outputs/donut_attack/donut_collected_external_v1/merged/attacks.parquet",
+      "artifact_root": ".",
+      "sha256": "REPLACE_WITH_SHA256"
+    }
+  ],
+  "notes": "Frequency-aware hard-view EOT and BPDA on all 90 clean-correct self-collected Donut receipts."
+}

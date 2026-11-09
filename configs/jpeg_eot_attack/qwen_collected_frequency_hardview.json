@@ -1,0 +1,23 @@
+{
+  "extends": "configs/jpeg_eot_attack/public_frequency_hardview.json",
+  "dataset_scope": "collected_receipts",
+  "track": "qwen_collected_hardview_eot",
+  "run_id": "qwen_collected_frequency_hardview_full_v1",
+  "datasets": ["collected_receipts"],
+  "expected_documents_by_dataset": {
+    "collected_receipts": 110
+  },
+  "collected_manifest_contract": {
+    "expected_documents": 114,
+    "manifest_sha256": "REPLACED_BY_RUNTIME_FREEZE"
+  },
+  "attack_sources": [
+    {
+      "name": "qwen_collected",
+      "records": "outputs/qwen_attack/qwen_collected_external_v1/merged/attacks.parquet",
+      "artifact_root": ".",
+      "sha256": "REPLACE_WITH_SHA256"
+    }
+  ],
+  "notes": "Frequency-aware hard-view EOT and BPDA on all 110 clean-correct self-collected Qwen receipts."
+}

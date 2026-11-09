@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -61,6 +62,21 @@ class ManageCarcStorageTest(unittest.TestCase):
             self.assertTrue((destination / "merged/summary.json").is_file())
             self.assertTrue((destination / "shards/worker_00/records/one.json").is_file())
             self.assertFalse((destination / "shards/worker_00/checkpoints").exists())
+
+    def test_every_collected_followup_has_a_scratch_run_definition(self):
+        plan = json.loads(
+            (ROOT / "configs/storage/carc_scratch_plan.json").read_text()
+        )
+        links = set(plan["active_run_links"])
+        expected = {
+            "outputs/defenses/defenses_qwen_collected_final_v1",
+            "outputs/defenses/defenses_donut_collected_final_v1",
+            "outputs/jpeg_eot_attack/qwen_collected_jpeg_eot_full_v1",
+            "outputs/jpeg_eot_attack/qwen_collected_frequency_hardview_full_v1",
+            "outputs/jpeg_eot_attack/donut_collected_jpeg_eot_full_v1",
+            "outputs/jpeg_eot_attack/donut_collected_frequency_hardview_full_v1",
+        }
+        self.assertTrue(expected.issubset(links))
 
 
 if __name__ == "__main__":

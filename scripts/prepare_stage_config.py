@@ -27,7 +27,46 @@ TEMPLATES = {
     "jpeg_eot_hardview": "configs/jpeg_eot_attack/public_frequency_hardview.json",
     "jpeg_eot_donut": "configs/jpeg_eot_attack/donut_public_full.json",
     "jpeg_eot_donut_hardview": "configs/jpeg_eot_attack/donut_public_frequency_hardview.json",
+    "defenses_qwen_collected": "configs/defenses/qwen_collected_final.json",
+    "defenses_donut_collected": "configs/defenses/donut_collected_final.json",
+    "jpeg_eot_qwen_collected": "configs/jpeg_eot_attack/qwen_collected_full.json",
+    "jpeg_eot_qwen_collected_hardview": "configs/jpeg_eot_attack/qwen_collected_frequency_hardview.json",
+    "jpeg_eot_donut_collected": "configs/jpeg_eot_attack/donut_collected_full.json",
+    "jpeg_eot_donut_collected_hardview": "configs/jpeg_eot_attack/donut_collected_frequency_hardview.json",
 }
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge a small reviewed override into a base config."""
+    merged = dict(base)
+    for key, value in override.items():
+        # These mappings describe a complete dataset contract.  Inheriting
+        # entries from the parent would silently mix public and collected
+        # denominators.
+        if key in {"expected_documents_by_dataset"}:
+            merged[key] = value
+            continue
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_template(path: Path) -> dict:
+    """Load a config template, resolving an optional repository-local base."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    parent = raw.pop("extends", None)
+    if parent is None:
+        return raw
+    parent_path = (ROOT / str(parent)).resolve()
+    if ROOT.resolve() not in parent_path.parents:
+        raise SystemExit(f"template extends outside repository: {parent}")
+    return _deep_merge(load_template(parent_path), raw)
 
 
 def relative_or_absolute(path: Path) -> str:
@@ -44,7 +83,7 @@ def main():
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     template = ROOT / TEMPLATES[args.stage]
-    config = json.loads(template.read_text(encoding="utf-8"))
+    config = load_template(template)
     contract_path = ROOT / "data/processed/collected_receipts/manifest_contract.json"
     contract = json.loads(contract_path.read_text(encoding="utf-8")) if contract_path.is_file() else None
     if args.stage in {"baseline_collected", "qwen_collected", "donut_collected", "eot_patch"}:
@@ -61,7 +100,10 @@ def main():
     if args.stage in {
         "transfer", "defenses", "defenses_public", "defenses_donut_public",
         "jpeg_eot", "jpeg_eot_hardview", "jpeg_eot_donut",
-        "jpeg_eot_donut_hardview",
+        "jpeg_eot_donut_hardview", "defenses_qwen_collected",
+        "defenses_donut_collected", "jpeg_eot_qwen_collected",
+        "jpeg_eot_qwen_collected_hardview", "jpeg_eot_donut_collected",
+        "jpeg_eot_donut_collected_hardview",
     }:
         if not args.source:
             raise SystemExit("provide every frozen attack table as --source NAME=PATH")

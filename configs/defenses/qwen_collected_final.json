@@ -1,0 +1,21 @@
+{
+  "extends": "configs/defenses/qwen_public_final.json",
+  "run_id": "defenses_qwen_collected_final_v1",
+  "collected_manifest_contract": {
+    "expected_documents": 114,
+    "manifest_sha256": "REPLACED_BY_RUNTIME_FREEZE"
+  },
+  "expected_documents_by_dataset": {
+    "collected_receipts": 110
+  },
+  "expected_attack_records": 330,
+  "attack_sources": [
+    {
+      "name": "qwen_collected",
+      "records": "outputs/qwen_attack/qwen_collected_external_v1/merged/attacks.parquet",
+      "artifact_root": ".",
+      "sha256": "REPLACE_WITH_SHA256"
+    }
+  ],
+  "notes": "Matched defense evaluation on all 110 clean-correct self-collected Qwen receipts at epsilon 4, 8, and 16."
+}

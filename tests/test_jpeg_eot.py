@@ -182,6 +182,64 @@ class JpegEotTests(unittest.TestCase):
             self.assertEqual(config["attack"]["method"], method)
             self.assertEqual(config["attack"]["epsilons_255"], [4, 8, 16])
 
+    def test_collected_qwen_and_donut_adaptive_templates_are_valid(self):
+        from stages.jpeg_eot_attack import validate_config
+        from scripts.prepare_stage_config import load_template
+
+        cases = (
+            (
+                "qwen_collected_full.json", "qwen", 110,
+                "qwen_collected_uniform_eot", "uniform_multiview_eot",
+            ),
+            (
+                "qwen_collected_frequency_hardview.json", "qwen", 110,
+                "qwen_collected_hardview_eot",
+                "frequency_hardview_minimax_eot",
+            ),
+            (
+                "donut_collected_full.json", "donut", 90,
+                "donut_collected_uniform_eot", "uniform_multiview_eot",
+            ),
+            (
+                "donut_collected_frequency_hardview.json", "donut", 90,
+                "donut_collected_hardview_eot",
+                "frequency_hardview_minimax_eot",
+            ),
+        )
+        for name, model_key, documents, track, method in cases:
+            with self.subTest(name=name):
+                config = load_template(ROOT / "configs/jpeg_eot_attack" / name)
+                config["ready_for_production"] = True
+                validate_config(config)
+                self.assertEqual(config.get("model_key", "qwen"), model_key)
+                self.assertEqual(config["dataset_scope"], "collected_receipts")
+                self.assertEqual(
+                    config["expected_documents_by_dataset"],
+                    {"collected_receipts": documents},
+                )
+                self.assertEqual(config["track"], track)
+                self.assertEqual(config["attack"]["method"], method)
+
+    def test_collected_defense_templates_are_valid(self):
+        from stages.defenses import validate_config
+        from scripts.prepare_stage_config import load_template
+
+        for name, model_key, documents in (
+            ("qwen_collected_final.json", "qwen", 110),
+            ("donut_collected_final.json", "donut", 90),
+        ):
+            with self.subTest(name=name):
+                config = load_template(ROOT / "configs/defenses" / name)
+                config["ready_for_production"] = True
+                validate_config(config)
+                self.assertEqual(config.get("model_key", "qwen"), model_key)
+                self.assertEqual(
+                    config["expected_documents_by_dataset"],
+                    {"collected_receipts": documents},
+                )
+                self.assertEqual(config["expected_attack_records"], documents * 3)
+                self.assertEqual(config["attack_epsilons_255"], [4, 8, 16])
+
     def test_epsilon_two_cannot_enter_full_study_silently(self):
         from stages.jpeg_eot_attack import validate_config
 
