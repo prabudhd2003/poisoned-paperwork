@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 STAGES = {
+    "final_protocol",
     "baseline",
     "donut_attack",
     "qwen_attack",

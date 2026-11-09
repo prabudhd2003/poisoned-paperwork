@@ -524,9 +524,9 @@ Donut ε = 32 is retained only as a clearly labeled high-budget stress test and
 is excluded from the matched defense and adaptive analyses. Its lower SSIM and
 higher LPIPS make it inappropriate to mix with the main bounded comparison.
 
-These results establish a useful architectural contrast. Donut is much more
-vulnerable than Qwen on public receipts at ε = 16, but its perceptual quality
-also degrades more strongly. The project therefore reports ASR together with
+These results establish model-specific vulnerability on different clean-correct
+cohorts. They do not establish a universal robustness ranking. A matched
+intersection analysis is required, together with perceptual quality. The project therefore reports ASR together with
 LPIPS, SSIM, and native-resolution visual examples rather than treating the
 largest ASR as automatically best.
 
@@ -595,14 +595,21 @@ workers are submitted.
 
 ## How the results guide the final defense
 
-The project explicitly aims to propose a **novel, strongest-performing final
-defense** for this threat model—not merely rename one of the four baselines.
-Novelty alone is not enough: the final method must outperform the strongest
-existing baseline under adaptive attack while preserving useful clean
-coverage, visual fidelity, reproducibility, and reasonable inference cost.
+The final defense is a research hypothesis, not a predetermined novelty or
+performance claim. The new evidence-grounded selective inference protocol
+checks independently extracted OCR evidence against full-document and localized
+region predictions. Its proposed contribution is the evaluation of whether
+field-level evidence agreement improves the adaptive risk-coverage trade-off
+over OCR alone and the existing preprocessing defenses. OCR, ensembles,
+localization, and abstention are established ideas.
 
-The project will not invent the final defense before observing the adaptive
-failure modes. After both adaptive runs finish, we will compare, for each
+See [the final research protocol](docs/FINAL_RESEARCH_PROTOCOL.md) for related
+work, falsifiable hypotheses, ablations, and attack limitations. The implementation
+uses separate final-protocol run IDs, full clean cohorts, and source-specific
+transfer denominators. It has no measured GPU results yet.
+
+The candidate is motivated by the interim adaptive failure pattern. After
+both adaptive runs finish, we will compare, for each
 dataset and ε:
 
 - defended ASR for all four defenses;

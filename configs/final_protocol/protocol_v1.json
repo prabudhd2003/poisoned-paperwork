@@ -1,0 +1,59 @@
+{
+  "stage": "final_protocol",
+  "protocol_version": 1,
+  "ready_for_production": false,
+  "require_clean_git": true,
+  "study_documents_per_dataset": null,
+  "models": {
+    "qwen": {
+      "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
+      "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+      "precision": "bfloat16",
+      "max_new_tokens": 32,
+      "min_pixels": 200704,
+      "max_pixels": 1003520
+    },
+    "internvl": {
+      "model_id": "OpenGVLab/InternVL2_5-4B",
+      "revision": "2cf4a8158bbc40d35015e7c63b527890de4d27b3",
+      "precision": "bfloat16",
+      "max_new_tokens": 32,
+      "image_size": 448,
+      "max_tiles": 12
+    },
+    "donut": {
+      "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+      "revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+      "precision": "float32",
+      "max_length": 64
+    }
+  },
+  "evidence": {
+    "minimum_confidence": 60,
+    "crop_padding_pixels": 16
+  },
+  "ocr": {
+    "timeout_seconds": 120
+  },
+  "adaptive": {
+    "queries": 2000,
+    "restart_interval": 200,
+    "square_fraction": 0.25,
+    "report_queries": [
+      100,
+      500,
+      1000,
+      2000
+    ],
+    "objective": "targeted"
+  },
+  "whitebox": {
+    "steps": 100,
+    "step_fraction": 0.25,
+    "processor_tolerance": {
+      "max": 1e-06,
+      "mean": 1e-08,
+      "surrogate_mean": 0.005
+    }
+  }
+}
