@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -219,6 +220,76 @@ class JpegEotTests(unittest.TestCase):
                 )
                 self.assertEqual(config["track"], track)
                 self.assertEqual(config["attack"]["method"], method)
+
+    def test_collected_plan_restores_frozen_primary_prompt(self):
+        import pandas as pd
+
+        from checkpoints import sha256_file
+        from stages.jpeg_eot_attack import _load_plan
+        from scripts.prepare_stage_config import load_template
+
+        config = load_template(
+            ROOT / "configs/jpeg_eot_attack/qwen_collected_full.json"
+        )
+        config["ready_for_production"] = True
+        rows = []
+        for document_index in range(110):
+            for epsilon in (2, 4, 8, 16):
+                rows.append({
+                    "record_id": (
+                        "collected_receipts/external_test/"
+                        f"c{document_index:05d}"
+                    ),
+                    "dataset_name": "collected_receipts",
+                    "experiment_split": "external_test",
+                    "clean_target": "10.00",
+                    "attack_target": "100.00",
+                    "status": "complete",
+                    "epsilon_255": epsilon,
+                    "model_id": config["model"]["model_id"],
+                    "model_revision": config["model"]["revision"],
+                })
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "records.parquet"
+            pd.DataFrame(rows).to_parquet(source, index=False)
+            config["attack_sources"] = [{
+                "name": "qwen_collected",
+                "records": str(source),
+                "sha256": sha256_file(source),
+            }]
+            selected = _load_plan(root, config)
+
+        self.assertEqual(len(selected), 110)
+        self.assertEqual(
+            selected.iloc[0].prompt_text,
+            config["semantic_prompts"]["receipt"][0],
+        )
+
+    def test_public_plan_does_not_invent_a_missing_prompt(self):
+        import pandas as pd
+
+        from checkpoints import sha256_file
+        from stages.jpeg_eot_attack import _load_plan
+
+        config = json.loads(
+            (ROOT / "configs/jpeg_eot_attack/public_full.json").read_text()
+        )
+        config["ready_for_production"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "records.parquet"
+            pd.DataFrame([{"record_id": "example"}]).to_parquet(
+                source, index=False
+            )
+            config["attack_sources"] = [{
+                "name": "public",
+                "records": str(source),
+                "sha256": sha256_file(source),
+            }]
+            with self.assertRaisesRegex(ValueError, "prompt_text"):
+                _load_plan(root, config)
 
     def test_collected_defense_templates_are_valid(self):
         from stages.defenses import validate_config

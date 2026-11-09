@@ -184,6 +184,17 @@ def _load_plan(root: Path, config: dict[str, Any]):
     if not frames:
         raise RuntimeError("JPEG-EOT has no frozen attack sources")
     combined = pd.concat(frames, ignore_index=True, sort=False)
+    if "prompt_text" not in combined.columns:
+        if config.get("dataset_scope") != "collected_receipts":
+            raise ValueError(
+                "JPEG-EOT source tables are missing: ['prompt_text']"
+            )
+        receipt_prompts = config.get("semantic_prompts", {}).get("receipt", [])
+        if not receipt_prompts or not str(receipt_prompts[0]).strip():
+            raise ValueError(
+                "collected JPEG-EOT requires a frozen primary receipt prompt"
+            )
+        combined["prompt_text"] = str(receipt_prompts[0])
     required = {
         "record_id", "dataset_name", "experiment_split", "clean_target",
         "attack_target", "prompt_text", "status", "epsilon_255", "model_id",

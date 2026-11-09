@@ -6,15 +6,15 @@
       "run_id": "qwen_jpeg_eot_public_full_v1",
       "config_sha256": "78c602ab27eff4f002005d4c75ba9ec6c3e926709256dbdf0fbfbdeba777831e",
       "record_git_commit": "97858f607f571453841c609618014a1ba03ace46",
-      "approved_scientific_sha256": "b32bde93e362800ee3e0b4bf5ed24c8cc4992cec2a591d6a2a26f213d8c8e301",
-      "review": "The intervening commits changed submission, storage, documentation, provenance validation, and added an isolated self-collected dataset scope. The public attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
+      "approved_scientific_sha256": "22308e0987b0f3dbd11e046ca96a82aedfc6a3b2425e3c108577a1541f9117c6",
+      "review": "The intervening commits changed submission, storage, documentation, provenance validation, and added an isolated self-collected dataset scope. The collected-only prompt restoration does not run for public sources. The public attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
     },
     {
       "run_id": "qwen_frequency_hardview_public_full_v1",
       "config_sha256": "9c02831ce35f06e80fbaf2c0332da15712bda97cd17afd12fe7acf34995a26cd",
       "record_git_commit": "97858f607f571453841c609618014a1ba03ace46",
-      "approved_scientific_sha256": "b32bde93e362800ee3e0b4bf5ed24c8cc4992cec2a591d6a2a26f213d8c8e301",
-      "review": "The intervening commits changed submission, storage, documentation, provenance validation, and added an isolated self-collected dataset scope. The public attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
+      "approved_scientific_sha256": "22308e0987b0f3dbd11e046ca96a82aedfc6a3b2425e3c108577a1541f9117c6",
+      "review": "The intervening commits changed submission, storage, documentation, provenance validation, and added an isolated self-collected dataset scope. The collected-only prompt restoration does not run for public sources. The public attack algorithm, model, frozen inputs, and defense evaluation remained scientifically compatible."
     }
   ]
 }
