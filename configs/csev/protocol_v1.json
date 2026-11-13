@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "seed": 566,
+  "workers": 5,
+  "development_counts": {"cord_v2": 30, "sroie": 30},
+  "evaluation_count": 60,
+  "pilot_count": 20,
+  "families": ["standard", "uniform_eot", "hardview"],
+  "epsilons": [4, 8, 16],
+  "conditions": ["none", "jpeg", "resize_vote", "selective_multiview", "semantic_consistency", "ocr_only", "evidence", "crop_only", "csev"],
+  "localization_prompt": "Locate the final transaction total and its label on this receipt. Exclude subtotal, tax, cash tendered and change. Return only JSON {\"box\":[left,top,right,bottom]} using coordinates from 0 to 1000 relative to the full image. Include the total label and its amount in one tight box. If no total can be located, return {\"box\":null}.",
+  "localization_tokens": 96,
+  "minimum_box_pixels": 28,
+  "maximum_box_area_fraction": 0.35,
+  "mask_value": 128,
+  "minimum_coverage": 0.8,
+  "accuracy_tolerance": 0.02,
+  "threshold_minimum": 0.0,
+  "adaptive": {"epsilons": [4, 8], "restarts": 2, "steps": 100, "queries": 100, "step_fraction": 0.25, "refresh_interval": 10, "score_weight": 1.0},
+  "processor_tolerance": {"max": 0.000001, "mean": 0.00000001, "surrogate_mean": 0.005},
+  "bootstrap_repeats": 2000
+}
