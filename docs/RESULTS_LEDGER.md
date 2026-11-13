@@ -308,3 +308,27 @@ After pulling, run CARC CPU checks and inspect resume compatibility before
 resubmission. The runtime-only ready_donut_v1 bundle remains pinned to 35dd6c1;
 do not use that old command unchanged after upgrading the checkout. New final
 protocol stages remain gated by their actual L40S smoke receipts.
+
+## CSEV report workflow implementation (2026-11-12)
+
+Added the isolated CSEV receipt study described in the revised midterm report.
+No CARC connection or GPU submission was performed during this implementation;
+there are no new empirical defense results. Historical scientific source files,
+run configurations and resume fingerprints are unchanged.
+
+The frozen template covers 60 public development receipts, 60 collected evaluation
+receipts, nine conditions, standard/uniform/hard-view attacks at 4/8/16, and
+20-document adaptive evaluation at 4/8 with two restarts (80 attempts, 40 trials).
+The independent Qwen localizer, crop-only ablation, masking-score threshold,
+checkpointed full/crop/score attack, actual-verifier query search, strict merges,
+paired bootstrap exports and permanent archival are implemented. Development
+coverage failure is recorded, never repaired by external threshold tuning.
+
+Local validation: 162 CPU tests passed, including frozen-input source grids,
+selection independence, invalid localization, mask geometry, score direction,
+infeasible calibration, toy-gradient attack, interrupted deterministic resume,
+query accounting, saved-PNG bounds, strict merge completeness, report CSV/PNG
+exports and the L40S Slurm dependency/duplicate-submission contract. Existing
+partial-run compatibility tests also pass. Real Qwen localization, real GPU
+memory/throughput, OCR runtime compatibility and defense efficacy still require
+CARC execution. Commands and recovery rules are in runbook section 10.

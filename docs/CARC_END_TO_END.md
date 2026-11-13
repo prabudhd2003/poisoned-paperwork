@@ -1124,3 +1124,128 @@ with `--expected-commit FULL_REVIEWED_SHA` (both check and submit invocations).
 This explicitly pins the new checkout; the old runtime copies remain untouched.
 The helper continues to reject changed configs, duplicate submissions and partial
 Donut progress. Never delete an existing submission manifest to bypass its guard.
+
+## 10. November 29 report study: CSEV (new isolated runs)
+
+This section supersedes the broad optional final matrix for the report's **new
+CSEV commitments**. It does not rerun completed experiments or repair optional
+public EOT/Donut/transfer studies. No old configuration or checkpoint is changed.
+All GPU stages use five L40S workers. There is no separate smoke submission;
+CPU preflight validates inputs and the full development jobs exercise the real
+model first. CPU tests cannot establish GPU compatibility or method efficacy.
+
+### Pull once, then freeze the study
+
+Coordinate with teammates before pulling: no running/pending job may depend on
+this checkout. The following commands do not cancel or remove anything.
+
+```bash
+cd /project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork
+squeue -A yzhao010_1531 -o "%.18i %.20u %.55j %.10T"
+git status --short
+git pull --ff-only origin main
+source scripts/activate_paperwork.sh
+python -m pytest -q
+myquota
+python scripts/csev_study.py prepare --run-id csev_receipts_v1
+```
+
+Preparation defaults to the completed public config
+`outputs/runtime_configs/evidence_qwen_public_standard_v2.json`, the full collected
+baseline (`predictions.parquet`, falling back to `records.parquet`), and the three
+completed collected source tables. Override `--public-config`, `--baseline`,
+`--standard`, `--uniform-eot`, or `--hardview` with verified paths if necessary.
+No new environment installation or model upgrade is required. Existing OCR
+binaries and language data are reused and checked. Python dependency versions
+are frozen, including LPIPS, scikit-image and matplotlib.
+
+Preparation selects 30 CORD + 30 SROIE documents for development, 60 collected
+receipts before checking eligibility, and 20 baseline-correct receipts within
+that evaluation set for the pilot. Selection uses seeded SHA256 ordering, not
+model outcomes. It requires complete 114-document baseline / 330-row source grids
+and verifies the targets. The selected PNGs are copied into permanent
+`outputs/csev_inputs/csev_receipts_v1`, hashed and checked for bounds; original
+sources are not edited. Active results link to
+`/scratch1/$USER/poisoned-paperwork/csev/csev_receipts_v1`.
+Allow space for the selected clean and attacked PNGs before preparation.
+If preparation fails after copying begins, preserve its partial bundle and inspect
+the cause; do not delete it or overwrite a frozen configuration.
+
+### Queue the dependency chain
+
+```bash
+CONFIG=outputs/runtime_configs/csev_receipts_v1.json
+python scripts/csev_study.py preflight --config "$CONFIG"
+python scripts/submit_csev.py --config "$CONFIG"
+python scripts/submit_csev.py --config "$CONFIG" --submit
+```
+
+The first submitter invocation prints a dry run. `--submit` queues:
+
+1. `development`: 60 clean public observations. The last worker strictly merges
+   all five shards and freezes a development-only threshold.
+2. `evaluation`: after development, 60 clean collected inputs and three attack
+   families at epsilon 4/8/16 on the M eligible selected documents: 60+9M inputs,
+   each under nine conditions.
+3. `adaptive`: after development, 20 documents x two budgets (4/8) x two restarts:
+   80 attempts, each with 100 gradient steps and 100 actual-verifier queries,
+   including final saved-PNG verification. Discrete localization refreshes every
+   ten steps and actual-pipeline square proposals address its nonsmooth gate.
+4. `replay`: after adaptive, choose the best CSEV-targeted restart per document
+   and budget, then evaluate those 40 saved PNGs under all nine conditions.
+
+Each array requests 12 hours per worker, not an estimate of actual runtime.
+Evaluation and adaptive may overlap. A failed dependency blocks its descendants;
+it does not make them scientific failures. An infeasible calibration goal is
+recorded explicitly and uses the predeclared minimum nonnegative threshold,
+so it remains a measurable negative result rather than prompting test-set tuning.
+Do not pull or edit code/configuration while this chain is active.
+
+```bash
+python scripts/csev_study.py status --config "$CONFIG"
+squeue -u "$USER" -o "%.18i %.55j %.10T %.12M %.24R"
+cat outputs/runtime_configs/csev_receipts_v1_submissions.json
+```
+
+Logs are `logs/pp_csev_receipts_v1_PHASE_ARRAYID_TASKID.out` and `.err`.
+A second whole-chain submission refuses the existing ledger. Never delete that
+ledger to bypass duplicate checks. To resume a phase after all its original
+workers are inactive, resubmit all five shards (completed records are reused):
+
+```bash
+python scripts/submit_csev.py --config "$CONFIG" --resume-phase adaptive --worker all
+python scripts/submit_csev.py --config "$CONFIG" --resume-phase adaptive --worker all --submit
+```
+
+An individual inactive shard can use `--worker 0` through `4`. The conservative
+submitter refuses retries while any worker in the same phase is still queued or
+running. After a dependency fails, Slurm's old downstream `afterok` dependency
+will not follow a replacement job. Inspect the ledger and cancel **only** those
+blocked downstream jobs, then submit their phase with `--resume-phase ...
+--worker all` once the prerequisite merge exists. Do not cancel other project jobs.
+If sbatch submission was interrupted with ledger status `submitting`, reconcile
+with squeue before retrying; the tool deliberately refuses to guess whether the
+scheduler accepted it.
+
+### Export and preserve results
+
+After all four phases merge, these CPU commands create report tables, paired
+bootstrap intervals, descriptive coverage curves, adaptive traces, perceptual
+metrics and region examples. They never infer success from scheduler status.
+
+```bash
+python scripts/csev_study.py analyze --config "$CONFIG"
+python scripts/csev_study.py archive --config "$CONFIG"
+```
+
+Exports are in `outputs/csev/csev_receipts_v1/analysis`. A checksum-verified
+permanent copy is written to `outputs/final/csev/csev_receipts_v1`. The archive
+excludes restart state but includes selected adaptive PNGs; its manifest maps
+original paths to archived paths. Frozen input PNGs remain permanently in
+`outputs/csev_inputs`. Do not remove scratch until archive verification succeeds.
+`notebooks/13_csev_final_report.ipynb` reads the exported CSVs; it launches no jobs.
+
+The adaptive rejection diagnostic records rejections encountered during targeted
+search, conditional on clean acceptance when reporting induced rejection. It is
+not a separately optimized availability attack. The selected restart is optimized
+against CSEV, not chosen separately to favor each comparison defense.

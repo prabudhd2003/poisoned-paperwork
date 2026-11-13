@@ -772,3 +772,19 @@ tests/         CPU contract and regression tests
 For execution and recovery procedures, use
 [`docs/CARC_END_TO_END.md`](docs/CARC_END_TO_END.md). For the report-facing
 figures and tables, start with [`midterm/README.md`](midterm/README.md).
+
+## November 29 report follow-up: CSEV
+
+The report's focused next study is **counterfactual spatial evidence verification**:
+Qwen-localized crop agreement plus a comparison between masking proposed evidence
+and an equally sized control region. It uses 60 public development receipts,
+60 independently collected evaluation receipts, three saved attack families,
+nine inference conditions, and an 80-attempt direct-adaptive pilot on 20 documents.
+This is newly implemented research code, not a measured defense improvement.
+The old OCR verifier and all historical configurations are preserved.
+
+See [the frozen scientific protocol](docs/CSEV_PROTOCOL.md),
+[the execution runbook](docs/CARC_END_TO_END.md#10-november-29-report-study-csev-new-isolated-runs),
+and `notebooks/13_csev_final_report.ipynb` for report exports. This focused study
+is the current report commitment; the earlier broad transfer and Donut extensions
+remain separate optional experiments.
