@@ -57,7 +57,7 @@ hard-view EOT on 66.7%. Section 4 evaluates the same two attacks on self-collect
 ## 4. CBVR on self-collected receipts (Colab, Qwen) — main result
 
 Files: [`results/receipts_qwen/`](../results/receipts_qwen). Study `receipt_bands_full_v1`,
-contract `94243896…`, runner `scripts/colab_receipt_study.py`, code snapshot `git archive c5c5d52`.
+contract `94243896…`, runner `scripts/colab_receipt_study.py`, code snapshot commit `64aa87b`.
 
 Protocol: 75 development receipts (60 public + 15 collected) for design; frozen;
 then evaluated once on 45 reserved collected receipts and their 396 saved attacks

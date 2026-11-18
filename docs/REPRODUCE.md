@@ -77,7 +77,7 @@ CARC_HOST=user@discovery.usc.edu bash scripts/build_receipt_study_inputs.sh
 ```
 
 It copies the images listed in `data/receipt_study/remote_files.txt`, rebuilds
-`source.tar` (`git archive c5c5d52`, the code snapshot the runner checks), verifies every
+`source.tar` (the code snapshot the runner checks: commit `64aa87b`), verifies every
 hash and writes `data/receipt_study/csev_full_inputs.zip`. Upload it to Drive, set
 `DRIVE_FOLDER` at the top of each notebook, and run:
 
