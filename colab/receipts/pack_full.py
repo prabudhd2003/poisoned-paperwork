@@ -16,7 +16,7 @@ def digest(path):
 
 
 assert digest(inputs / 'source.tar') == '1859fd630629d16e9996dd9a4cf61df578a9ef87b27ae059c45f18329a50b261', \
-    'source.tar must be `git archive --format=tar c5c5d52`'
+    'source.tar must be built by the input-builder script'
 for i, (remote, h) in enumerate(files.items()):
     p = staging / remote.lstrip('/')
     if not p.is_file() or digest(p) != h:

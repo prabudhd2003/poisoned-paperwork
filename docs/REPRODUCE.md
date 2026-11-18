@@ -59,7 +59,7 @@ CARC_HOST=user@discovery.usc.edu bash colab/receipts/fetch_full_inputs.sh
 ```
 
 This copies the 396 + 135 saved attacks and the clean images from CARC, rebuilds
-`source.tar` (`git archive c5c5d52`, the code snapshot the runner checks), verifies every
+`source.tar` (the code snapshot the runner checks: commit `64aa87b`), verifies every
 hash and writes `colab/receipts/csev_full_inputs.zip`. Upload it to Drive, then:
 
 | Step | File | What it does |
