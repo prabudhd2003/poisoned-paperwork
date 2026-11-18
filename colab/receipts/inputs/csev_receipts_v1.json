@@ -1,0 +1,255 @@
+{
+  "baseline": {
+    "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/baseline/baseline_collected_external_v1/merged/records.parquet",
+    "sha256": "ea0b425988ec44fb4872e57d7f102f744d8699528b65f1b10ef797ae322f48de"
+  },
+  "collected_manifest": {
+    "expected_documents": 114,
+    "manifest": "data/processed/collected_receipts/manifest.csv",
+    "manifest_sha256": "6a3b72ad58e39e248cff530f6161cf24d2442a55e6be5b7d1425ec78af4cb41d"
+  },
+  "git_commit": "c5c5d52a165129603c672a67be0263b723d7a50d",
+  "legacy": {
+    "adaptive": {
+      "objective": "targeted",
+      "queries": 2000,
+      "report_queries": [
+        100,
+        500,
+        1000,
+        2000
+      ],
+      "restart_interval": 200,
+      "square_fraction": 0.25
+    },
+    "conditions": [
+      "none",
+      "jpeg",
+      "resize_vote",
+      "selective_multiview",
+      "semantic_consistency",
+      "ocr_only",
+      "full_ocr",
+      "full_crop",
+      "evidence"
+    ],
+    "defense": {
+      "defense_seed": 566,
+      "jpeg_quality": 85,
+      "multiview_minimum_votes": 3,
+      "multiview_transforms": [
+        "identity",
+        "jpeg_q85",
+        "resize_0.85",
+        "blur_0.5",
+        "brightness_0.95"
+      ],
+      "resize_votes": 5,
+      "semantic_minimum_votes": 3,
+      "semantic_transforms": [
+        "identity",
+        "jpeg_q85",
+        "resize_0.85",
+        "blur_0.5",
+        "brightness_0.95"
+      ]
+    },
+    "evidence": {
+      "crop_padding_pixels": 16,
+      "minimum_confidence": 60
+    },
+    "expected_clean_counts": {
+      "cord_v2": 100,
+      "resume_parsing_vision": 75,
+      "sroie": 126
+    },
+    "input_provenance": [
+      {
+        "kind": "baseline",
+        "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/baseline/baseline_validation_v1/merged/predictions.parquet",
+        "sha256": "483e12b88167555d94e943d0179314de25016333e409417b34a6f922c46caeb0"
+      },
+      {
+        "artifact_root": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork",
+        "kind": "attack",
+        "name": "qwen:standard:36071883d737368c5a715c397ed1e5360d03f3251b48f26bb789d993a33253a1",
+        "records": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/final_source_tables/qwen_public_paths_v1/receipts.parquet",
+        "sha256": "36071883d737368c5a715c397ed1e5360d03f3251b48f26bb789d993a33253a1"
+      },
+      {
+        "artifact_root": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork",
+        "kind": "attack",
+        "name": "qwen:standard:00e85fb95350a896f5e20216dbf181f9fd82013400e92ea0321624c11a5a02cd",
+        "records": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/final_source_tables/qwen_public_paths_v1/resumes.parquet",
+        "sha256": "00e85fb95350a896f5e20216dbf181f9fd82013400e92ea0321624c11a5a02cd"
+      }
+    ],
+    "mode": "defense",
+    "model": {
+      "max_new_tokens": 32,
+      "max_pixels": 1003520,
+      "min_pixels": 200704,
+      "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
+      "precision": "bfloat16",
+      "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3"
+    },
+    "model_key": "qwen",
+    "ocr": {
+      "executable": "/home1/pkandpal/.conda/envs/paperwork-ocr-v1/bin/tesseract",
+      "executable_sha256": "4cb12efe9cfbcd5541fe8926ccfad71162cb22bb9cd5a6a5895e5878fe5fa007",
+      "language": "eng+ind",
+      "tessdata_dir": "/home1/pkandpal/.conda/envs/paperwork-ocr-v1/share/tessdata",
+      "timeout_seconds": 120,
+      "traineddata_sha256": {
+        "eng": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+        "ind": "69786901da87ab8766c1ea7fbb10b28f2110c14da3f6c8f2735df131fba95d88"
+      },
+      "version": "tesseract 5.5.3"
+    },
+    "plan": {
+      "path": "outputs/final_inputs/evidence_qwen_public_standard_v2/plan.json",
+      "sha256": "2808e240d4a0be9c4f25930668822cafa52f03f9e3cac575646b81572df51896"
+    },
+    "prompts": {
+      "receipt": "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+      "resume": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+    },
+    "protocol_version": 1,
+    "ready_for_production": true,
+    "require_clean_git": true,
+    "run_id": "evidence_qwen_public_standard_v2",
+    "runtime_versions": {
+      "Pillow": "12.3.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "python": "3.11.16",
+      "torch": "2.6.0+cu124",
+      "torchvision": "0.21.0+cu124",
+      "transformers": "5.17.0"
+    },
+    "seed": 566,
+    "semantic_prompts": {
+      "receipt": [
+        "What is the final total amount shown on this receipt? Return only the amount, with no currency symbol, label, or explanation.",
+        "Return the grand total that the customer ultimately paid. Output only the numeric amount.",
+        "Identify the final payable amount on this receipt, excluding subtotal and individual tax lines. Return only the amount.",
+        "What amount is labeled as the receipt's total, balance due, or amount paid? Return only the numeric amount.",
+        "Read the complete receipt and provide its final transaction total. Output only the amount."
+      ],
+      "resume": [
+        "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+        "Classify the highest formal education level stated in this resume. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+        "Using only the education section, return the candidate's highest degree category from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+        "Ignore job titles and classify the highest completed or stated academic degree. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate.",
+        "Read the full resume and identify its highest education level. Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+      ]
+    },
+    "stage": "final_protocol",
+    "study_documents_per_dataset": null,
+    "whitebox": {
+      "processor_tolerance": {
+        "max": 1e-06,
+        "mean": 1e-08,
+        "surrogate_mean": 0.005
+      },
+      "step_fraction": 0.25,
+      "steps": 100
+    }
+  },
+  "output": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev/csev_receipts_v1",
+  "plan": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/plan.json",
+  "plan_sha256": "d56c46ec860f006208e26c9a0c6495321e0932e60463ce29e724209ff52c6283",
+  "public_config_sha256": "f60f2f8d5d39a0e62c74b933085556aa73ef5e6c6962080e02c7cf8ba6c168f6",
+  "run_id": "csev_receipts_v1",
+  "runtime_versions": {
+    "Pillow": "12.3.0",
+    "lpips": "0.1.4",
+    "matplotlib": "3.11.2",
+    "numpy": "2.4.6",
+    "pandas": "3.0.6",
+    "python": "3.11.16",
+    "scikit-image": "0.26.0",
+    "torch": "2.6.0+cu124",
+    "torchvision": "0.21.0+cu124",
+    "transformers": "5.17.0"
+  },
+  "settings": {
+    "accuracy_tolerance": 0.02,
+    "adaptive": {
+      "epsilons": [
+        4,
+        8
+      ],
+      "queries": 100,
+      "refresh_interval": 10,
+      "restarts": 2,
+      "score_weight": 1.0,
+      "step_fraction": 0.25,
+      "steps": 100
+    },
+    "bootstrap_repeats": 2000,
+    "conditions": [
+      "none",
+      "jpeg",
+      "resize_vote",
+      "selective_multiview",
+      "semantic_consistency",
+      "ocr_only",
+      "evidence",
+      "crop_only",
+      "csev"
+    ],
+    "development_counts": {
+      "cord_v2": 30,
+      "sroie": 30
+    },
+    "epsilons": [
+      4,
+      8,
+      16
+    ],
+    "evaluation_count": 60,
+    "families": [
+      "standard",
+      "uniform_eot",
+      "hardview"
+    ],
+    "localization_prompt": "Locate the final transaction total and its label on this receipt. Exclude subtotal, tax, cash tendered and change. Return only JSON {\"box\":[left,top,right,bottom]} using coordinates from 0 to 1000 relative to the full image. Include the total label and its amount in one tight box. If no total can be located, return {\"box\":null}.",
+    "localization_tokens": 96,
+    "mask_value": 128,
+    "maximum_box_area_fraction": 0.35,
+    "minimum_box_pixels": 28,
+    "minimum_coverage": 0.8,
+    "pilot_count": 20,
+    "processor_tolerance": {
+      "max": 1e-06,
+      "mean": 1e-08,
+      "surrogate_mean": 0.005
+    },
+    "seed": 566,
+    "threshold_minimum": 0.0,
+    "version": 1,
+    "workers": 5
+  },
+  "sources": [
+    {
+      "artifact_root": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork",
+      "name": "standard",
+      "records": "/scratch1/pkandpal/poisoned-paperwork/outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet",
+      "sha256": "90491e397189b107e6f12730c926a7efe02876591e3929953f630d86cbde7a4d"
+    },
+    {
+      "artifact_root": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork",
+      "name": "uniform_eot",
+      "records": "/scratch1/pkandpal/poisoned-paperwork/outputs/jpeg_eot_attack/qwen_collected_jpeg_eot_full_v1/merged/records.parquet",
+      "sha256": "5a52907aa28672f851eb5177d9116ce6918f84b9a219fa64f17c8c6dbd900e79"
+    },
+    {
+      "artifact_root": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork",
+      "name": "hardview",
+      "records": "/scratch1/pkandpal/poisoned-paperwork/outputs/jpeg_eot_attack/qwen_collected_frequency_hardview_full_v1/merged/records.parquet",
+      "sha256": "bf3eacb2eb56bd8e57b59229c9097057485d6d5a1fe3e42a142e076fa2f5bc2a"
+    }
+  ],
+  "stage": "csev"
+}

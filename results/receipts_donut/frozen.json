@@ -1,0 +1,19 @@
+{
+  "contract": "217d905f10cb734c73ca816ee9b4693070406131a7dffa29e5198dfeb5c39c3c",
+  "threshold": 0.0,
+  "development_hash": "da826d617c2a4ce775b0023f73b0fc5760d9e77cbb3008fd909e27b86eb68557",
+  "adaptive_ids": [
+    "collected_receipts/external_test/c00060",
+    "collected_receipts/external_test/c00032",
+    "collected_receipts/external_test/c00096",
+    "collected_receipts/external_test/c00086",
+    "collected_receipts/external_test/c00065",
+    "collected_receipts/external_test/c00110",
+    "collected_receipts/external_test/c00103",
+    "collected_receipts/external_test/c00067",
+    "collected_receipts/external_test/c00082",
+    "collected_receipts/external_test/c00072"
+  ],
+  "primary_method": "verified_recovery",
+  "note": "Qwen localization plus Donut reading. Frozen band geometry; no masking threshold. Saved attacks are Qwen transfer attacks."
+}

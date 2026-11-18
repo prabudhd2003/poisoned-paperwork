@@ -1,0 +1,56 @@
+[
+  {
+    "method": "none",
+    "epsilon": 4,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  },
+  {
+    "method": "none",
+    "epsilon": 8,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  },
+  {
+    "method": "band_agreement",
+    "epsilon": 4,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  },
+  {
+    "method": "band_agreement",
+    "epsilon": 8,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  },
+  {
+    "method": "verified_recovery",
+    "epsilon": 4,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  },
+  {
+    "method": "verified_recovery",
+    "epsilon": 8,
+    "completed_documents": 0,
+    "expected_documents": 10,
+    "successes_all": 0,
+    "clean_correct_accepted_documents": 0,
+    "successes_eligible": 0
+  }
+]

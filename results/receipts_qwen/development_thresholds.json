@@ -1,0 +1,1242 @@
+[
+  {
+    "threshold": 0.0,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 14,
+        "correct": 14
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 24
+      }
+    }
+  },
+  {
+    "threshold": 0.0018310546875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 14,
+        "correct": 14
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 24
+      }
+    }
+  },
+  {
+    "threshold": 0.0087890625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 13,
+        "correct": 13
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 24
+      }
+    }
+  },
+  {
+    "threshold": 0.011383056640625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 13,
+        "correct": 13
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 23
+      }
+    }
+  },
+  {
+    "threshold": 0.01202392578125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 23
+      }
+    }
+  },
+  {
+    "threshold": 0.01556396484375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 22,
+        "correct": 22
+      }
+    }
+  },
+  {
+    "threshold": 0.0162353515625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 21,
+        "correct": 21
+      }
+    }
+  },
+  {
+    "threshold": 0.0177001953125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 20,
+        "correct": 20
+      }
+    }
+  },
+  {
+    "threshold": 0.0201416015625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 19,
+        "correct": 19
+      }
+    }
+  },
+  {
+    "threshold": 0.0228424072265625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 12,
+        "correct": 12
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 18
+      }
+    }
+  },
+  {
+    "threshold": 0.02984619140625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 11,
+        "correct": 11
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 18
+      }
+    }
+  },
+  {
+    "threshold": 0.030059814453125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 10,
+        "correct": 10
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 18
+      }
+    }
+  },
+  {
+    "threshold": 0.0396728515625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 9,
+        "correct": 9
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 18
+      }
+    }
+  },
+  {
+    "threshold": 0.051513671875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 9,
+        "correct": 9
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 17,
+        "correct": 17
+      }
+    }
+  },
+  {
+    "threshold": 0.0595703125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 9,
+        "correct": 9
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 16,
+        "correct": 16
+      }
+    }
+  },
+  {
+    "threshold": 0.0645751953125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 8,
+        "correct": 8
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 16,
+        "correct": 16
+      }
+    }
+  },
+  {
+    "threshold": 0.06640625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 8,
+        "correct": 8
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 24,
+        "correct": 23
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 15,
+        "correct": 15
+      }
+    }
+  },
+  {
+    "threshold": 0.08499908447265625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 8,
+        "correct": 8
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 22
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 15,
+        "correct": 15
+      }
+    }
+  },
+  {
+    "threshold": 0.088134765625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 22
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 15,
+        "correct": 15
+      }
+    }
+  },
+  {
+    "threshold": 0.129638671875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 22
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 14,
+        "correct": 14
+      }
+    }
+  },
+  {
+    "threshold": 0.134521484375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 22
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 13,
+        "correct": 13
+      }
+    }
+  },
+  {
+    "threshold": 0.177734375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 23,
+        "correct": 22
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 12,
+        "correct": 12
+      }
+    }
+  },
+  {
+    "threshold": 0.24951171875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 22,
+        "correct": 21
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 12,
+        "correct": 12
+      }
+    }
+  },
+  {
+    "threshold": 0.31640625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 7,
+        "correct": 7
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 22,
+        "correct": 21
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 11,
+        "correct": 11
+      }
+    }
+  },
+  {
+    "threshold": 0.3515625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 6,
+        "correct": 6
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 22,
+        "correct": 21
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 11,
+        "correct": 11
+      }
+    }
+  },
+  {
+    "threshold": 0.43310546875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 6,
+        "correct": 6
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 21,
+        "correct": 20
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 11,
+        "correct": 11
+      }
+    }
+  },
+  {
+    "threshold": 0.528076171875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 6,
+        "correct": 6
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 21,
+        "correct": 20
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 0.56640625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 5,
+        "correct": 5
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 21,
+        "correct": 20
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 0.84033203125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 5,
+        "correct": 5
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 20,
+        "correct": 19
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 0.8828125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 5,
+        "correct": 5
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 19,
+        "correct": 18
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 0.9871139526367188,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 5,
+        "correct": 5
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 17
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 1.11328125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 18,
+        "correct": 17
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 1.1201171875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 17,
+        "correct": 16
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 1.23858642578125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 16,
+        "correct": 15
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      }
+    }
+  },
+  {
+    "threshold": 1.25390625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 16,
+        "correct": 15
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.27392578125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 15,
+        "correct": 14
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.38671875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 14,
+        "correct": 13
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.4140625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 12,
+        "correct": 11
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.455078125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 11,
+        "correct": 10
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.53369140625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 10,
+        "correct": 10
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.6044921875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      }
+    }
+  },
+  {
+    "threshold": 1.63671875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 9,
+        "correct": 9
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      }
+    }
+  },
+  {
+    "threshold": 1.658203125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      }
+    }
+  },
+  {
+    "threshold": 1.72265625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      }
+    }
+  },
+  {
+    "threshold": 1.775390625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 6,
+        "correct": 6
+      }
+    }
+  },
+  {
+    "threshold": 1.78955078125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 8,
+        "correct": 8
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 5,
+        "correct": 5
+      }
+    }
+  },
+  {
+    "threshold": 1.8408203125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 4,
+        "correct": 4
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 5,
+        "correct": 5
+      }
+    }
+  },
+  {
+    "threshold": 1.87432861328125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 3,
+        "correct": 3
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 5,
+        "correct": 5
+      }
+    }
+  },
+  {
+    "threshold": 1.876953125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 3,
+        "correct": 3
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 4,
+        "correct": 4
+      }
+    }
+  },
+  {
+    "threshold": 2.12255859375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 3,
+        "correct": 3
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      }
+    }
+  },
+  {
+    "threshold": 2.122802734375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 7,
+        "correct": 7
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      }
+    }
+  },
+  {
+    "threshold": 2.294921875,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 6,
+        "correct": 6
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      }
+    }
+  },
+  {
+    "threshold": 2.3515625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 5,
+        "correct": 5
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      }
+    }
+  },
+  {
+    "threshold": 2.36376953125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 4,
+        "correct": 4
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      }
+    }
+  },
+  {
+    "threshold": 2.484375,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 4,
+        "correct": 4
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 2,
+        "correct": 2
+      }
+    }
+  },
+  {
+    "threshold": 2.51416015625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 2,
+        "correct": 2
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 2,
+        "correct": 2
+      }
+    }
+  },
+  {
+    "threshold": 2.525634765625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 1,
+        "correct": 1
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 2,
+        "correct": 2
+      }
+    }
+  },
+  {
+    "threshold": 2.5621337890625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 1,
+        "correct": 1
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      }
+    }
+  },
+  {
+    "threshold": 2.673828125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 0,
+        "correct": 0
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 3,
+        "correct": 3
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      }
+    }
+  },
+  {
+    "threshold": 3.2705078125,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 0,
+        "correct": 0
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 2,
+        "correct": 2
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      }
+    }
+  },
+  {
+    "threshold": 3.5084228515625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 0,
+        "correct": 0
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      }
+    }
+  },
+  {
+    "threshold": 3.61181640625,
+    "clean_by_dataset": {
+      "collected_receipts": {
+        "n": 15,
+        "accepted": 0,
+        "correct": 0
+      },
+      "cord_v2": {
+        "n": 30,
+        "accepted": 1,
+        "correct": 1
+      },
+      "sroie": {
+        "n": 30,
+        "accepted": 0,
+        "correct": 0
+      }
+    }
+  }
+]

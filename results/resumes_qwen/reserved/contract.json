@@ -1,0 +1,37 @@
+{
+  "inputs": "51bfa2716bbc5105e28c78c0ea3d78c8fb6a3add7ce82c5d75d6ca60828e1770",
+  "attack_cases": "87e7731b280aae3e7d042dbb191d27c33c8c7bd7f64c7f9625d3766bff7d4010",
+  "frozen_v4_source_sha256": "19f651e1c296e8de53795b3a8a35e189541b246c4022a7a3fcc9121e1a401ca2",
+  "script": "d4387d7fd479e0659ddcd5c67537c4661ddacf7c30e1cfb5bfa7aeb40331385b",
+  "policy": {
+    "version": "resume_development_retry_v4",
+    "localization_attempts": 2,
+    "minimum_height": 0.25,
+    "margin": 0.05,
+    "expansion": 0.05,
+    "max_height": 0.7,
+    "expanded_max_height": 0.85,
+    "max_regions_per_page": 4,
+    "max_raw_boxes": 16,
+    "max_crops_per_document": 8,
+    "localization_tokens": 768,
+    "fixed_band": [
+      0.2,
+      0.8
+    ]
+  },
+  "prompt": "Find the education and qualifications sections on this resume page. Locate whole sections, including their headings, degree or diploma names, institutions, dates and any continuation lines. Include stated qualifications even if the page does not explicitly say completed or awarded. Include education entries outside a heading too. Do not infer qualifications from job titles, work experience or skills. Group nearby lines in the same section into one box rather than returning a box per word or line. Return only JSON in this exact format: {\"boxes\": [[left, top, right, bottom]]}. Use pixel coordinates on the displayed image of width {w} and height {h}. Return {\"boxes\": []} only if no education or qualification entries are visible. Return at most four section boxes. Do not include explanations or transcribed text.",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "versions": {
+    "torch": "2.6.0+cu124",
+    "torchvision": "0.21.0+cu124",
+    "transformers": "5.17.0",
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6",
+    "accelerate": "1.15.0",
+    "tokenizers": "0.23.2",
+    "huggingface_hub": "1.32.0",
+    "safetensors": "0.8.0"
+  },
+  "cuda": "12.4"
+}

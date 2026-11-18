@@ -1,0 +1,18 @@
+{
+  "versions": {
+    "Pillow": "12.3.0",
+    "lpips": "0.1.4",
+    "matplotlib": "3.11.2",
+    "numpy": "2.4.6",
+    "pandas": "3.0.6",
+    "python": "3.11.16",
+    "scikit-image": "0.26.0",
+    "torch": "2.6.0+cu124",
+    "torchvision": "0.21.0+cu124",
+    "transformers": "5.17.0"
+  },
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "cuda": "12.4",
+  "ocr_binary_sha256": "9f831cab7525c3dab04af41bda35182af7ea1df9dceeaaa2f3bf207ac45c06a5",
+  "ocr_version": "tesseract 5.3.4"
+}

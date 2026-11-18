@@ -1,0 +1,71 @@
+{
+  "inputs": "b443175462064e227516c6b3ab10253aed233bedbc8982a5efc53884184f0442",
+  "plan": "7f476b87d6d3412186fdb4e53d425ed7ea28a6455f4076a981a40224eb6c6939",
+  "frozen_rule_source_sha256": "b09b577474d73420f4f6891bd70ba4a486bbed1c40005d95439866be1e50b844",
+  "script": "be215efff96467ea4fb9b552bb721698f71a0bbc86b4677eda26f24a39a4b1b4",
+  "policy": {
+    "version": "resume_development_retry_v4",
+    "localization_attempts": 2,
+    "minimum_height": 0.25,
+    "margin": 0.05,
+    "expansion": 0.05,
+    "max_height": 0.7,
+    "expanded_max_height": 0.85,
+    "max_regions_per_page": 4,
+    "max_raw_boxes": 16,
+    "max_crops_per_document": 8,
+    "localization_tokens": 768,
+    "fixed_band": [
+      0.2,
+      0.8
+    ]
+  },
+  "prompt": "Find the education and qualifications sections on this resume page. Locate whole sections, including their headings, degree or diploma names, institutions, dates and any continuation lines. Include stated qualifications even if the page does not explicitly say completed or awarded. Include education entries outside a heading too. Do not infer qualifications from job titles, work experience or skills. Group nearby lines in the same section into one box rather than returning a box per word or line. Return only JSON in this exact format: {\"boxes\": [[left, top, right, bottom]]}. Use pixel coordinates on the displayed image of width {w} and height {h}. Return {\"boxes\": []} only if no education or qualification entries are visible. Return at most four section boxes. Do not include explanations or transcribed text.",
+  "attack": {
+    "version": "resume_direct_recovery_v1",
+    "documents": 10,
+    "epsilons": [
+      8,
+      16
+    ],
+    "restarts": [
+      0,
+      1
+    ],
+    "steps": 100,
+    "refresh_interval": 10,
+    "queries": 40,
+    "step_fraction": 0.25,
+    "seed": 566,
+    "wall_seconds": 14400,
+    "run_margin_seconds": 1500,
+    "early_stop_on_accepted_target": true,
+    "processor_tolerance": {
+      "max": 1e-06,
+      "mean": 1e-08,
+      "surrogate_mean": 0.05
+    },
+    "objective": "cross-entropy of the target label tokens on the localized views and on the expanded views; boxes held fixed between verifier queries",
+    "order": "all restart-0 runs first, then restart-1; inside a restart by frozen document order, then epsilon"
+  },
+  "versions": {
+    "torch": "2.6.0+cu124",
+    "torchvision": "0.21.0+cu124",
+    "transformers": "5.17.0",
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6",
+    "accelerate": "1.15.0",
+    "tokenizers": "0.23.2",
+    "huggingface_hub": "1.32.0",
+    "safetensors": "0.8.0"
+  },
+  "model": {
+    "model_id": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+    "precision": "bfloat16",
+    "max_new_tokens": 32,
+    "min_pixels": 200704,
+    "max_pixels": 1003520
+  },
+  "question": "What is the highest degree level stated in this resume? Return exactly one label from: secondary, certificate_or_diploma, associate, bachelor, postgraduate, master, doctorate."
+}

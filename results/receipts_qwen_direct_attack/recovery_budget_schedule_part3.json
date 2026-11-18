@@ -1,0 +1,28 @@
+{
+  "original_contract": "94243896cac09b6ae8273c24f86787d73e965461c60f38f73359fa419bbf11b8",
+  "method": "verified_recovery",
+  "document_ids": [
+    "collected_receipts/external_test/c00059",
+    "collected_receipts/external_test/c00027",
+    "collected_receipts/external_test/c00054",
+    "collected_receipts/external_test/c00095",
+    "collected_receipts/external_test/c00069",
+    "collected_receipts/external_test/c00098",
+    "collected_receipts/external_test/c00099",
+    "collected_receipts/external_test/c00071",
+    "collected_receipts/external_test/c00106",
+    "collected_receipts/external_test/c00030"
+  ],
+  "epsilons": [
+    4,
+    8
+  ],
+  "restarts": [
+    0,
+    1
+  ],
+  "max_runs": 40,
+  "wall_seconds_per_session": 14400,
+  "launcher_sha256": "0c412827fa48ad305ebb6e07adfab88885efc12e2f1df935c8edd012e6086818",
+  "selection": "Frozen adaptive hash order continued past the first ten; first ten receipts that CBVR answers correctly when clean. Chosen on clean outcomes only, before any part-3 attack. Only scheduling changes; original gradient, query, replay and checkpoint code retained."
+}

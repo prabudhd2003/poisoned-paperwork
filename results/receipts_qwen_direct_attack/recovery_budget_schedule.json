@@ -1,0 +1,23 @@
+{
+  "original_contract": "94243896cac09b6ae8273c24f86787d73e965461c60f38f73359fa419bbf11b8",
+  "method": "verified_recovery",
+  "document_ids": [
+    "collected_receipts/external_test/c00060",
+    "collected_receipts/external_test/c00032",
+    "collected_receipts/external_test/c00096",
+    "collected_receipts/external_test/c00086",
+    "collected_receipts/external_test/c00065"
+  ],
+  "epsilons": [
+    4,
+    8
+  ],
+  "restarts": [
+    0,
+    1
+  ],
+  "max_runs": 20,
+  "wall_seconds_per_session": 14400,
+  "launcher_sha256": "425c7e8c9d2f65e5e0459243ae8292f42dba12acfe20071b901589d3b27d7f40",
+  "selection": "First five IDs in the original frozen order; not selected on outcomes. Only scheduling changes; original gradient, query, replay and checkpoint code retained."
+}

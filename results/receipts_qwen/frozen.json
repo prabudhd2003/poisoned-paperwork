@@ -1,0 +1,19 @@
+{
+  "contract": "94243896cac09b6ae8273c24f86787d73e965461c60f38f73359fa419bbf11b8",
+  "threshold": 0.0,
+  "development_hash": "6e49c9676f2837c95861a5f6e0fd5912123eb521936b683892c173750fd74c71",
+  "adaptive_ids": [
+    "collected_receipts/external_test/c00060",
+    "collected_receipts/external_test/c00032",
+    "collected_receipts/external_test/c00096",
+    "collected_receipts/external_test/c00086",
+    "collected_receipts/external_test/c00065",
+    "collected_receipts/external_test/c00110",
+    "collected_receipts/external_test/c00103",
+    "collected_receipts/external_test/c00067",
+    "collected_receipts/external_test/c00082",
+    "collected_receipts/external_test/c00072"
+  ],
+  "primary_method": "verified_recovery",
+  "note": "Recovery checks band/expanded-band agreement only, not a guarantee. Threshold applies to masking ablation only."
+}

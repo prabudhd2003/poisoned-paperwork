@@ -5,7 +5,6 @@ data/*
 
 # Experiment artifacts and model files
 outputs/
-results/
 checkpoints/
 logs/
 *.ckpt
@@ -25,3 +24,8 @@ logs/
 __pycache__/
 *.py[cod]
 .DS_Store
+
+# Colab input staging (rebuilt by colab/receipts/fetch_full_inputs.sh)
+colab/receipts/staging/
+colab/receipts/inputs/source.tar
+colab/receipts/*.zip

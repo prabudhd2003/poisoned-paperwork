@@ -1,0 +1,1749 @@
+{
+  "documents": [
+    {
+      "attacks": [
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7f1cff32dd6ae78ceffcaca2f2e1f68a4d807f43210f98c82eaae23edaaa92ac/page.png",
+              "sha256": "70df451da82a273fb895aab9f42155f0bc4c97953ee605d8eff7eacfae92f5a2"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8b9c0559663402aaba4a296b1ad40f5a823ac0746f27b3df8b1a8cfcd0734be3/page.png",
+              "sha256": "204bb8cdef9ee3d6ac0e1f4777c32f0f0ab300f53f19903589b99663188964c4"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4a8f2a047d11e4ee942ee5df81d59a1528c883dce1bc50f579e80d4c0d68cbb9/page.png",
+              "sha256": "d3e2a131e38d6a4ab33c9a82ee06d75bd484abe7b0e1b8dd39b17d90b72c65c9"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/10319ba0bcbdd4d1cd27a169d00a7179fb7ef9b9fe1d338c94842b30c5fb5fe0/page.png",
+              "sha256": "5ed99e5fb4b072ef6e1432ecaba5054931ae16d96e0f332d4557dadb4460ed86"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b1bb9ee6e1ccec21d1db8b82576ed32d46ae0a6bda064bc028dd15f91991d8f0/page.png",
+              "sha256": "3c418d0051973ea3cb0955ad617909020db97c07a740f81ea605cd9eb6573042"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/43d62e910c37a6ec5cf3bdd08f23149865fe7977def321fb36d1cf1e334d3f3e/page.png",
+              "sha256": "946641a7b0b35653db9fe527aebd997b480b9c36b05123037c39f64286da2e59"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/627363df370acfe2d49e4a0cbbf025e71d37041f15b1d6bd1db4fbb72523db79/page.png",
+              "sha256": "cf79201625f77fd871ca7fdd62894f31c85686a322800ab00631a73c1cb64263"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d0862ac0130d6a13ec201bc5fe6906cbac11270e4b3a3ac70fd75f25e592406/page.png",
+              "sha256": "cdfc2848ec8070039fea2fe4a2682d2fdc69108f484a260a883f871f213815fb"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/374e19a59b5f1536cb7c8ed68671d6c134b9a682415a86a3f76587281005b69f/page.png",
+              "sha256": "981ffb5dba85660e1fe690d70f666e49e14a4ae6255445539a153cc4a9065c54"
+            }
+          ]
+        }
+      ],
+      "clean_target": "29.96",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "299.60",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/95c6d6bbdca7199f59fa0e2d7740b5f60a401cb01d163dd09e3987f98cf821ed/page.png",
+          "sha256": "8060c6dacd496fd25df82354c65e04cd17a96d96084db1ad9bbae04940513130"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00000"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8cb31ca2949b5def169652737b1c7b2120e198f5d8c43af3d5db8f15a033a38a/page.png",
+              "sha256": "60f0d7d073312df32ddea43338548867e5c47fee766b9b449fc66336eee4cfc5"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5097caa1ecc2ce2a7e9eb26d39f1f56ec209214c031cfdfc5653f8f073a28b94/page.png",
+              "sha256": "4b8464a6af46944f2289e96af10c8000340c9ceb7e5e641960e85da874da26bb"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/41c102a6624836993ad2f8f758e736a2d9b392a39467e96592a7df84e25c18e0/page.png",
+              "sha256": "08cdb62f1cd88e2c80e32a5d75c0f1caf3af4c56a43738a6afabbfe58f189755"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b209aacd3dc07e2e28c838cbf327bfe8214ea65a6bc830d4ad3a36eb0400612/page.png",
+              "sha256": "b41be65078c523a767b359b7d21fac3d5a5734e35fe60f065e09bf5c401ace00"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8fb440db9e85376ef869842154859836eaa0db453423718c5444cd8da25e95e4/page.png",
+              "sha256": "3610c031ca96c54e807b353751944c2be5b90ca6f3f044379ca57c5c47a834e1"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0ae0c44eb80d3aa35ce0d026349fb3be5dcf87a771b02a78e93f33e383938327/page.png",
+              "sha256": "f97aae2eb24c35c54243a66a3e0c714e224030758aa98eab9844de345cd27f3a"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/cf1bc04f51a6a9441c2ac414b9d23a4a4c17e977e85fa7ae6e839f112d2912be/page.png",
+              "sha256": "dbe38d04de342f0986f0e7d19490100e89197fd3eb084546e07965557e032008"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/05e75d540c5b587e6fbe0bbd7260d2af6a85898841a889c4833d333c39ec9df1/page.png",
+              "sha256": "d158e529fae0e5824f159a94446acd7c65873632e97fd4693c6ce45b3e09ca75"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/892544b327fe548219c9fdc0eee5ea2c10a8db28cdac662b1acfa27362eb761e/page.png",
+              "sha256": "ba702d63c48838752c81eb3fffa23546bd5f339c2cade088abbaf1a138f0db36"
+            }
+          ]
+        }
+      ],
+      "clean_target": "2.45",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "24.50",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/14366eb0aaa6a36ddabc4282cef68a0d96751b621c04e8e48b3ad95e4c7d532f/page.png",
+          "sha256": "9199a45ecf9b814ab46d5d083f0f3134c83459b79c342fa6ff9f2de69589f8cb"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00001"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4840d69316d2a389a0d84390d861aa39ef7f82b8d1e67f38aa709746ffbf023e/page.png",
+              "sha256": "5f828c25497d1d051090a27af8c5073fa9562f6cf6df76584de17afd7ee40eb5"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/58b59814ca19b49c33a276051f2861b7079c76e578ac3c79e75633bb79f32944/page.png",
+              "sha256": "56ec477fcff5959a1c7f364b60bbb9ab19e4f9ec4f71ffb0d07288f2654701ba"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7f9ab2f35c77f44314d5ae8a4fedafdbc2000a34c278ebfa89df01a6ac3d3ed7/page.png",
+              "sha256": "2628ceddd4543cef8b7d634ce5690a9f01311539d6bb5338b13b4e9e5fc91a0c"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3241b86d709202b74eed1b11986245188c9652afcf7684d80c48e19265732aaa/page.png",
+              "sha256": "475df1a9a937be3cd79139d20f4f8c85e4e8a03431eead9612c254916eefc2ff"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3165e44fb1cf28adb56d987283f136c06306aa0a6c6c64dc5fd81c36eb331675/page.png",
+              "sha256": "311746d3f125a3c637818e67fd5325604d4ab7483b3502ff8ff2c3de43826a01"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e046fa519ee1ed3ba0f423d88d1d82b03fd9af44530c42a48bab27005f31a6a6/page.png",
+              "sha256": "3fa95c8647946903b0b2282a57d92bd46ae839853af5f8bf13d5271673495cdf"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/eda5ea41e935adba9b43814549e9a392908576dd69e313c0410b63ec7f9e0df9/page.png",
+              "sha256": "cfcf62e3ff9aaa4dab7f9625a4148dc56fb95e07b28344455e5f2b45f8d8fd61"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/dda5bb1195779e22f4a27f0ea421c6feccaeef200d6a09946b06057a9a891d2f/page.png",
+              "sha256": "79b361a497d2b75c2f4b781ae13586b7a96e6cb518c1df13ca1bfd5702c0712e"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7db8d642e560a5da1500e3ea2de8e2b72659ba0bd6f86a3bcb4e43ff6b1a5f80/page.png",
+              "sha256": "051cd684bcb7a74e5f9d74950b37699a092bdbbe06f6b8b301abe96066000fce"
+            }
+          ]
+        }
+      ],
+      "clean_target": "13.22",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "132.20",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/a69a7331d64d1968e6b8be7a5ff9172f2e9c9995b223c83b908749b8e318ea60/page.png",
+          "sha256": "da7180dc6e45c15e44b7346b45deec64cd011dabb54a129f9364bc7b6922b1a4"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00002"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/23dda896b18101ff5ac493e194146aad64feaec5a49aba6af7c76f6e789bb3ab/page.png",
+              "sha256": "0189980a65c19414e8f6e876e31a7c913da02b8e0685d9b055c66ab990878775"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1c5d36cfbd9d17d3a2dc9a80a61f6f5f47b6adb177589eff0a9cda7bfc0c8804/page.png",
+              "sha256": "2083b573ace8e6b650488f013899370b0aa21744c8c8cab06fa2322b18722321"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/12185e842aea313782a7f2a23437268bd2d41587ab87f86a36341f4edd77fe89/page.png",
+              "sha256": "2786ef84695647bd5bb6d88c0ae2d7060c6878ea8eda690446655ca637bf367d"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2d0b2c36e520909386ec9661d19b892610ff50d3cbe9fa8bff11556a1e110618/page.png",
+              "sha256": "d86ebe0061b7d37cde61fd68a93bf7bb740902eb0ad2e6a1bddd5367c4be9137"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/489430cdf2a0faa3361205b71507471e32c205ca8a2169c34997f9bbaa8db934/page.png",
+              "sha256": "f2d8d93ca764b29eef6d0bb3b4c831014e03c749b2dc226d5adc914c1bce3449"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f92d109bb7070bc96e9379f92b5e6743c918dec2df5ce439a9350d3b953d0396/page.png",
+              "sha256": "46365bcbfa8bbc205c32775b15850c64d144fc6a1edda0903ebfb396bfae0e4c"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1980f228c28751b5c10e80b6fb24f4f079682026a80c6f8cf80df45408d96efe/page.png",
+              "sha256": "127fbbc476b3e8a2262a0af1cb0cea227ba4c3bf9cd45291aca07704ee1a347e"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/438169e1cb90df97c91042698555d5cdad2799f34c11d23d65b5c52d70bc3647/page.png",
+              "sha256": "d94d0a0c95f0e57da8d5fd5a155aff8b2590cd3726f4066d9f1bd6dd93e3d8d2"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/74f6bda754ceceb50856fd40e134d34824ff7369ea801dba1c74c81d9375b3f6/page.png",
+              "sha256": "399670820039c359d62e8ecfdd7144afb9b2f2ed6403af47ad4d83b5104b0ad8"
+            }
+          ]
+        }
+      ],
+      "clean_target": "11.83",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "118.30",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/e35c7c20932211f76f6e0752d1ff70510071616f95fb7537cc9f1bdfccbd5ed7/page.png",
+          "sha256": "95bc9b8873ebc545b78ffec2a2c6a92d198a2f71a1cb9f5a792be27e309b7fe3"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00003"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1a2345279c1ef6b35dc368256fcbc5cd43a3e6f1a4b52356d63f100bfec84b04/page.png",
+              "sha256": "e5ae21619ec8957de6b852f2cfcf76cbb186b319d96722ed39e424cb198f0041"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d7f5fd556835d6236c8b15edd371715b9ee55e78de4257fc037385a061c7764b/page.png",
+              "sha256": "5e5cb1b933cecfa215f848d79009c8253a72f58eda60609bb019c527f01746f9"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7699ef08a5cf81fcddff21e310c666aca0bef4cdd1a315c4de62f9b1d2e66b77/page.png",
+              "sha256": "9020dfcfce536aeaaf508e4c88ccf78218ab2cbcc9682bbd03ad5563e980f17d"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e40d803716ea57e50fdb0cd51094196c4ab231988671dfea8a662dbc09359b3d/page.png",
+              "sha256": "369455035515f4be1ef4efc40dafcd5a02ba925734f4903882843e76d1008b82"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/48b8f68a6e9e74a44be0b7ab4a39346e4d3c12bfcd2fc1f60835710d51c6fb0c/page.png",
+              "sha256": "d92121e7ce4db01366aa40d1f46a6f6dc8a6280a00468548d8522874d3924d27"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9f97a7fa841f052a96e0823afa2f57d7d22a3f35b8849a2a8f7e90477245957b/page.png",
+              "sha256": "97f1aba0a22ab86a7345e809f725c1a355f03999886d680e6b80685b22b2dbaa"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/39b769435efa7315425fbb38ab61d08bfd21b502a2b26258f3aa0a68937c8a6c/page.png",
+              "sha256": "343d78c354ff06a244d53c543bef4eb5a5feeb98f77ac7c8940751f22c3d93a3"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ea2604812482c54feb357ba362c901c6138e6ef98bed0b307279ac7b2793e5d4/page.png",
+              "sha256": "7aa0e664dcd4d21e31f09cb925307c04f9c232a5152178e900eb47951b1d2b01"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7ed83d60f055cc7c9a2bba1d53496ca50e93ba67579d6ff8c67f47227130ce2a/page.png",
+              "sha256": "55aec6706dd84175588a0b47f67127074463a5387b9f8546de2df99b759e59f9"
+            }
+          ]
+        }
+      ],
+      "clean_target": "6.95",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "69.50",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/fed987c18985feab4dd35d97e4423ed3ca4cac0b9a6952028c3bd6e0ba047c37/page.png",
+          "sha256": "c487d9e5ae5dfa56501801fbb0b3e72b8c3ba57558272c741efb8c354fc04538"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00004"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d77bc562ffc8effe24f60d738bc7ac849ef5ab03cfdf093e7de997eafcd8d14d/page.png",
+              "sha256": "257bbd548880a01d21246dfa47501454554b9878f8602cc6adb4d23b04508a47"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/78039dfafd5913c509b38d24ac299140826eb07ae995f0dc8cff71d7c55f1d87/page.png",
+              "sha256": "cc7a41dd7fbc45fdfc82c3c1903bf398a668746cbb6b45cff16d970f09df393c"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c0d233f554bea14889fa4cbba133880b745334649609085f813db03a205d43fc/page.png",
+              "sha256": "ae46684f894b4b1f07d948c9f386e7d7be0dd84d9e88a00396d7d29793750e2b"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3bc65369c949da2c6fffb96e1bde883922866a2a9d560fcbd1ccb54a89e6b385/page.png",
+              "sha256": "8720ac583bcfcf203236a5c341744895b027d49f54b397bd1caf02151bfe6432"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2077ffee44ed6f0d35595670e7816097873bb2b324a426f5b361599f18a6932a/page.png",
+              "sha256": "18ed1c35661c27c56e310ffa74a0d718c3090716d159fb49ac1b1dd2a031ec8d"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e9fcd7a94f95dd5a7c5ab7643175f138df5576a28f41c9bf3e3306c41318513b/page.png",
+              "sha256": "2bdddd8d84d7a8c9e09a13c660c601ded5b48e628eea5a54ca8a65ce7f30b7c6"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f39cd918856a4f0cc82d07a605696bb47719bf04ed5ec3f7dfe0363e5d9e8747/page.png",
+              "sha256": "1c748650dd1e84f7826a471740f249e6bee281649beac1d8dac8f0f3d849a79d"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d7596b5bddebc8a96983444a2c0753d5bec87ce038af1d18685c2fb838fa4b3a/page.png",
+              "sha256": "3692e58efc1e1d89e00bc937d85bb5718717b6c0dec6bdfa7e5a3527f10a4592"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/911150bcefe54e4d3f17192315cc3e7efc3735f86b390cc901031bc033bf92ae/page.png",
+              "sha256": "db675b808802299e3d9cdb71d833b0399e94055fbfb17edd2f737a128cde5168"
+            }
+          ]
+        }
+      ],
+      "clean_target": "11.99",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "119.90",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d22195220ac4fc34e41109cb57e193cf0cd27892f9001d270d5d276f8c81dd99/page.png",
+          "sha256": "30adf0c2e426b021a037da5b19854febf842b3a3dec763df722e262c535f5125"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00005"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8a8df69d560e4d2e5ab6b87d2d4a76ddf8be3ec979f7394f3c63bf7ca68a7c07/page.png",
+              "sha256": "f3513c9aabbf2ff6d2c46075824e349c4521220bc68e812cbe281c1b3ad4184c"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2c99925ed403072d5861b15541ce06f213c7b60d349c4853877346bc4551c9d8/page.png",
+              "sha256": "8c86886066436d0ebcce97cf9ad3fbc034bcc3a0d86b987e397fd46045877113"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2b0cdf53079f3f553409518143424ea505857c45bb8bf749d26e3162d4b3bf34/page.png",
+              "sha256": "c247488f4301e8a59467e0e3ec435d75a9555bc4786b0335c9403b9e2ecf85e6"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/59652148694984b43caac28525e994f3ba6aab1c227d218a446b75e1f67a899f/page.png",
+              "sha256": "be7df2a0d8ef4cdd8dd2fff4ca9d4a414104c609e579eacc5eaaf3e260596e92"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5991f0be9cecc0c71c3ab6f44985ec3455709264e71e6779a3b07227370f1436/page.png",
+              "sha256": "c0e83e470fdbd0fd7d621a0716df43fedf61c90a8e0a8a0649eb8723263f46b7"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c6834a52d9af563ea939ab9d7f67efa6bf187a8636a0e0e1d120bd5751831ccf/page.png",
+              "sha256": "b8eacb54048115cb9369f760a9b0b4a0abe43e9fd816db4465abddb186770b17"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ccace70e110784a060ade36b2d5fcde015cf4d703fe3b95613da3597f87e4490/page.png",
+              "sha256": "b7a8e8475ae65685178d5a7028a96db822be09bb5e9362844c6f0cf37493c198"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/33c735407fd6e2a6341b2512fda156ef8456d823462adffda0d0080ca07121cd/page.png",
+              "sha256": "b79a2877587f08ae3d0bc62ac18b9cbd054b396ed76e33f1b6cb34729004d403"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/dfeec5a4d46ae1d62effe370eab9858bb67678e5cc3bf255d947e377ea36d793/page.png",
+              "sha256": "6b71e8cf7ecec050d307d4c890377c093875beef457a928a1386943116a65f55"
+            }
+          ]
+        }
+      ],
+      "clean_target": "7.70",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "77.00",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d80ab49a0dc7bc7080005d4e63ea2e10b28e59f1a08c2bb0895cde0d9696655f/page.png",
+          "sha256": "aa9d98419412e59b03cdb52c5149ad027f9fc3f307c0c7a045ebfdb3fbe9fc19"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00006"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/988546289db0f838cf624c90d82deaa27b826d36a69e90a5cc3739f992636892/page.png",
+              "sha256": "3128c254db544381bc581ee6205adf02ba3c65dc2d44b87325789a39694468cc"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d80c016ea7f1bc9dcdbb4c50094241e7d95371b1c0dbc27cd8b80944013d7b1/page.png",
+              "sha256": "5bd8d0051c066994827d3c527a9f639ef5d389f4acfc21d56089db70d8f05b66"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8360a3fac2d7d98297f2683c3f4d199974c8074f15203370ec3c7082701a1b70/page.png",
+              "sha256": "a3e34ac89b691eeef14f858a21334426d1c7f7d246f7e571779dd09f289351b8"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ccd3129644edf9e74256a93812ba1586080b3c63bc697b98c89741128235f541/page.png",
+              "sha256": "0b844c86c168ae5ce16194669aa72692c8a3f4b35f54d024ac64359481e29ff7"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1b2f0c7e4c5a622468d7a702dc06da9f2fd261ebd9c0a0e858d50b365dc9f3d9/page.png",
+              "sha256": "7c845ea69da60c2834658687c45e4cddd48fdef2b2b4b4f1e85fb4d8793e7879"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1780bc1fe14ca4fce9b6e69fc6eca291e772c9f6a42358b671cf45520225c031/page.png",
+              "sha256": "61b0c79f0599aad64e1946c5effef2c4b49e85f7244f6f46c884161684422959"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ebca7ce5a77e4e4a582eeaadf1e89bd09003c7c956302dc11dbeb00d0ee629cf/page.png",
+              "sha256": "eba30941c8e92235b290164d0198992127336dfbdac1681fdeb0dd02a221a058"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/6d5dd5c0b8e56348c3f41341bfbe6e93b68eb55e1dd88f284871640f0c6d7cd6/page.png",
+              "sha256": "646509383db86f604323e4d96701a70ce7ecd5886a80dd0b2d96f13a5e207a76"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f955bc9e07348b4b56109db36b8441e50a949d3c7cbd011250c89e47d3185097/page.png",
+              "sha256": "882f7bd4e976d475567cec81808ee74c630b4f3f1fbaa459289321bcb7bb0e18"
+            }
+          ]
+        }
+      ],
+      "clean_target": "5.50",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "55.00",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/037ed5ef11348279e8b2c42ff844525a0acd3e1cef31821724f8ee87b025c900/page.png",
+          "sha256": "94e4a3af9d1dd1df712e7ff8167f2877267cb470c02c5cae30b557d7a54ffe96"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00008"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/6ecfb10f43fe2e569255d45ef70bb8505b1c7c08e5869b309851fc36752f5fd5/page.png",
+              "sha256": "487cb3810b1e9e9d624adaef8be39700d043a881d4bfbd4f2b8c43eced33f95a"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7a1a1f959d78a3bffde6b572919d7d702d020a35d3001f9fd897c7822667a4be/page.png",
+              "sha256": "fffb19b9c1970f1dbcc5c08a6d7cb1e63b61b2c365bda3c389ca3a88b691e2ff"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4acdadc749099076f6a37ec8302f30e0c615b8783ad9c28e2992d86e6b199a35/page.png",
+              "sha256": "8502c718a0fca8cdba0f412e6dfff72889f9568dbbee269d8cb171952b56ba52"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/42bd8b34fd89b2a2b6587fce89c4c3a42fefb6d42a2c05a9924666004fc5d055/page.png",
+              "sha256": "7ecb04af4bb834bb72618833418e37fb76771091d8c685c2feec71459159987e"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ba02369da7687891ca8ce09be9bd7602a6f11a632006fd1e4e98de315f1297c0/page.png",
+              "sha256": "ea9bbb1b336a6c9405777da7f46b57d7bbc50a38c1134739142dd2cc240a842b"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2a9528a1313c8e5a8b9d01b6663b7561427d0ebd9fcba7be38c7f016485cce30/page.png",
+              "sha256": "b36147b5ce0a7cefcd06cb40d696b2382f53e77da4835cc78c85041542e1abaa"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/503e7ed57f696926c10cbdaadb0bd47bcd2a9b99a123e96b38301a0dfb3d68c1/page.png",
+              "sha256": "e2bd1cbd93c8b519598c538df1deab39b0a13d3f4b547e9214808d4fc898542f"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2c9a7f8dcf4302d61d3aeff5543ff4770ed0e80c6f3aac79e847a9c35b0a9062/page.png",
+              "sha256": "ce3914ad73944cd2ef17517bcc884a23cb565657fa432019b4fe2c385a3129dd"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fd05178d412b018747c3e825a8e3afd786268ca30f3e168f1384a4e56b71787d/page.png",
+              "sha256": "c0a25ea0ba80bc5cf9ffa4169060bfe9ad27323db7a993df27194ff61dff07ae"
+            }
+          ]
+        }
+      ],
+      "clean_target": "4.40",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "44.00",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/a499db0dfb79afa50a726cc3bb52dc0bd6498b6acfc9d7c6b892941d1722e491/page.png",
+          "sha256": "54968ca4410fd2ccbc7c037b4059555c1d5caad80a906d0e25df65c47eeffb79"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00011"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/37b4080e968293b3a011511c3bc047269668c32c8723347cf21d057e58cd788c/page.png",
+              "sha256": "fe214b172aca4fd3f82e551ec9b7faf5f6fb49366d58771bf24b3882e16d6af9"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/57ed234773f420c7ef7fa7e10796802de37e72c9f9da6f844ee7dd7d4e6bd7c6/page.png",
+              "sha256": "da78a72c5a02ea6f6fcfe2c5f49d522426c7a3f169debbcd3e2d67fbf202f0ce"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4e3f02005aaebf7c27d6c89a0311d16b0d3fa1391a48cb6f831e8e0eff3af646/page.png",
+              "sha256": "dc909e6f1c1ec69ed0bfe37e8e0acd9cb828befcfbc51051c9ac3b684372a548"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fc75a38b99db1a563b3c6012d886b80feb476951a932dee330ea1d0c56481dd8/page.png",
+              "sha256": "700f5b47a890c86e018a2274dccbaef26b4f834f2d1ccb0d772933d0b391fd16"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b177b18a2aef1220d7faf3f6774e67e1139a192820b4b20d98e329dab31793d2/page.png",
+              "sha256": "247d45afbb800c9c1d50496ebca56bc894f7c6d3065f8b8e06d897aabb0bb1d8"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/85bd221f1bc9e3e89913ab936bd62afb3d540575fc022158d238c440a3b9b510/page.png",
+              "sha256": "3cae8bd61776d850b24dc7e353a17bb9c2228f361fea4939b3e141a415d61e03"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ea495d84d6e394ad7d3dbf5ec820ad820927e0c9b13e6b6889c587036f0e37dd/page.png",
+              "sha256": "e7c38c2017f25bdc27850ed8d975fe099b2bd87d53b0c536e05cc9af687eba93"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ac8dae7c842bf67284e8a3cb1110c64ca99c451b4ca7f87fa0aed9fca53cb04e/page.png",
+              "sha256": "3064aedf70274d3f0a32ab56d2093470a973460b860ab4139608f6c243f3fa29"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e9eab44a2cf2a2736c4f1326ffc11fd557ae3bfea48b29337ad05ce3175e49a1/page.png",
+              "sha256": "5928d5d39e18e8bd6525c34dd27408b8e061308100f5259d7c2ee73d51a6cdad"
+            }
+          ]
+        }
+      ],
+      "clean_target": "11.22",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "112.20",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/83f4faf2d4936fd5b2f57bfdd2778b6bea79ad1e39443bae54692bb60d6986bd/page.png",
+          "sha256": "dc1c4eeb069eb1544856d327236be000804cb45a78629f9af068ef2192a74fc3"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00013"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/22f61541fb9c49b87a4b1219c83673334eb6b75bd9aa7a865d9dbd7d4c1a5709/page.png",
+              "sha256": "d3abd7b87f57504e3cb7486d9a79d1a93fc661bd84d68b0a95389bfe04ae8ba2"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/18d31723ce7d42c80588855c514278f0f51e8f20557454b203551b07a110bf67/page.png",
+              "sha256": "479f6db689a7afdee861b9d38c8db4345784b44de9951fb47209aad427b0771a"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9875df34a357a2f495272e34f01c2a93a4df9474361b1eaec1a8c2e48fd264ba/page.png",
+              "sha256": "17def51b81c26c0b49a2afc4fa5f86651a90e8c85eab1bbf7e817b8fe227ded9"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/56e20730bb5895ab447ac372abc5bffd29c6bd4718fcc99ed3805085857856d1/page.png",
+              "sha256": "bc0550fa2a396d039372a1f0059ec8192eb44fb6957075b7e76a27a6b8d14fe0"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d890fd2bc135d08aa3cb22df75464e0c7c2e0ed62c32ef5e1d35608891a1ee3d/page.png",
+              "sha256": "c9914886cb1389f983e4e2f614ea9bea04157e546074ba364f7d68eea8ae50c3"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8248749726bb0720a324c5f72ff89c0b5f018b5b7c06884a942cdf5768728fc6/page.png",
+              "sha256": "657a9567dd4d1750b8535f68abbfc2f681293f1ae13c50cc9bdde6a24deea84f"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/52d147ab2359a39c832adcecff1c2727bbcf601438837300840830079d260dc6/page.png",
+              "sha256": "406407749bed3ca7324f1459ba0af0b641b0e3e4d8c0bf3a003608335ed606a7"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3b5ec43a4d1a4b91a509c58bbe7d35707fb538d8e20cd23fc0767834677a182e/page.png",
+              "sha256": "9962551246da3a7bda1a17c88f8d5899be565cfde8d7bff263aeec307fd79011"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/af879f78d91fbf2511da318ae7bd59a799346de30784066069408c95d7d589fb/page.png",
+              "sha256": "29b1df9c0b3fd5439f03fb2fb57e777a31f988defe35f856495ee0feda6edc0c"
+            }
+          ]
+        }
+      ],
+      "clean_target": "120.00",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "1200.00",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/63f29ff8343ed85ebe189f3c10282f4f1d65071822a4133794830c2a75f25a1d/page.png",
+          "sha256": "5499e275e0af767e6c4eca2cefb92c25e87c69cf6100592903f9ecf8f7a43fdf"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00019"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5e442b5acb313990a520d072c9f31d28f9cd767ca88357257a984ff2f01b2921/page.png",
+              "sha256": "c2aed993266fae83f15c0817395aa8b9957c13794217ace5b21e85f196c6402c"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/59c23cd2b70b21d519cc9d5c82a24eb1c86b5afee2e67b446de6b453f472bbcf/page.png",
+              "sha256": "7bbebefe96ce8641b42f6d4d3ed3046c4f5275935e8104431c0f81891adaad1b"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0b41cd1997f67940b1ac08b7a746587c21251355c1590b6a4628eb0f00d6edb8/page.png",
+              "sha256": "790abd28fa1afc2320164ca5b8c874787f49844e44aa2620b81b90ac9268455c"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c0499ec105373b8ad9785a269ed40f886ac95f791c825a6dce5c605065de5f26/page.png",
+              "sha256": "8b1a95df74f452b8000f902aef70581505e19c43094084057d2d40c649c3b3e1"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fd1bc1e78ada26a246faccfa1794eeab7240c6e43538fe9a890e0f67f2afa61a/page.png",
+              "sha256": "56f9f81582eedf85c91ec8a98a25b5ca177556617b092872d38723974e85ac2a"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5c7bd60500cb2a9d5bfccdd37c76e6fd6cfd1e33774601f5eb57f84a2212beb4/page.png",
+              "sha256": "e888c8d32904dedac3bd2cfe3e2a0b092b02ee5c18a81f9893e6e7c4cceb35fe"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/16f7c7ed92964515bbcf6f9e29ab3097634f1472f630de51cad364e67e2ea59e/page.png",
+              "sha256": "b443ea090757681e33e063aaf31b8e58ccf33533ae9ded6c7dcfd93842d9824e"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/129d0ce5b6e05f72199985ced995e30e252d2d9cacb3e3b6df84b2eb6434a5b2/page.png",
+              "sha256": "54886ffe2f4f6f5fb3d9359206dca14086edfc04f9ddf0ef36316831bbe546dd"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1ddb7c25e4b77aa397bc8c9e80f6a5858d3b2894ddf11324c7cf34d423e5060f/page.png",
+              "sha256": "e9a9399354cacef61aa5ba82211e66485d3f380a394ccf8ee2a46c950a514d62"
+            }
+          ]
+        }
+      ],
+      "clean_target": "12.06",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "120.60",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d6965fc5e0a34d564d938a33ff5f09c694229f333f3df08241de7d8d003a0edc/page.png",
+          "sha256": "98d023bdb96ed4c7760aeab26af92fa9608019d71f33e0405ed56413da6a3c88"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00020"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4581df943f0b30d950cd28415998fce44ade9c44a75d3c5fa142a927ecf182f2/page.png",
+              "sha256": "a9fead45eea4a71fc5e8806317303e0a6fe82fd56bac21a6d182b70d65d93e12"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5543a34f4d3b8b52bbb791db4d43b88a1a6c0d813f340c549b4ef1adc59b31a7/page.png",
+              "sha256": "4d91b2b3fcae84c3b06615482ae1d00931fa4cea4c75714dad082dbd9b1a1acd"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/de440507d4fac1d09432d9e7088db4dde3521f6150e4e7b079abde96c9195959/page.png",
+              "sha256": "569911fd1d8478ec054c911db035d49d8b0698d9dadc3a4f86a1b89d22ad0d84"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9db10a5df4bcd6a55e640ef8f6ba45eec139c8031f20dd5644f765d6a5b6225a/page.png",
+              "sha256": "7e99e135cbf252d9a6c8c4bc50e382cec856d0f87cd87e855576f6572b576b9c"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ffdede136331fffb396b4273e788a86736718feec56aa7cd69d5f792110a790f/page.png",
+              "sha256": "abcbc8c7e363e7d9e1862e7bd1fedbf1f70eb02e16fa83928410021fdbc77815"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d3eb0616241053d20fb26dd41c0953fc377ffa6d77d7d1759ad61ab30bca68f/page.png",
+              "sha256": "c1f4df984eef296329f73e10baec573693509b644fddc956d10aa0c147148a4a"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b81ff5b0b357feb835b08b7a94f5d55dce8d613d264c6c48a143895091cd45c/page.png",
+              "sha256": "db9fbb7362c96d14eda04f1c1cbc25549bc79a7e52c0a98cd2eed62e6f936972"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/35309109c5b5d19e997ec70f4bafd71a0f3ae36ccc55bf4a17cb93fb1caae664/page.png",
+              "sha256": "05655e4952349548b8189f750acf124e43ec250a6516053d51873e398d900e7a"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0eec4baf6bfd363f64b034675a061427a381294cc35f929a3f906c644a23fe98/page.png",
+              "sha256": "ba705d1ba5761424055d06193e304b7d1bcff2883d7ef2faa28e96a3e3d8618e"
+            }
+          ]
+        }
+      ],
+      "clean_target": "20.84",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "208.40",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/95395f8806092e721a6f674775f22cb169ab3181640ec14ba2c62e3ff55303f9/page.png",
+          "sha256": "ab30bb6328246d479970388c21c9bc7bdd8b16ba5350c36ae1cd6d98dab14059"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00021"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3757db394b95b6bce62b109cf5e17b981b1235440eac1d2cd2af227a9962fbbd/page.png",
+              "sha256": "b12478e7082c517c70fa11760a56423c43aadf85a0806fdd23da5ad4f31fe4b1"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c26017a0264e4f4386aeab266be1d4c07b0f7f15727ef3612b02eada00e35c45/page.png",
+              "sha256": "3925461a17ae744172d558cc18460bd03745b23351607436732e763cd9d5d68a"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7deb60471c2799e6cd9756b47eb809805b3b85f85aa31ebc5ff1f001bf4bfa45/page.png",
+              "sha256": "cb12ce55168c38dafc3c93151a13200192c8d730ae9cbaa99a4a15ef04546d94"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e40f579af7726edcbd597dbbad6b7fb772b98ef61e8402a7a9556b943eebc38d/page.png",
+              "sha256": "b8f17762dd847fc12700d4fa1848b8ef733dde181f31551d741c6a1e8656ddff"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f98d90ec169412620c1747eb5a1cb08fc63e021ae6bafa3825e168e3377d46bd/page.png",
+              "sha256": "bcc3fa9b079c35cfb7cfb093fa4d6f18bdb66319900aec6779649cade0c0fb31"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ff3ea22452590d08f3ca64acd771ffb15ce44dd3461d1a2b5d9b09c8f8ef4f8a/page.png",
+              "sha256": "10e0c0c0ae57bc7cd7fed25a89c70580c798a4a3a88c1431a824d49a9b24d868"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/bd4da77cf4ecf6254cca280a019013c133e3b55b8c1e86f312377b63c8b88785/page.png",
+              "sha256": "89edc63bda57ee424fe2e0f4f4cc0b28048ed2073d4c7031151de5f21d6ee161"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4f39efbea0718fec47ed2f077274ae67eefd307f6bb0257f3da08f15838fc4c0/page.png",
+              "sha256": "3209016827b2b3c6dafd3b9c70a6b7952026b40ac1914bc3f90694ff5a4bb16a"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9f46997ecd1601ca5748bb3d675391e19c2190daf2781d377b8d6b9e884febd6/page.png",
+              "sha256": "f5a4277c5f67e8e792af37de96b471b69d2aa28fa671609db2f55fe5006d0975"
+            }
+          ]
+        }
+      ],
+      "clean_target": "28.91",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "289.10",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d0bd07e6bf4b356d338d855c1adce99cc3abb2ca31cf53be90f7bcd5764b55c9/page.png",
+          "sha256": "13a4b77d012d76223acc6635945ca6527156ea93d0fca478c6f060f83b55bf92"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00024"
+    },
+    {
+      "attacks": [
+        {
+          "epsilon": 8,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9578b9e27e084a6cb0589204c69cb26d816e3eec608ed4363fc20a0188d84765/page.png",
+              "sha256": "b27a2203c076932e9e78ca7f2679f6bf5d459db5efb255a4109afec4c5ce3cda"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c4cad2d84f3e31f09b763cb1cb0a398f9482d45a8cfcd348a948efb41d7c4fd5/page.png",
+              "sha256": "08898bdbb198c57bed252422dab9e676917e413268654b8988d9e7442e862be4"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "standard",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b7860be48bb3fd34428b24b269bb926dc916497d98c9541f12562dec12d8f84/page.png",
+              "sha256": "9006fffd0327e3c897c4b7dff831ea2d1a4e26743a3a164cb9750e70679548bd"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/da02da205ad0adc69ec629bdd4e6e70d95900d4800ed1c528352e7626afcb2c9/page.png",
+              "sha256": "106cd4e8167bceadb1d44b591aad058f7a7923c05bf2a85db04775b4767ec8f1"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5e0675211d78e3d1681d83ef7b1c30394e6e827d99b4d999dde678d1f3a86912/page.png",
+              "sha256": "ecb5918ee882d2691fa61515e9e564791b3cf36b5a3d1afba18c623ef3d70db3"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "uniform_eot",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b1149cb28db95616a9bd21982fbbd3048ee4c4f406149ff7fc60807514ed6c23/page.png",
+              "sha256": "a8c3373a5a12c23fa3679f01fae6a11a30dc52ba8f7b47609f65378318dc0711"
+            }
+          ]
+        },
+        {
+          "epsilon": 4,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2418267e61eb20bce7b7f71cbff1fe50e07553ac378be639ab498f920d1f14dc/page.png",
+              "sha256": "81be2c5938ca156d96d455aa5a1ae4e7f73e2b849ee470ef5b1a3883bffa1776"
+            }
+          ]
+        },
+        {
+          "epsilon": 16,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ca1f924627f16c2cc094630f3128a8a5dd2dbd0ed09a052ffa2b601517ca792f/page.png",
+              "sha256": "de87fee275c1ec56465a9cdb37aa6214de82460b37e3586fd3570d5af03fdda0"
+            }
+          ]
+        },
+        {
+          "epsilon": 8,
+          "family": "hardview",
+          "images": [
+            {
+              "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d8aef3d90c041cf83727f971458f656da1787798cde14720ae76c2d2c2cc9ec7/page.png",
+              "sha256": "9c1f2b869daff1b6871afdde82010c34213e10a64798684b574482cb9c746deb"
+            }
+          ]
+        }
+      ],
+      "clean_target": "22.54",
+      "dataset_name": "collected_receipts",
+      "eligible": true,
+      "experiment_split": "external_test",
+      "frozen_attack_target": "225.40",
+      "images": [
+        {
+          "path": "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d7cb192e197477ea236b6205d6fcc3fb8d9f3448152b16dd8f49a2d323cbf775/page.png",
+          "sha256": "aeca4153478805f362fdbda3b6001a65f13b5146d006f003db993c847758f66a"
+        }
+      ],
+      "record_id": "collected_receipts/external_test/c00026"
+    }
+  ],
+  "files": {
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/95c6d6bbdca7199f59fa0e2d7740b5f60a401cb01d163dd09e3987f98cf821ed/page.png": "8060c6dacd496fd25df82354c65e04cd17a96d96084db1ad9bbae04940513130",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7f1cff32dd6ae78ceffcaca2f2e1f68a4d807f43210f98c82eaae23edaaa92ac/page.png": "70df451da82a273fb895aab9f42155f0bc4c97953ee605d8eff7eacfae92f5a2",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8b9c0559663402aaba4a296b1ad40f5a823ac0746f27b3df8b1a8cfcd0734be3/page.png": "204bb8cdef9ee3d6ac0e1f4777c32f0f0ab300f53f19903589b99663188964c4",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4a8f2a047d11e4ee942ee5df81d59a1528c883dce1bc50f579e80d4c0d68cbb9/page.png": "d3e2a131e38d6a4ab33c9a82ee06d75bd484abe7b0e1b8dd39b17d90b72c65c9",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/10319ba0bcbdd4d1cd27a169d00a7179fb7ef9b9fe1d338c94842b30c5fb5fe0/page.png": "5ed99e5fb4b072ef6e1432ecaba5054931ae16d96e0f332d4557dadb4460ed86",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b1bb9ee6e1ccec21d1db8b82576ed32d46ae0a6bda064bc028dd15f91991d8f0/page.png": "3c418d0051973ea3cb0955ad617909020db97c07a740f81ea605cd9eb6573042",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/43d62e910c37a6ec5cf3bdd08f23149865fe7977def321fb36d1cf1e334d3f3e/page.png": "946641a7b0b35653db9fe527aebd997b480b9c36b05123037c39f64286da2e59",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/627363df370acfe2d49e4a0cbbf025e71d37041f15b1d6bd1db4fbb72523db79/page.png": "cf79201625f77fd871ca7fdd62894f31c85686a322800ab00631a73c1cb64263",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d0862ac0130d6a13ec201bc5fe6906cbac11270e4b3a3ac70fd75f25e592406/page.png": "cdfc2848ec8070039fea2fe4a2682d2fdc69108f484a260a883f871f213815fb",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/374e19a59b5f1536cb7c8ed68671d6c134b9a682415a86a3f76587281005b69f/page.png": "981ffb5dba85660e1fe690d70f666e49e14a4ae6255445539a153cc4a9065c54",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/14366eb0aaa6a36ddabc4282cef68a0d96751b621c04e8e48b3ad95e4c7d532f/page.png": "9199a45ecf9b814ab46d5d083f0f3134c83459b79c342fa6ff9f2de69589f8cb",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8cb31ca2949b5def169652737b1c7b2120e198f5d8c43af3d5db8f15a033a38a/page.png": "60f0d7d073312df32ddea43338548867e5c47fee766b9b449fc66336eee4cfc5",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5097caa1ecc2ce2a7e9eb26d39f1f56ec209214c031cfdfc5653f8f073a28b94/page.png": "4b8464a6af46944f2289e96af10c8000340c9ceb7e5e641960e85da874da26bb",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/41c102a6624836993ad2f8f758e736a2d9b392a39467e96592a7df84e25c18e0/page.png": "08cdb62f1cd88e2c80e32a5d75c0f1caf3af4c56a43738a6afabbfe58f189755",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b209aacd3dc07e2e28c838cbf327bfe8214ea65a6bc830d4ad3a36eb0400612/page.png": "b41be65078c523a767b359b7d21fac3d5a5734e35fe60f065e09bf5c401ace00",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8fb440db9e85376ef869842154859836eaa0db453423718c5444cd8da25e95e4/page.png": "3610c031ca96c54e807b353751944c2be5b90ca6f3f044379ca57c5c47a834e1",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0ae0c44eb80d3aa35ce0d026349fb3be5dcf87a771b02a78e93f33e383938327/page.png": "f97aae2eb24c35c54243a66a3e0c714e224030758aa98eab9844de345cd27f3a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/cf1bc04f51a6a9441c2ac414b9d23a4a4c17e977e85fa7ae6e839f112d2912be/page.png": "dbe38d04de342f0986f0e7d19490100e89197fd3eb084546e07965557e032008",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/05e75d540c5b587e6fbe0bbd7260d2af6a85898841a889c4833d333c39ec9df1/page.png": "d158e529fae0e5824f159a94446acd7c65873632e97fd4693c6ce45b3e09ca75",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/892544b327fe548219c9fdc0eee5ea2c10a8db28cdac662b1acfa27362eb761e/page.png": "ba702d63c48838752c81eb3fffa23546bd5f339c2cade088abbaf1a138f0db36",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/a69a7331d64d1968e6b8be7a5ff9172f2e9c9995b223c83b908749b8e318ea60/page.png": "da7180dc6e45c15e44b7346b45deec64cd011dabb54a129f9364bc7b6922b1a4",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4840d69316d2a389a0d84390d861aa39ef7f82b8d1e67f38aa709746ffbf023e/page.png": "5f828c25497d1d051090a27af8c5073fa9562f6cf6df76584de17afd7ee40eb5",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/58b59814ca19b49c33a276051f2861b7079c76e578ac3c79e75633bb79f32944/page.png": "56ec477fcff5959a1c7f364b60bbb9ab19e4f9ec4f71ffb0d07288f2654701ba",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7f9ab2f35c77f44314d5ae8a4fedafdbc2000a34c278ebfa89df01a6ac3d3ed7/page.png": "2628ceddd4543cef8b7d634ce5690a9f01311539d6bb5338b13b4e9e5fc91a0c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3241b86d709202b74eed1b11986245188c9652afcf7684d80c48e19265732aaa/page.png": "475df1a9a937be3cd79139d20f4f8c85e4e8a03431eead9612c254916eefc2ff",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3165e44fb1cf28adb56d987283f136c06306aa0a6c6c64dc5fd81c36eb331675/page.png": "311746d3f125a3c637818e67fd5325604d4ab7483b3502ff8ff2c3de43826a01",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e046fa519ee1ed3ba0f423d88d1d82b03fd9af44530c42a48bab27005f31a6a6/page.png": "3fa95c8647946903b0b2282a57d92bd46ae839853af5f8bf13d5271673495cdf",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/eda5ea41e935adba9b43814549e9a392908576dd69e313c0410b63ec7f9e0df9/page.png": "cfcf62e3ff9aaa4dab7f9625a4148dc56fb95e07b28344455e5f2b45f8d8fd61",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/dda5bb1195779e22f4a27f0ea421c6feccaeef200d6a09946b06057a9a891d2f/page.png": "79b361a497d2b75c2f4b781ae13586b7a96e6cb518c1df13ca1bfd5702c0712e",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7db8d642e560a5da1500e3ea2de8e2b72659ba0bd6f86a3bcb4e43ff6b1a5f80/page.png": "051cd684bcb7a74e5f9d74950b37699a092bdbbe06f6b8b301abe96066000fce",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/e35c7c20932211f76f6e0752d1ff70510071616f95fb7537cc9f1bdfccbd5ed7/page.png": "95bc9b8873ebc545b78ffec2a2c6a92d198a2f71a1cb9f5a792be27e309b7fe3",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/23dda896b18101ff5ac493e194146aad64feaec5a49aba6af7c76f6e789bb3ab/page.png": "0189980a65c19414e8f6e876e31a7c913da02b8e0685d9b055c66ab990878775",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1c5d36cfbd9d17d3a2dc9a80a61f6f5f47b6adb177589eff0a9cda7bfc0c8804/page.png": "2083b573ace8e6b650488f013899370b0aa21744c8c8cab06fa2322b18722321",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/12185e842aea313782a7f2a23437268bd2d41587ab87f86a36341f4edd77fe89/page.png": "2786ef84695647bd5bb6d88c0ae2d7060c6878ea8eda690446655ca637bf367d",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2d0b2c36e520909386ec9661d19b892610ff50d3cbe9fa8bff11556a1e110618/page.png": "d86ebe0061b7d37cde61fd68a93bf7bb740902eb0ad2e6a1bddd5367c4be9137",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/489430cdf2a0faa3361205b71507471e32c205ca8a2169c34997f9bbaa8db934/page.png": "f2d8d93ca764b29eef6d0bb3b4c831014e03c749b2dc226d5adc914c1bce3449",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f92d109bb7070bc96e9379f92b5e6743c918dec2df5ce439a9350d3b953d0396/page.png": "46365bcbfa8bbc205c32775b15850c64d144fc6a1edda0903ebfb396bfae0e4c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1980f228c28751b5c10e80b6fb24f4f079682026a80c6f8cf80df45408d96efe/page.png": "127fbbc476b3e8a2262a0af1cb0cea227ba4c3bf9cd45291aca07704ee1a347e",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/438169e1cb90df97c91042698555d5cdad2799f34c11d23d65b5c52d70bc3647/page.png": "d94d0a0c95f0e57da8d5fd5a155aff8b2590cd3726f4066d9f1bd6dd93e3d8d2",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/74f6bda754ceceb50856fd40e134d34824ff7369ea801dba1c74c81d9375b3f6/page.png": "399670820039c359d62e8ecfdd7144afb9b2f2ed6403af47ad4d83b5104b0ad8",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/fed987c18985feab4dd35d97e4423ed3ca4cac0b9a6952028c3bd6e0ba047c37/page.png": "c487d9e5ae5dfa56501801fbb0b3e72b8c3ba57558272c741efb8c354fc04538",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1a2345279c1ef6b35dc368256fcbc5cd43a3e6f1a4b52356d63f100bfec84b04/page.png": "e5ae21619ec8957de6b852f2cfcf76cbb186b319d96722ed39e424cb198f0041",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d7f5fd556835d6236c8b15edd371715b9ee55e78de4257fc037385a061c7764b/page.png": "5e5cb1b933cecfa215f848d79009c8253a72f58eda60609bb019c527f01746f9",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7699ef08a5cf81fcddff21e310c666aca0bef4cdd1a315c4de62f9b1d2e66b77/page.png": "9020dfcfce536aeaaf508e4c88ccf78218ab2cbcc9682bbd03ad5563e980f17d",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e40d803716ea57e50fdb0cd51094196c4ab231988671dfea8a662dbc09359b3d/page.png": "369455035515f4be1ef4efc40dafcd5a02ba925734f4903882843e76d1008b82",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/48b8f68a6e9e74a44be0b7ab4a39346e4d3c12bfcd2fc1f60835710d51c6fb0c/page.png": "d92121e7ce4db01366aa40d1f46a6f6dc8a6280a00468548d8522874d3924d27",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9f97a7fa841f052a96e0823afa2f57d7d22a3f35b8849a2a8f7e90477245957b/page.png": "97f1aba0a22ab86a7345e809f725c1a355f03999886d680e6b80685b22b2dbaa",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/39b769435efa7315425fbb38ab61d08bfd21b502a2b26258f3aa0a68937c8a6c/page.png": "343d78c354ff06a244d53c543bef4eb5a5feeb98f77ac7c8940751f22c3d93a3",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ea2604812482c54feb357ba362c901c6138e6ef98bed0b307279ac7b2793e5d4/page.png": "7aa0e664dcd4d21e31f09cb925307c04f9c232a5152178e900eb47951b1d2b01",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7ed83d60f055cc7c9a2bba1d53496ca50e93ba67579d6ff8c67f47227130ce2a/page.png": "55aec6706dd84175588a0b47f67127074463a5387b9f8546de2df99b759e59f9",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d22195220ac4fc34e41109cb57e193cf0cd27892f9001d270d5d276f8c81dd99/page.png": "30adf0c2e426b021a037da5b19854febf842b3a3dec763df722e262c535f5125",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d77bc562ffc8effe24f60d738bc7ac849ef5ab03cfdf093e7de997eafcd8d14d/page.png": "257bbd548880a01d21246dfa47501454554b9878f8602cc6adb4d23b04508a47",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/78039dfafd5913c509b38d24ac299140826eb07ae995f0dc8cff71d7c55f1d87/page.png": "cc7a41dd7fbc45fdfc82c3c1903bf398a668746cbb6b45cff16d970f09df393c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c0d233f554bea14889fa4cbba133880b745334649609085f813db03a205d43fc/page.png": "ae46684f894b4b1f07d948c9f386e7d7be0dd84d9e88a00396d7d29793750e2b",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3bc65369c949da2c6fffb96e1bde883922866a2a9d560fcbd1ccb54a89e6b385/page.png": "8720ac583bcfcf203236a5c341744895b027d49f54b397bd1caf02151bfe6432",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2077ffee44ed6f0d35595670e7816097873bb2b324a426f5b361599f18a6932a/page.png": "18ed1c35661c27c56e310ffa74a0d718c3090716d159fb49ac1b1dd2a031ec8d",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e9fcd7a94f95dd5a7c5ab7643175f138df5576a28f41c9bf3e3306c41318513b/page.png": "2bdddd8d84d7a8c9e09a13c660c601ded5b48e628eea5a54ca8a65ce7f30b7c6",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f39cd918856a4f0cc82d07a605696bb47719bf04ed5ec3f7dfe0363e5d9e8747/page.png": "1c748650dd1e84f7826a471740f249e6bee281649beac1d8dac8f0f3d849a79d",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d7596b5bddebc8a96983444a2c0753d5bec87ce038af1d18685c2fb838fa4b3a/page.png": "3692e58efc1e1d89e00bc937d85bb5718717b6c0dec6bdfa7e5a3527f10a4592",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/911150bcefe54e4d3f17192315cc3e7efc3735f86b390cc901031bc033bf92ae/page.png": "db675b808802299e3d9cdb71d833b0399e94055fbfb17edd2f737a128cde5168",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d80ab49a0dc7bc7080005d4e63ea2e10b28e59f1a08c2bb0895cde0d9696655f/page.png": "aa9d98419412e59b03cdb52c5149ad027f9fc3f307c0c7a045ebfdb3fbe9fc19",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8a8df69d560e4d2e5ab6b87d2d4a76ddf8be3ec979f7394f3c63bf7ca68a7c07/page.png": "f3513c9aabbf2ff6d2c46075824e349c4521220bc68e812cbe281c1b3ad4184c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2c99925ed403072d5861b15541ce06f213c7b60d349c4853877346bc4551c9d8/page.png": "8c86886066436d0ebcce97cf9ad3fbc034bcc3a0d86b987e397fd46045877113",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2b0cdf53079f3f553409518143424ea505857c45bb8bf749d26e3162d4b3bf34/page.png": "c247488f4301e8a59467e0e3ec435d75a9555bc4786b0335c9403b9e2ecf85e6",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/59652148694984b43caac28525e994f3ba6aab1c227d218a446b75e1f67a899f/page.png": "be7df2a0d8ef4cdd8dd2fff4ca9d4a414104c609e579eacc5eaaf3e260596e92",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5991f0be9cecc0c71c3ab6f44985ec3455709264e71e6779a3b07227370f1436/page.png": "c0e83e470fdbd0fd7d621a0716df43fedf61c90a8e0a8a0649eb8723263f46b7",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c6834a52d9af563ea939ab9d7f67efa6bf187a8636a0e0e1d120bd5751831ccf/page.png": "b8eacb54048115cb9369f760a9b0b4a0abe43e9fd816db4465abddb186770b17",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ccace70e110784a060ade36b2d5fcde015cf4d703fe3b95613da3597f87e4490/page.png": "b7a8e8475ae65685178d5a7028a96db822be09bb5e9362844c6f0cf37493c198",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/33c735407fd6e2a6341b2512fda156ef8456d823462adffda0d0080ca07121cd/page.png": "b79a2877587f08ae3d0bc62ac18b9cbd054b396ed76e33f1b6cb34729004d403",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/dfeec5a4d46ae1d62effe370eab9858bb67678e5cc3bf255d947e377ea36d793/page.png": "6b71e8cf7ecec050d307d4c890377c093875beef457a928a1386943116a65f55",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/037ed5ef11348279e8b2c42ff844525a0acd3e1cef31821724f8ee87b025c900/page.png": "94e4a3af9d1dd1df712e7ff8167f2877267cb470c02c5cae30b557d7a54ffe96",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/988546289db0f838cf624c90d82deaa27b826d36a69e90a5cc3739f992636892/page.png": "3128c254db544381bc581ee6205adf02ba3c65dc2d44b87325789a39694468cc",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d80c016ea7f1bc9dcdbb4c50094241e7d95371b1c0dbc27cd8b80944013d7b1/page.png": "5bd8d0051c066994827d3c527a9f639ef5d389f4acfc21d56089db70d8f05b66",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8360a3fac2d7d98297f2683c3f4d199974c8074f15203370ec3c7082701a1b70/page.png": "a3e34ac89b691eeef14f858a21334426d1c7f7d246f7e571779dd09f289351b8",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ccd3129644edf9e74256a93812ba1586080b3c63bc697b98c89741128235f541/page.png": "0b844c86c168ae5ce16194669aa72692c8a3f4b35f54d024ac64359481e29ff7",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1b2f0c7e4c5a622468d7a702dc06da9f2fd261ebd9c0a0e858d50b365dc9f3d9/page.png": "7c845ea69da60c2834658687c45e4cddd48fdef2b2b4b4f1e85fb4d8793e7879",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1780bc1fe14ca4fce9b6e69fc6eca291e772c9f6a42358b671cf45520225c031/page.png": "61b0c79f0599aad64e1946c5effef2c4b49e85f7244f6f46c884161684422959",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ebca7ce5a77e4e4a582eeaadf1e89bd09003c7c956302dc11dbeb00d0ee629cf/page.png": "eba30941c8e92235b290164d0198992127336dfbdac1681fdeb0dd02a221a058",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/6d5dd5c0b8e56348c3f41341bfbe6e93b68eb55e1dd88f284871640f0c6d7cd6/page.png": "646509383db86f604323e4d96701a70ce7ecd5886a80dd0b2d96f13a5e207a76",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f955bc9e07348b4b56109db36b8441e50a949d3c7cbd011250c89e47d3185097/page.png": "882f7bd4e976d475567cec81808ee74c630b4f3f1fbaa459289321bcb7bb0e18",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/a499db0dfb79afa50a726cc3bb52dc0bd6498b6acfc9d7c6b892941d1722e491/page.png": "54968ca4410fd2ccbc7c037b4059555c1d5caad80a906d0e25df65c47eeffb79",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/6ecfb10f43fe2e569255d45ef70bb8505b1c7c08e5869b309851fc36752f5fd5/page.png": "487cb3810b1e9e9d624adaef8be39700d043a881d4bfbd4f2b8c43eced33f95a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7a1a1f959d78a3bffde6b572919d7d702d020a35d3001f9fd897c7822667a4be/page.png": "fffb19b9c1970f1dbcc5c08a6d7cb1e63b61b2c365bda3c389ca3a88b691e2ff",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4acdadc749099076f6a37ec8302f30e0c615b8783ad9c28e2992d86e6b199a35/page.png": "8502c718a0fca8cdba0f412e6dfff72889f9568dbbee269d8cb171952b56ba52",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/42bd8b34fd89b2a2b6587fce89c4c3a42fefb6d42a2c05a9924666004fc5d055/page.png": "7ecb04af4bb834bb72618833418e37fb76771091d8c685c2feec71459159987e",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ba02369da7687891ca8ce09be9bd7602a6f11a632006fd1e4e98de315f1297c0/page.png": "ea9bbb1b336a6c9405777da7f46b57d7bbc50a38c1134739142dd2cc240a842b",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2a9528a1313c8e5a8b9d01b6663b7561427d0ebd9fcba7be38c7f016485cce30/page.png": "b36147b5ce0a7cefcd06cb40d696b2382f53e77da4835cc78c85041542e1abaa",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/503e7ed57f696926c10cbdaadb0bd47bcd2a9b99a123e96b38301a0dfb3d68c1/page.png": "e2bd1cbd93c8b519598c538df1deab39b0a13d3f4b547e9214808d4fc898542f",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2c9a7f8dcf4302d61d3aeff5543ff4770ed0e80c6f3aac79e847a9c35b0a9062/page.png": "ce3914ad73944cd2ef17517bcc884a23cb565657fa432019b4fe2c385a3129dd",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fd05178d412b018747c3e825a8e3afd786268ca30f3e168f1384a4e56b71787d/page.png": "c0a25ea0ba80bc5cf9ffa4169060bfe9ad27323db7a993df27194ff61dff07ae",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/83f4faf2d4936fd5b2f57bfdd2778b6bea79ad1e39443bae54692bb60d6986bd/page.png": "dc1c4eeb069eb1544856d327236be000804cb45a78629f9af068ef2192a74fc3",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/37b4080e968293b3a011511c3bc047269668c32c8723347cf21d057e58cd788c/page.png": "fe214b172aca4fd3f82e551ec9b7faf5f6fb49366d58771bf24b3882e16d6af9",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/57ed234773f420c7ef7fa7e10796802de37e72c9f9da6f844ee7dd7d4e6bd7c6/page.png": "da78a72c5a02ea6f6fcfe2c5f49d522426c7a3f169debbcd3e2d67fbf202f0ce",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4e3f02005aaebf7c27d6c89a0311d16b0d3fa1391a48cb6f831e8e0eff3af646/page.png": "dc909e6f1c1ec69ed0bfe37e8e0acd9cb828befcfbc51051c9ac3b684372a548",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fc75a38b99db1a563b3c6012d886b80feb476951a932dee330ea1d0c56481dd8/page.png": "700f5b47a890c86e018a2274dccbaef26b4f834f2d1ccb0d772933d0b391fd16",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b177b18a2aef1220d7faf3f6774e67e1139a192820b4b20d98e329dab31793d2/page.png": "247d45afbb800c9c1d50496ebca56bc894f7c6d3065f8b8e06d897aabb0bb1d8",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/85bd221f1bc9e3e89913ab936bd62afb3d540575fc022158d238c440a3b9b510/page.png": "3cae8bd61776d850b24dc7e353a17bb9c2228f361fea4939b3e141a415d61e03",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ea495d84d6e394ad7d3dbf5ec820ad820927e0c9b13e6b6889c587036f0e37dd/page.png": "e7c38c2017f25bdc27850ed8d975fe099b2bd87d53b0c536e05cc9af687eba93",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ac8dae7c842bf67284e8a3cb1110c64ca99c451b4ca7f87fa0aed9fca53cb04e/page.png": "3064aedf70274d3f0a32ab56d2093470a973460b860ab4139608f6c243f3fa29",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e9eab44a2cf2a2736c4f1326ffc11fd557ae3bfea48b29337ad05ce3175e49a1/page.png": "5928d5d39e18e8bd6525c34dd27408b8e061308100f5259d7c2ee73d51a6cdad",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/63f29ff8343ed85ebe189f3c10282f4f1d65071822a4133794830c2a75f25a1d/page.png": "5499e275e0af767e6c4eca2cefb92c25e87c69cf6100592903f9ecf8f7a43fdf",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/22f61541fb9c49b87a4b1219c83673334eb6b75bd9aa7a865d9dbd7d4c1a5709/page.png": "d3abd7b87f57504e3cb7486d9a79d1a93fc661bd84d68b0a95389bfe04ae8ba2",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/18d31723ce7d42c80588855c514278f0f51e8f20557454b203551b07a110bf67/page.png": "479f6db689a7afdee861b9d38c8db4345784b44de9951fb47209aad427b0771a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9875df34a357a2f495272e34f01c2a93a4df9474361b1eaec1a8c2e48fd264ba/page.png": "17def51b81c26c0b49a2afc4fa5f86651a90e8c85eab1bbf7e817b8fe227ded9",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/56e20730bb5895ab447ac372abc5bffd29c6bd4718fcc99ed3805085857856d1/page.png": "bc0550fa2a396d039372a1f0059ec8192eb44fb6957075b7e76a27a6b8d14fe0",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d890fd2bc135d08aa3cb22df75464e0c7c2e0ed62c32ef5e1d35608891a1ee3d/page.png": "c9914886cb1389f983e4e2f614ea9bea04157e546074ba364f7d68eea8ae50c3",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/8248749726bb0720a324c5f72ff89c0b5f018b5b7c06884a942cdf5768728fc6/page.png": "657a9567dd4d1750b8535f68abbfc2f681293f1ae13c50cc9bdde6a24deea84f",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/52d147ab2359a39c832adcecff1c2727bbcf601438837300840830079d260dc6/page.png": "406407749bed3ca7324f1459ba0af0b641b0e3e4d8c0bf3a003608335ed606a7",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3b5ec43a4d1a4b91a509c58bbe7d35707fb538d8e20cd23fc0767834677a182e/page.png": "9962551246da3a7bda1a17c88f8d5899be565cfde8d7bff263aeec307fd79011",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/af879f78d91fbf2511da318ae7bd59a799346de30784066069408c95d7d589fb/page.png": "29b1df9c0b3fd5439f03fb2fb57e777a31f988defe35f856495ee0feda6edc0c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d6965fc5e0a34d564d938a33ff5f09c694229f333f3df08241de7d8d003a0edc/page.png": "98d023bdb96ed4c7760aeab26af92fa9608019d71f33e0405ed56413da6a3c88",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5e442b5acb313990a520d072c9f31d28f9cd767ca88357257a984ff2f01b2921/page.png": "c2aed993266fae83f15c0817395aa8b9957c13794217ace5b21e85f196c6402c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/59c23cd2b70b21d519cc9d5c82a24eb1c86b5afee2e67b446de6b453f472bbcf/page.png": "7bbebefe96ce8641b42f6d4d3ed3046c4f5275935e8104431c0f81891adaad1b",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0b41cd1997f67940b1ac08b7a746587c21251355c1590b6a4628eb0f00d6edb8/page.png": "790abd28fa1afc2320164ca5b8c874787f49844e44aa2620b81b90ac9268455c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c0499ec105373b8ad9785a269ed40f886ac95f791c825a6dce5c605065de5f26/page.png": "8b1a95df74f452b8000f902aef70581505e19c43094084057d2d40c649c3b3e1",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/fd1bc1e78ada26a246faccfa1794eeab7240c6e43538fe9a890e0f67f2afa61a/page.png": "56f9f81582eedf85c91ec8a98a25b5ca177556617b092872d38723974e85ac2a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5c7bd60500cb2a9d5bfccdd37c76e6fd6cfd1e33774601f5eb57f84a2212beb4/page.png": "e888c8d32904dedac3bd2cfe3e2a0b092b02ee5c18a81f9893e6e7c4cceb35fe",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/16f7c7ed92964515bbcf6f9e29ab3097634f1472f630de51cad364e67e2ea59e/page.png": "b443ea090757681e33e063aaf31b8e58ccf33533ae9ded6c7dcfd93842d9824e",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/129d0ce5b6e05f72199985ced995e30e252d2d9cacb3e3b6df84b2eb6434a5b2/page.png": "54886ffe2f4f6f5fb3d9359206dca14086edfc04f9ddf0ef36316831bbe546dd",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1ddb7c25e4b77aa397bc8c9e80f6a5858d3b2894ddf11324c7cf34d423e5060f/page.png": "e9a9399354cacef61aa5ba82211e66485d3f380a394ccf8ee2a46c950a514d62",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/95395f8806092e721a6f674775f22cb169ab3181640ec14ba2c62e3ff55303f9/page.png": "ab30bb6328246d479970388c21c9bc7bdd8b16ba5350c36ae1cd6d98dab14059",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4581df943f0b30d950cd28415998fce44ade9c44a75d3c5fa142a927ecf182f2/page.png": "a9fead45eea4a71fc5e8806317303e0a6fe82fd56bac21a6d182b70d65d93e12",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5543a34f4d3b8b52bbb791db4d43b88a1a6c0d813f340c549b4ef1adc59b31a7/page.png": "4d91b2b3fcae84c3b06615482ae1d00931fa4cea4c75714dad082dbd9b1a1acd",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/de440507d4fac1d09432d9e7088db4dde3521f6150e4e7b079abde96c9195959/page.png": "569911fd1d8478ec054c911db035d49d8b0698d9dadc3a4f86a1b89d22ad0d84",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9db10a5df4bcd6a55e640ef8f6ba45eec139c8031f20dd5644f765d6a5b6225a/page.png": "7e99e135cbf252d9a6c8c4bc50e382cec856d0f87cd87e855576f6572b576b9c",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ffdede136331fffb396b4273e788a86736718feec56aa7cd69d5f792110a790f/page.png": "abcbc8c7e363e7d9e1862e7bd1fedbf1f70eb02e16fa83928410021fdbc77815",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/1d3eb0616241053d20fb26dd41c0953fc377ffa6d77d7d1759ad61ab30bca68f/page.png": "c1f4df984eef296329f73e10baec573693509b644fddc956d10aa0c147148a4a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b81ff5b0b357feb835b08b7a94f5d55dce8d613d264c6c48a143895091cd45c/page.png": "db9fbb7362c96d14eda04f1c1cbc25549bc79a7e52c0a98cd2eed62e6f936972",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/35309109c5b5d19e997ec70f4bafd71a0f3ae36ccc55bf4a17cb93fb1caae664/page.png": "05655e4952349548b8189f750acf124e43ec250a6516053d51873e398d900e7a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/0eec4baf6bfd363f64b034675a061427a381294cc35f929a3f906c644a23fe98/page.png": "ba705d1ba5761424055d06193e304b7d1bcff2883d7ef2faa28e96a3e3d8618e",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d0bd07e6bf4b356d338d855c1adce99cc3abb2ca31cf53be90f7bcd5764b55c9/page.png": "13a4b77d012d76223acc6635945ca6527156ea93d0fca478c6f060f83b55bf92",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/3757db394b95b6bce62b109cf5e17b981b1235440eac1d2cd2af227a9962fbbd/page.png": "b12478e7082c517c70fa11760a56423c43aadf85a0806fdd23da5ad4f31fe4b1",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c26017a0264e4f4386aeab266be1d4c07b0f7f15727ef3612b02eada00e35c45/page.png": "3925461a17ae744172d558cc18460bd03745b23351607436732e763cd9d5d68a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7deb60471c2799e6cd9756b47eb809805b3b85f85aa31ebc5ff1f001bf4bfa45/page.png": "cb12ce55168c38dafc3c93151a13200192c8d730ae9cbaa99a4a15ef04546d94",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/e40f579af7726edcbd597dbbad6b7fb772b98ef61e8402a7a9556b943eebc38d/page.png": "b8f17762dd847fc12700d4fa1848b8ef733dde181f31551d741c6a1e8656ddff",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/f98d90ec169412620c1747eb5a1cb08fc63e021ae6bafa3825e168e3377d46bd/page.png": "bcc3fa9b079c35cfb7cfb093fa4d6f18bdb66319900aec6779649cade0c0fb31",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ff3ea22452590d08f3ca64acd771ffb15ce44dd3461d1a2b5d9b09c8f8ef4f8a/page.png": "10e0c0c0ae57bc7cd7fed25a89c70580c798a4a3a88c1431a824d49a9b24d868",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/bd4da77cf4ecf6254cca280a019013c133e3b55b8c1e86f312377b63c8b88785/page.png": "89edc63bda57ee424fe2e0f4f4cc0b28048ed2073d4c7031151de5f21d6ee161",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/4f39efbea0718fec47ed2f077274ae67eefd307f6bb0257f3da08f15838fc4c0/page.png": "3209016827b2b3c6dafd3b9c70a6b7952026b40ac1914bc3f90694ff5a4bb16a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9f46997ecd1601ca5748bb3d675391e19c2190daf2781d377b8d6b9e884febd6/page.png": "f5a4277c5f67e8e792af37de96b471b69d2aa28fa671609db2f55fe5006d0975",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/evaluation/d7cb192e197477ea236b6205d6fcc3fb8d9f3448152b16dd8f49a2d323cbf775/page.png": "aeca4153478805f362fdbda3b6001a65f13b5146d006f003db993c847758f66a",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/9578b9e27e084a6cb0589204c69cb26d816e3eec608ed4363fc20a0188d84765/page.png": "b27a2203c076932e9e78ca7f2679f6bf5d459db5efb255a4109afec4c5ce3cda",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/c4cad2d84f3e31f09b763cb1cb0a398f9482d45a8cfcd348a948efb41d7c4fd5/page.png": "08898bdbb198c57bed252422dab9e676917e413268654b8988d9e7442e862be4",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/7b7860be48bb3fd34428b24b269bb926dc916497d98c9541f12562dec12d8f84/page.png": "9006fffd0327e3c897c4b7dff831ea2d1a4e26743a3a164cb9750e70679548bd",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/da02da205ad0adc69ec629bdd4e6e70d95900d4800ed1c528352e7626afcb2c9/page.png": "106cd4e8167bceadb1d44b591aad058f7a7923c05bf2a85db04775b4767ec8f1",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/5e0675211d78e3d1681d83ef7b1c30394e6e827d99b4d999dde678d1f3a86912/page.png": "ecb5918ee882d2691fa61515e9e564791b3cf36b5a3d1afba18c623ef3d70db3",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/b1149cb28db95616a9bd21982fbbd3048ee4c4f406149ff7fc60807514ed6c23/page.png": "a8c3373a5a12c23fa3679f01fae6a11a30dc52ba8f7b47609f65378318dc0711",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/2418267e61eb20bce7b7f71cbff1fe50e07553ac378be639ab498f920d1f14dc/page.png": "81be2c5938ca156d96d455aa5a1ae4e7f73e2b849ee470ef5b1a3883bffa1776",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/ca1f924627f16c2cc094630f3128a8a5dd2dbd0ed09a052ffa2b601517ca792f/page.png": "de87fee275c1ec56465a9cdb37aa6214de82460b37e3586fd3570d5af03fdda0",
+    "/project2/yzhao010_1531/csci_699_new_arch/poisoned-paperwork/outputs/csev_inputs/csev_receipts_v1/attacks/d8aef3d90c041cf83727f971458f656da1787798cde14720ae76c2d2c2cc9ec7/page.png": "9c1f2b869daff1b6871afdde82010c34213e10a64798684b574482cb9c746deb",
+    "/home1/pkandpal/.conda/envs/paperwork-ocr-v1/share/tessdata/eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "/home1/pkandpal/.conda/envs/paperwork-ocr-v1/share/tessdata/ind.traineddata": "69786901da87ab8766c1ea7fbb10b28f2110c14da3f6c8f2735df131fba95d88"
+  },
+  "selection": "First 15 record IDs with all nine saved attacks; diagnostic subset, not representative performance estimate."
+}

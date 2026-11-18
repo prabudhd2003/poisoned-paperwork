@@ -1,0 +1,38 @@
+{
+  "complete": true,
+  "runs_completed": 40,
+  "runs_planned": 40,
+  "groups": [
+    {
+      "epsilon_255": 8,
+      "documents_planned": 10,
+      "documents_with_any_restart": 10,
+      "documents_with_all_restarts": 10,
+      "success_documents_all": 0,
+      "eligible_documents": 10,
+      "success_documents_eligible": 0,
+      "runs_completed": 20,
+      "runs_succeeded": 0,
+      "runs_rejected": 0,
+      "runs_correct": 20,
+      "saved_standard_attack_undefended_targeted": 1,
+      "success_ids": []
+    },
+    {
+      "epsilon_255": 16,
+      "documents_planned": 10,
+      "documents_with_any_restart": 10,
+      "documents_with_all_restarts": 10,
+      "success_documents_all": 0,
+      "eligible_documents": 10,
+      "success_documents_eligible": 0,
+      "runs_completed": 20,
+      "runs_succeeded": 0,
+      "runs_rejected": 1,
+      "runs_correct": 19,
+      "saved_standard_attack_undefended_targeted": 1,
+      "success_ids": []
+    }
+  ],
+  "note": "Bounded direct attack on frozen v4 resume contextual recovery. First ten reserved resumes with saved attacks in the frozen order, not selected on outcomes. Missing runs are not attack failures. A document counts as a success if any completed restart yields an accepted target on the saved, reloaded pages. Not a robustness guarantee."
+}

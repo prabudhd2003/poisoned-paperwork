@@ -1,0 +1,62 @@
+{
+  "source_archive": "1859fd630629d16e9996dd9a4cf61df578a9ef87b27ae059c45f18329a50b261",
+  "runner": "c472eaeed29f0fcb34b0000c31da61cb73fa644c90fa7b66c1f9098edae87d67",
+  "inputs": "52daf2b266c01be18e305f893fbc2bd7209495b8077970b434889cc1719d9352",
+  "plan": "d56c46ec860f006208e26c9a0c6495321e0932e60463ce29e724209ff52c6283",
+  "config": "e6d3742fdf1681a6d45d0ee97ad9ec92178519c954ef496d719b80104256441c",
+  "roles": "011a2554ee2d6057fbfc8db16e0e9f5eb9b4acf2c5dd7771d1de17b68d13a16a",
+  "policy": {
+    "version": "donut_hybrid_v1",
+    "reader": {
+      "model_id": "naver-clova-ix/donut-base-finetuned-docvqa",
+      "revision": "b19d2e332684b0e2d35d9144ce34047767335cf8",
+      "precision": "float32",
+      "max_length": 64
+    },
+    "saved_attack_source": "Qwen; transfer evaluation only",
+    "localizer": "frozen Qwen2.5-VL from bundled config",
+    "donut_processor_tolerance": {
+      "max": 1e-06,
+      "mean": 1e-08,
+      "surrogate_mean": 0.05
+    },
+    "seed": 566,
+    "band_min_height": 0.12,
+    "band_margin": 0.03,
+    "band_max_height": 0.35,
+    "expanded_margin": 0.03,
+    "expanded_max_height": 0.45,
+    "fixed_band_vertical": [
+      0.25,
+      0.75
+    ],
+    "methods": [
+      "none",
+      "jpeg",
+      "resize_vote",
+      "selective_multiview",
+      "semantic_consistency",
+      "ocr_only",
+      "evidence",
+      "fixed_band",
+      "band_answer",
+      "band_agreement",
+      "verified_recovery"
+    ],
+    "adaptive_methods": [
+      "none",
+      "band_agreement",
+      "verified_recovery"
+    ],
+    "adaptive_epsilons": [
+      4,
+      8
+    ],
+    "adaptive_restarts": 2,
+    "adaptive_steps": 100,
+    "adaptive_queries": 100,
+    "refresh_interval": 10,
+    "adaptive_documents": 10,
+    "primary_method": "verified_recovery"
+  }
+}

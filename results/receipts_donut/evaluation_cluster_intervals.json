@@ -1,0 +1,1322 @@
+[
+  {
+    "family": "clean",
+    "method": "none",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.8444444444444444,
+    "lower": 0.7333333333333333,
+    "upper": 0.9333333333333333
+  },
+  {
+    "family": "clean",
+    "method": "none",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "none",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9777777777777777,
+    "lower": 0.9333333333333333,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "jpeg",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.8444444444444444,
+    "lower": 0.7333333333333333,
+    "upper": 0.9333333333333333
+  },
+  {
+    "family": "clean",
+    "method": "jpeg",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "jpeg",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9777777777777777,
+    "lower": 0.9333333333333333,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "resize_vote",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.8444444444444444,
+    "lower": 0.7333333333333333,
+    "upper": 0.9333333333333333
+  },
+  {
+    "family": "clean",
+    "method": "resize_vote",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "resize_vote",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9777777777777777,
+    "lower": 0.9333333333333333,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "selective_multiview",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.8444444444444444,
+    "lower": 0.7333333333333333,
+    "upper": 0.9333333333333333
+  },
+  {
+    "family": "clean",
+    "method": "selective_multiview",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "selective_multiview",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9777777777777777,
+    "lower": 0.9333333333333333,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "semantic_consistency",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.7777777777777778,
+    "lower": 0.6444444444444445,
+    "upper": 0.8888888888888888
+  },
+  {
+    "family": "clean",
+    "method": "semantic_consistency",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "semantic_consistency",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9333333333333333,
+    "lower": 0.8666666666666667,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "ocr_only",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.26666666666666666,
+    "lower": 0.15555555555555556,
+    "upper": 0.4
+  },
+  {
+    "family": "clean",
+    "method": "ocr_only",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "ocr_only",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.28888888888888886,
+    "lower": 0.15555555555555556,
+    "upper": 0.4222222222222222
+  },
+  {
+    "family": "clean",
+    "method": "evidence",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.24444444444444444,
+    "lower": 0.13333333333333333,
+    "upper": 0.37777777777777777
+  },
+  {
+    "family": "clean",
+    "method": "evidence",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "evidence",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.24444444444444444,
+    "lower": 0.13333333333333333,
+    "upper": 0.37777777777777777
+  },
+  {
+    "family": "clean",
+    "method": "fixed_band",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.6666666666666666,
+    "lower": 0.5333333333333333,
+    "upper": 0.8
+  },
+  {
+    "family": "clean",
+    "method": "fixed_band",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "fixed_band",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9555555555555556,
+    "lower": 0.8888888888888888,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "band_answer",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.7333333333333333,
+    "lower": 0.6,
+    "upper": 0.8666666666666667
+  },
+  {
+    "family": "clean",
+    "method": "band_answer",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "band_answer",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.9333333333333333,
+    "lower": 0.8444444444444444,
+    "upper": 1.0
+  },
+  {
+    "family": "clean",
+    "method": "band_agreement",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.6444444444444445,
+    "lower": 0.5111111111111111,
+    "upper": 0.7777777777777778
+  },
+  {
+    "family": "clean",
+    "method": "band_agreement",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "band_agreement",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.6666666666666666,
+    "lower": 0.5333333333333333,
+    "upper": 0.8
+  },
+  {
+    "family": "clean",
+    "method": "verified_recovery",
+    "metric": "correct",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.6888888888888889,
+    "lower": 0.5555555555555556,
+    "upper": 0.8222222222222222
+  },
+  {
+    "family": "clean",
+    "method": "verified_recovery",
+    "metric": "targeted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "clean",
+    "method": "verified_recovery",
+    "metric": "accepted",
+    "documents": 45,
+    "cases": 45,
+    "estimate": 0.7555555555555555,
+    "lower": 0.6222222222222222,
+    "upper": 0.8666666666666667
+  },
+  {
+    "family": "standard",
+    "method": "none",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "standard",
+    "method": "none",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "none",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9696969696969697,
+    "lower": 0.9166666666666666,
+    "upper": 1.0
+  },
+  {
+    "family": "standard",
+    "method": "jpeg",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8636363636363636,
+    "lower": 0.75,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "standard",
+    "method": "jpeg",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "jpeg",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9696969696969697,
+    "lower": 0.9166666666666666,
+    "upper": 1.0
+  },
+  {
+    "family": "standard",
+    "method": "resize_vote",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8560606060606061,
+    "lower": 0.7424242424242424,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "standard",
+    "method": "resize_vote",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "resize_vote",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9696969696969697,
+    "lower": 0.9166666666666666,
+    "upper": 1.0
+  },
+  {
+    "family": "standard",
+    "method": "selective_multiview",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "standard",
+    "method": "selective_multiview",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "selective_multiview",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9696969696969697,
+    "lower": 0.9166666666666666,
+    "upper": 1.0
+  },
+  {
+    "family": "standard",
+    "method": "semantic_consistency",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7954545454545454,
+    "lower": 0.6818181818181818,
+    "upper": 0.9090909090909091
+  },
+  {
+    "family": "standard",
+    "method": "semantic_consistency",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "semantic_consistency",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9166666666666666,
+    "lower": 0.8409090909090909,
+    "upper": 0.9772727272727273
+  },
+  {
+    "family": "standard",
+    "method": "ocr_only",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.25,
+    "lower": 0.14393939393939395,
+    "upper": 0.36363636363636365
+  },
+  {
+    "family": "standard",
+    "method": "ocr_only",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "ocr_only",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.25,
+    "lower": 0.14393939393939395,
+    "upper": 0.36363636363636365
+  },
+  {
+    "family": "standard",
+    "method": "evidence",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.22727272727272727,
+    "lower": 0.12878787878787878,
+    "upper": 0.3333333333333333
+  },
+  {
+    "family": "standard",
+    "method": "evidence",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "evidence",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.22727272727272727,
+    "lower": 0.12878787878787878,
+    "upper": 0.3333333333333333
+  },
+  {
+    "family": "standard",
+    "method": "fixed_band",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6666666666666666,
+    "lower": 0.5301136363636364,
+    "upper": 0.803030303030303
+  },
+  {
+    "family": "standard",
+    "method": "fixed_band",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "fixed_band",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9621212121212122,
+    "lower": 0.9015151515151515,
+    "upper": 1.0
+  },
+  {
+    "family": "standard",
+    "method": "band_answer",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7196969696969697,
+    "lower": 0.6287878787878788,
+    "upper": 0.803030303030303
+  },
+  {
+    "family": "standard",
+    "method": "band_answer",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "band_answer",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.946969696969697,
+    "lower": 0.9015151515151515,
+    "upper": 0.9848484848484849
+  },
+  {
+    "family": "standard",
+    "method": "band_agreement",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6666666666666666,
+    "lower": 0.553030303030303,
+    "upper": 0.7727272727272727
+  },
+  {
+    "family": "standard",
+    "method": "band_agreement",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "band_agreement",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.696969696969697,
+    "lower": 0.5909090909090909,
+    "upper": 0.7954545454545454
+  },
+  {
+    "family": "standard",
+    "method": "verified_recovery",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6818181818181818,
+    "lower": 0.5833333333333334,
+    "upper": 0.7727272727272727
+  },
+  {
+    "family": "standard",
+    "method": "verified_recovery",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "standard",
+    "method": "verified_recovery",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7272727272727273,
+    "lower": 0.6363636363636364,
+    "upper": 0.8181818181818182
+  },
+  {
+    "family": "uniform_eot",
+    "method": "none",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "uniform_eot",
+    "method": "none",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "none",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9848484848484849,
+    "lower": 0.9545454545454546,
+    "upper": 1.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "jpeg",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "uniform_eot",
+    "method": "jpeg",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "jpeg",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9848484848484849,
+    "lower": 0.9545454545454546,
+    "upper": 1.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "resize_vote",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "uniform_eot",
+    "method": "resize_vote",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "resize_vote",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9848484848484849,
+    "lower": 0.9545454545454546,
+    "upper": 1.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "selective_multiview",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8712121212121212,
+    "lower": 0.7651515151515151,
+    "upper": 0.9621212121212122
+  },
+  {
+    "family": "uniform_eot",
+    "method": "selective_multiview",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "selective_multiview",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9848484848484849,
+    "lower": 0.9545454545454546,
+    "upper": 1.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "semantic_consistency",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8106060606060606,
+    "lower": 0.696969696969697,
+    "upper": 0.9168560606060595
+  },
+  {
+    "family": "uniform_eot",
+    "method": "semantic_consistency",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "semantic_consistency",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9393939393939394,
+    "lower": 0.8712121212121212,
+    "upper": 0.9924242424242424
+  },
+  {
+    "family": "uniform_eot",
+    "method": "ocr_only",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.25757575757575757,
+    "lower": 0.14393939393939395,
+    "upper": 0.3712121212121212
+  },
+  {
+    "family": "uniform_eot",
+    "method": "ocr_only",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "ocr_only",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.2727272727272727,
+    "lower": 0.16666666666666666,
+    "upper": 0.37897727272727166
+  },
+  {
+    "family": "uniform_eot",
+    "method": "evidence",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.24242424242424243,
+    "lower": 0.13636363636363635,
+    "upper": 0.3560606060606061
+  },
+  {
+    "family": "uniform_eot",
+    "method": "evidence",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "evidence",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.24242424242424243,
+    "lower": 0.13636363636363635,
+    "upper": 0.3560606060606061
+  },
+  {
+    "family": "uniform_eot",
+    "method": "fixed_band",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6742424242424242,
+    "lower": 0.5378787878787878,
+    "upper": 0.8106060606060606
+  },
+  {
+    "family": "uniform_eot",
+    "method": "fixed_band",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "fixed_band",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9621212121212122,
+    "lower": 0.9015151515151515,
+    "upper": 1.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_answer",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7651515151515151,
+    "lower": 0.6666666666666666,
+    "upper": 0.8560606060606061
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_answer",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_answer",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9393939393939394,
+    "lower": 0.9015151515151515,
+    "upper": 0.9772727272727273
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_agreement",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7121212121212122,
+    "lower": 0.5982954545454546,
+    "upper": 0.8106060606060606
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_agreement",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "band_agreement",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7575757575757576,
+    "lower": 0.6590909090909091,
+    "upper": 0.8484848484848485
+  },
+  {
+    "family": "uniform_eot",
+    "method": "verified_recovery",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7196969696969697,
+    "lower": 0.6134469696969698,
+    "upper": 0.8106060606060606
+  },
+  {
+    "family": "uniform_eot",
+    "method": "verified_recovery",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "uniform_eot",
+    "method": "verified_recovery",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7878787878787878,
+    "lower": 0.696969696969697,
+    "upper": 0.8636363636363636
+  },
+  {
+    "family": "hardview",
+    "method": "none",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8636363636363636,
+    "lower": 0.7575757575757576,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "hardview",
+    "method": "none",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "none",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9772727272727273,
+    "lower": 0.9393939393939394,
+    "upper": 1.0
+  },
+  {
+    "family": "hardview",
+    "method": "jpeg",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8636363636363636,
+    "lower": 0.7575757575757576,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "hardview",
+    "method": "jpeg",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "jpeg",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9772727272727273,
+    "lower": 0.9393939393939394,
+    "upper": 1.0
+  },
+  {
+    "family": "hardview",
+    "method": "resize_vote",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8636363636363636,
+    "lower": 0.7575757575757576,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "hardview",
+    "method": "resize_vote",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "resize_vote",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9772727272727273,
+    "lower": 0.9393939393939394,
+    "upper": 1.0
+  },
+  {
+    "family": "hardview",
+    "method": "selective_multiview",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.8636363636363636,
+    "lower": 0.7575757575757576,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "hardview",
+    "method": "selective_multiview",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "selective_multiview",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9772727272727273,
+    "lower": 0.9393939393939394,
+    "upper": 1.0
+  },
+  {
+    "family": "hardview",
+    "method": "semantic_consistency",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7954545454545454,
+    "lower": 0.6742424242424242,
+    "upper": 0.9090909090909091
+  },
+  {
+    "family": "hardview",
+    "method": "semantic_consistency",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "semantic_consistency",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9166666666666666,
+    "lower": 0.8409090909090909,
+    "upper": 0.9772727272727273
+  },
+  {
+    "family": "hardview",
+    "method": "ocr_only",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.29545454545454547,
+    "lower": 0.17424242424242425,
+    "upper": 0.42424242424242425
+  },
+  {
+    "family": "hardview",
+    "method": "ocr_only",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "ocr_only",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.30303030303030304,
+    "lower": 0.18181818181818182,
+    "upper": 0.4318181818181818
+  },
+  {
+    "family": "hardview",
+    "method": "evidence",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.2803030303030303,
+    "lower": 0.1590909090909091,
+    "upper": 0.4090909090909091
+  },
+  {
+    "family": "hardview",
+    "method": "evidence",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "evidence",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.2803030303030303,
+    "lower": 0.1590909090909091,
+    "upper": 0.4090909090909091
+  },
+  {
+    "family": "hardview",
+    "method": "fixed_band",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6666666666666666,
+    "lower": 0.5301136363636364,
+    "upper": 0.803030303030303
+  },
+  {
+    "family": "hardview",
+    "method": "fixed_band",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "fixed_band",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9545454545454546,
+    "lower": 0.8863636363636364,
+    "upper": 1.0
+  },
+  {
+    "family": "hardview",
+    "method": "band_answer",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.7196969696969697,
+    "lower": 0.6287878787878788,
+    "upper": 0.803030303030303
+  },
+  {
+    "family": "hardview",
+    "method": "band_answer",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "band_answer",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.9090909090909091,
+    "lower": 0.8560606060606061,
+    "upper": 0.9545454545454546
+  },
+  {
+    "family": "hardview",
+    "method": "band_agreement",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6439393939393939,
+    "lower": 0.5303030303030303,
+    "upper": 0.75
+  },
+  {
+    "family": "hardview",
+    "method": "band_agreement",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "band_agreement",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6439393939393939,
+    "lower": 0.5303030303030303,
+    "upper": 0.75
+  },
+  {
+    "family": "hardview",
+    "method": "verified_recovery",
+    "metric": "correct",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.6893939393939394,
+    "lower": 0.5909090909090909,
+    "upper": 0.7803030303030303
+  },
+  {
+    "family": "hardview",
+    "method": "verified_recovery",
+    "metric": "targeted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.0,
+    "lower": 0.0,
+    "upper": 0.0
+  },
+  {
+    "family": "hardview",
+    "method": "verified_recovery",
+    "metric": "accepted",
+    "documents": 44,
+    "cases": 132,
+    "estimate": 0.696969696969697,
+    "lower": 0.5984848484848485,
+    "upper": 0.7878787878787878
+  }
+]
