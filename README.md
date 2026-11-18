@@ -4,9 +4,9 @@
 
 Prabudhd Krishna Kandpal · Gary Fenton · Saaketh Kanduri · Khalid Ali · Shail Shah
 CSCI 566: Deep Learning and its Applications, University of Southern California, Fall 2026
-[Poster (PDF)](poster/poster.pdf) · [All results](docs/RESULTS.md) · [How to reproduce](docs/REPRODUCE.md)
+[Poster (PDF)](docs/poster.pdf) · [All results](docs/RESULTS.md) · [How to reproduce](docs/REPRODUCE.md)
 
-![Follow one receipt: photo + optimized pattern = attacked receipt; CBVR re-reads two bands and recovers $6.57](poster/follow_one_receipt.jpg)
+![Follow one receipt: photo + optimized pattern = attacked receipt; CBVR re-reads two bands and recovers $6.57](docs/figures/follow_one_receipt.jpg)
 
 ## The problem
 
@@ -28,7 +28,7 @@ and sent to a person, because "no attack succeeded" can just mean "everything wa
 |---|---|
 | **Questions** | the final total on a receipt; the highest degree on a resume |
 | **Readers** | Qwen2.5-VL-3B and Donut, frozen (no fine-tuning) |
-| **Data** | CORD, SROIE, 75 resumes, and **114 receipts we photographed ourselves** ([`collected receipts/`](collected%20receipts)), which no model saw in training |
+| **Data** | CORD, SROIE, 75 resumes, and **114 receipts we photographed ourselves** ([`data/collected_receipts/`](data/collected_receipts)), which no model saw in training |
 | **Attacks** | white-box PGD; uniform EOT and frequency hard-view EOT, which optimize *through* JPEG, resizing and voting; and attacks aimed at our defense itself |
 | **Target** | 10× the true total, or the next degree up |
 
@@ -48,7 +48,7 @@ reads each band separately. If both agree it returns that answer; otherwise a pe
 No training is needed, and because the answer comes from the bands, CBVR can *replace* a
 poisoned answer rather than only refusing.
 
-![All 12 defenses on the same 396 attacked receipts](poster/figures/c_results12.png)
+![All 12 defenses on the same 396 attacked receipts](docs/figures/c_results12.png)
 
 On 396 attacked images of 44 held-out receipts, CBVR returns the right total **354 times**
 (no defense: 64), and the attacker's total gets through **0 times**. Its 7 errors are other
@@ -69,7 +69,7 @@ know about CBVR, so we optimized against both bands at once on 19 receipts fixed
 **4 of 19** receipts at ε = 4 and **8 of 19** at ε = 8 (95% CI 23–64%), against 15 and 17
 of 19 with no defense. The two bands overlap and share one model, so one pattern can fool both.
 
-![The band CBVR read on each of the 19 receipts; red = broken at least once](poster/figures/c_wall19.png)
+![The band CBVR read on each of the 19 receipts; red = broken at least once](docs/figures/c_wall19.png)
 
 **5. Resumes held up.** On 236 saved attacks, wrong degrees accepted fell from 22 to 1.
 Attacks aimed directly at the defense (10 resumes, ε 8 and 16, two tries) returned the fake
@@ -92,13 +92,13 @@ Full tables with denominators: [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ## Reproducing
 
-Two stages: the **CARC pipeline** (L40S, Slurm) prepares data and generates the saved
-attacks; the **Colab studies** (one A100) evaluate CBVR and attack it. Every runner checks
+Two stages: **cluster jobs** (L40S, Slurm) prepare the data and generate the saved
+attacks; **Colab notebooks** (one A100) evaluate CBVR and attack it. Every runner checks
 the hashes of its code and inputs and resumes after interruption.
 Step-by-step instructions: [`docs/REPRODUCE.md`](docs/REPRODUCE.md).
 
 ```bash
-git clone https://github.com/prabudhd2003/poisoned-paperwork && cd poisoned-paperwork
+git clone -b final https://github.com/prabudhd2003/poisoned-paperwork && cd poisoned-paperwork
 bash scripts/setup_carc.sh      # environment (exact versions in env/requirements.lock.txt)
 python -m pytest tests -q        # CPU checks
 ```
@@ -107,17 +107,15 @@ python -m pytest tests -q        # CPU checks
 
 | Path | Contents |
 |---|---|
-| `src/` | models, data loading, attacks, defenses, CBVR (`src/csev/`), checkpointing |
-| `scripts/`, `configs/` | CARC stage launchers and the frozen JSON config for every run |
-| `colab/receipts/` | CBVR study on receipts and the three parts of the attack aimed at it |
-| `colab/resumes/` | resume recovery: development, saved attacks, reserved evaluation, direct attack |
-| `colab/donut/` | CBVR with Donut as the reader |
-| `results/` | summary tables and contracts from every Colab study |
-| `collected receipts/`, `annotations/` | our 114 receipt photos and their labels |
-| `notebooks/`, `midterm/` | CPU-only data preparation and analysis notebooks |
-| `poster/` | final poster (PDF and LaTeX source) |
-| `docs/` | [results](docs/RESULTS.md), [reproduction guide](docs/REPRODUCE.md), CARC runbook and per-stage protocols |
-| `tests/` | CPU tests for the pipeline |
+| `notebooks/` | data loading and preprocessing (01–03), then the Colab studies: receipts (04–05), resumes (06–08), Donut (09) |
+| `scripts/` | cluster launchers, input builders, and the Colab runners (`colab_*.py`) |
+| `src/` | models, data loading, attacks, defenses, CBVR (`src/csev/`) |
+| `configs/` | the frozen JSON config for every cluster run |
+| `data/` | our 114 receipt photos, their labels, and the receipt-study input lists |
+| `results/` | summary tables and hash contracts from every study |
+| `tests/` | CPU tests |
+| `docs/` | [results](docs/RESULTS.md), [reproduction guide](docs/REPRODUCE.md), [poster](docs/poster.pdf) |
+| `env/` | Python requirements |
 
 ## References
 

@@ -1,107 +1,117 @@
 # Reproducing the experiments
 
-The work runs in two places, in this order:
+There are two parts, run in order:
 
-1. **CARC pipeline** (`src/`, `scripts/`, `configs/`): prepares the data, measures clean
-   accuracy, and generates the saved attacks (standard PGD, uniform EOT, hard-view EOT).
-   It runs as checkpointed Slurm jobs on L40S GPUs. Exact commands are in
-   [`CARC_END_TO_END.md`](CARC_END_TO_END.md); each stage is described in `00_…` to `09_…`.
-2. **Colab studies** (`colab/`): CBVR and the other defenses on those saved attacks, the
-   attacks aimed at CBVR, resumes and Donut. Each notebook runs on one A100 (an L4 runs
-   out of memory on two-page resumes) and writes resumable results to Google Drive.
+1. **Cluster stages** (`src/`, `scripts/`, `configs/`) prepare the data, measure clean
+   accuracy and generate the saved attacks. They run as checkpointed Slurm jobs on
+   L40S GPUs (USC CARC); any Slurm cluster with similar GPUs works.
+2. **Colab notebooks** (`notebooks/04`–`09`) evaluate CBVR and the other defenses on those
+   saved attacks, attack CBVR directly, and run the resume and Donut studies. Each runs on
+   one A100 and writes resumable results to Google Drive.
 
-Everything is frozen by hash: each Colab runner records a `contract.json` (code, inputs,
-policy) and refuses to resume into a folder whose contract differs. To change anything,
-start a new study ID.
+Every run is frozen by hash: a runner records its code, inputs and settings in
+`contract.json` and refuses to resume into a folder whose contract differs. To change
+anything, start a new study ID.
 
-## 0. Environment
-
-```bash
-git clone https://github.com/prabudhd2003/poisoned-paperwork && cd poisoned-paperwork
-bash scripts/setup_carc.sh        # creates the "paperwork" env; pins in env/requirements.lock.txt
-python -m pytest tests -q          # CPU tests, no GPU or model weights needed
-```
-
-Models: `Qwen/Qwen2.5-VL-3B-Instruct` and `naver-clova-ix/donut-base-finetuned-docvqa`
-(revisions are pinned in the configs). The Colab notebooks build their own Python 3.11
-environment with the same package versions.
-
-## 1. Data
-
-| Dataset | Source | Used for |
-|---|---|---|
-| CORD, SROIE | public receipt sets, downloaded by `notebooks/01_data_loading.ipynb` | development, attacks |
-| Resumes | `resume_parsing_vision` (75 validation resumes) | degree task |
-| Self-collected receipts | 114 phone photos in `collected receipts/`, labels in `annotations/` | held-out evaluation |
-
-`notebooks/01`–`05` load, inspect and preprocess the data into `data/processed/`
-(`master_manifest.parquet`); `scripts/freeze_collected_external.py` freezes the
-collected set. The collected receipts were labeled by hand (`annotations/collected_receipt_labels.csv`).
-
-## 2. CARC: baselines and saved attacks
-
-Follow `CARC_END_TO_END.md` sections 0–6. The stages used by the final results are:
-
-| Stage | Config folder | Output |
-|---|---|---|
-| Clean baselines | `configs/baseline/` | clean accuracy (RESULTS §1) |
-| Standard Qwen / Donut attacks | `configs/qwen_attack/`, `configs/donut_attack/` | saved attack PNGs (RESULTS §2) |
-| Image-cleaning defenses | `configs/defenses/` | RESULTS §3 |
-| Uniform and hard-view EOT | `configs/jpeg_eot_attack/` | saved EOT PNGs |
-
-The Colab receipt studies read the saved attack PNGs listed in
-`colab/receipts/inputs/remote_files.txt`; their hashes are in `file_hashes.json`.
-
-## 3. Colab: CBVR on receipts (main result)
+## 1. Setup
 
 ```bash
-CARC_HOST=user@discovery.usc.edu bash colab/receipts/fetch_full_inputs.sh
+git clone -b final https://github.com/prabudhd2003/poisoned-paperwork
+cd poisoned-paperwork
+bash scripts/setup_carc.sh               # conda env "paperwork"; exact versions in env/requirements.lock.txt
+source scripts/activate_paperwork.sh
+export PYTHONPATH="$PWD/src"
+python -m pytest tests -q                # CPU checks
 ```
 
-This copies the 396 + 135 saved attacks and the clean images from CARC, rebuilds
+Models: `Qwen/Qwen2.5-VL-3B-Instruct` and `naver-clova-ix/donut-base-finetuned-docvqa`,
+with revisions pinned in `configs/`.
+
+## 2. Data
+
+| Notebook / script | What it does |
+|---|---|
+| `notebooks/01_data_loading.ipynb` | downloads SROIE, CORD v2 and the resume dataset into `data/` |
+| `notebooks/02_data_preprocessing.ipynb` | writes `data/processed/` and `master_manifest.parquet` |
+| `notebooks/03_collected_receipt_preprocessing.ipynb` | prepares our 114 receipt photos (`data/collected_receipts/`, labels in `data/annotations/`) |
+| `python scripts/freeze_collected_external.py --expected 114` | freezes the collected set by hash |
+
+## 3. Cluster: baselines and saved attacks
+
+Each stage is: write a runtime config, submit it, check it.
+`submit_stage.sh STAGE all CONFIG` submits all five workers as one array;
+`stage_status.py` reports progress and merges finished shards. Rerunning the same
+command resumes a stage.
+
+```bash
+# clean accuracy
+python scripts/prepare_stage_config.py baseline_collected
+bash scripts/submit_stage.sh baseline all outputs/runtime_configs/baseline_collected.json
+
+# standard targeted attacks (eps 2/4/8/16)
+python scripts/prepare_stage_config.py qwen_collected
+bash scripts/submit_stage.sh qwen_attack all outputs/runtime_configs/qwen_collected.json
+python scripts/stage_status.py qwen_attack qwen_collected_external_v1
+
+# EOT attacks that optimize through JPEG / resize / voting (uniform and hard-view)
+Q=outputs/qwen_attack/qwen_collected_external_v1/merged/records.parquet
+python scripts/prepare_stage_config.py jpeg_eot_qwen_collected --source qwen_collected="$Q" \
+  --output outputs/runtime_configs/qwen_collected_jpeg_eot_full_v1.json
+python scripts/prepare_stage_config.py jpeg_eot_qwen_collected_hardview --source qwen_collected="$Q" \
+  --output outputs/runtime_configs/qwen_collected_hardview_full_v1.json
+for C in qwen_collected_jpeg_eot_full_v1 qwen_collected_hardview_full_v1; do
+  bash scripts/submit_stage.sh jpeg_eot_attack all outputs/runtime_configs/$C.json
+done
+```
+
+The public-dataset runs (CORD, SROIE, resumes) and the image-cleaning defenses follow the
+same pattern with the configs in `configs/`. `python scripts/prepare_stage_config.py -h`
+lists every stage name.
+
+## 4. Colab: CBVR on receipts (main result)
+
+Build the input bundle from the saved attacks:
+
+```bash
+CARC_HOST=user@discovery.usc.edu bash scripts/build_receipt_study_inputs.sh
+```
+
+It copies the images listed in `data/receipt_study/remote_files.txt`, rebuilds
 `source.tar` (`git archive c5c5d52`, the code snapshot the runner checks), verifies every
-hash and writes `colab/receipts/csev_full_inputs.zip`. Upload it to Drive, then:
+hash and writes `data/receipt_study/csev_full_inputs.zip`. Upload it to Drive, set
+`DRIVE_FOLDER` at the top of each notebook, and run:
 
-| Step | File | What it does |
+| Order | File | What it does |
 |---|---|---|
-| 1 | `colab/receipts/1_cbvr_study.ipynb` | preflight → development (210 cases) → **stop and review** → freeze → reserved evaluation (441 cases) → summaries |
-| 2a | `2a_direct_attack_part1_cell.py` | paste as a last cell of notebook 1; attacks CBVR on the first 5 frozen receipts (uses `continue_recovery.py`) |
-| 2b | `2b_direct_attack_part2_cell.py` | one standalone cell; receipts 6–10 |
-| 2c | `2c_direct_attack_part3.ipynb` | ten more receipts, chosen in the same frozen order |
+| 1 | `notebooks/04_receipt_cbvr_study.ipynb` | development (210 cases) → **stop and review** → freeze → reserved evaluation (441 cases) |
+| 2 | `scripts/colab_receipt_direct_attack_part1_cell.py` | paste as the last cell of notebook 04: attacks aimed at CBVR, receipts 1–5 |
+| 3 | `scripts/colab_receipt_direct_attack_part2_cell.py` | one standalone cell: receipts 6–10 |
+| 4 | `notebooks/05_receipt_direct_attack_part3.ipynb` | ten more receipts in the same frozen order |
 
-The 80 attack runs took 11.7 A100 hours in total; each Colab session stops after 4 hours and resumes on the next run. Set `DRIVE_FOLDER` in each notebook to your Drive folder. Every stage checkpoints after
-each case; if Colab disconnects, run the same cells again and it resumes.
-Output: `full_study_results/receipt_bands_full_v1/` (summaries in `results/receipts_qwen/`).
+The runner is `scripts/colab_receipt_study.py`; its `POLICY` dictionary fixes the methods,
+band geometry and attack budgets. Each session stops after 4 hours; run the cell again to
+continue. The 80 direct-attack runs took 11.7 A100 hours in total.
 
-The runner is `colab/receipts/full_study.py` (also embedded in the notebook). Methods,
-band geometry and attack budgets are fixed in its `POLICY` dictionary.
+## 5. Colab: resumes
 
-## 4. Colab: resumes
-
-On CARC, after the standard resume attack has merged:
+On the cluster, after the standard resume attack has merged:
 
 ```bash
-python colab/resumes/export_resume_development.py --root . --out resume_development_inputs_v1.zip
-python colab/resumes/export_resume_complete.py   --root . --out resume_complete_inputs_v1.zip
+python scripts/export_resume_development.py --root . --out resume_development_inputs_v1.zip
+python scripts/export_resume_complete.py   --root . --out resume_complete_inputs_v1.zip
 ```
 
-Upload both zips (and `source.tar` in the parent folder) to Drive, then run in order:
+Upload both zips (and `source.tar` one folder up) to Drive, then run
+`notebooks/06_resume_development.ipynb` → `07_resume_saved_attacks.ipynb` (and paste
+`scripts/colab_resume_reserved_evaluation_cell.py` below it for the 60 reserved resumes) →
+`08_resume_direct_attack.ipynb`. Use an A100; an L4 runs out of memory on two-page resumes.
 
-| Step | File | What it does |
-|---|---|---|
-| 1 | `colab/resumes/1_development.ipynb` | design the education-band rule on 15 clean development resumes (frozen v4) |
-| 2 | `colab/resumes/2_saved_attacks.ipynb` | 15 resumes + 60 saved attacks, development only |
-| 3 | `colab/resumes/3_reserved_evaluation_cell.py` | paste below notebook 2; 60 reserved resumes + 236 attacks |
-| 4 | `colab/resumes/4_direct_attack.ipynb` | 40 attacks aimed at recovery (10 resumes × ε 8, 16 × 2 tries) |
+## 6. Colab: Donut as the reader
 
-## 5. Colab: Donut as the reader
+`notebooks/09_donut_cbvr_study.ipynb` uses the same receipt bundle. Qwen locates the band
+and Donut reads it.
 
-`colab/donut/1_donut_cbvr_study.ipynb` uses the same `csev_full_inputs.zip`; Qwen locates
-the band and Donut reads it. `2_geometry_diagnostic.ipynb` is a development-only check
-of other band sizes (none was adopted).
+## Outputs
 
-## 6. Figures and poster
-
-`poster/main.tex` compiles with LuaLaTeX (or pdfLaTeX); `poster/make_results12.py` redraws
-the defense chart from the numbers in `results/receipts_qwen/evaluation_summary.csv`.
-`midterm/` and `notebooks/` hold the CPU-only analysis notebooks used for earlier reports.
+Each notebook ends by exporting a zip of its summaries. The committed copies are in
+`results/`; [`RESULTS.md`](RESULTS.md) lists every number with its denominator.

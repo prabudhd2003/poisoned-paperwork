@@ -29,8 +29,8 @@ CONFIGS = (
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--images", type=Path, default=ROOT / "collected receipts")
-    parser.add_argument("--labels", type=Path, default=ROOT / "annotations/collected_receipt_labels.csv")
+    parser.add_argument("--images", type=Path, default=ROOT / "data" / "collected_receipts")
+    parser.add_argument("--labels", type=Path, default=ROOT / "data" / "annotations" / "collected_receipt_labels.csv")
     parser.add_argument("--expected", type=int, default=114)
     parser.add_argument("--update-configs", action="store_true")
     return parser.parse_args()

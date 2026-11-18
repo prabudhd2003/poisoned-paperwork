@@ -7,8 +7,8 @@ Two kinds of evidence back these numbers:
 
 - **CARC pipeline runs** (`src/`, `scripts/`, `configs/`) on L40S GPUs: clean baselines, standard
   attacks and EOT attacks. Their merged tables live in the CARC `outputs/` tree, which is not in Git.
-- **Colab studies** (`colab/`) on A100 GPUs: CBVR, the attacks aimed at it, resumes and Donut.
-  Their summary files are committed under [`results/`](../results).
+- **Colab studies** (`notebooks/04`–`09`) on A100 GPUs: CBVR, the attacks aimed at it,
+  resumes and Donut. Their summary files are committed under [`results/`](../results).
 
 ## 1. Clean baselines (CARC)
 
@@ -57,7 +57,7 @@ hard-view EOT on 66.7%. Section 4 evaluates the same two attacks on self-collect
 ## 4. CBVR on self-collected receipts (Colab, Qwen) — main result
 
 Files: [`results/receipts_qwen/`](../results/receipts_qwen). Study `receipt_bands_full_v1`,
-contract `94243896…`, runner `colab/receipts/full_study.py`, code snapshot `git archive c5c5d52`.
+contract `94243896…`, runner `scripts/colab_receipt_study.py`, code snapshot `git archive c5c5d52`.
 
 Protocol: 75 development receipts (60 public + 15 collected) for design; frozen;
 then evaluated once on 45 reserved collected receipts and their 396 saved attacks

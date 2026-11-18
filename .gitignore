@@ -1,6 +1,12 @@
 # Local datasets and caches. Keep the empty directory in Git.
 data/*
 !data/.gitkeep
+!data/collected_receipts/
+!data/annotations/
+!data/receipt_study/
+data/receipt_study/staging/
+data/receipt_study/source.tar
+data/receipt_study/*.zip
 .cache/
 
 # Experiment artifacts and model files
@@ -25,7 +31,3 @@ __pycache__/
 *.py[cod]
 .DS_Store
 
-# Colab input staging (rebuilt by colab/receipts/fetch_full_inputs.sh)
-colab/receipts/staging/
-colab/receipts/inputs/source.tar
-colab/receipts/*.zip

@@ -2,8 +2,8 @@
 from pathlib import Path
 import json, hashlib, zipfile
 
-here = Path(__file__).resolve().parent
-inputs, staging = here / 'inputs', here / 'staging'
+inputs = Path(__file__).resolve().parents[1] / 'data' / 'receipt_study'
+staging = inputs / 'staging'
 files = json.loads((inputs / 'file_hashes.json').read_text())
 
 
@@ -24,7 +24,7 @@ for i, (remote, h) in enumerate(files.items()):
     if (i + 1) % 100 == 0:
         print('Verified', i + 1, 'files', flush=True)
 
-archive, tmp = here / 'csev_full_inputs.zip', here / 'csev_full_inputs.partial.zip'
+archive, tmp = inputs / 'csev_full_inputs.zip', inputs / 'csev_full_inputs.partial.zip'
 with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_STORED, allowZip64=True) as z:
     for name in ['plan.json', 'csev_receipts_v1.json', 'source.tar', 'file_hashes.json', 'data_roles.json']:
         z.write(inputs / name, name)
